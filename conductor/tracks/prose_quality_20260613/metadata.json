@@ -1,0 +1,8 @@
+{
+  "track_id": "prose_quality_20260613",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-06-13T19:10:00Z",
+  "updated_at": "2026-06-13T19:10:00Z",
+  "description": "Integrate Markdown & Mermaid styleguides, configure Vale prose linter, and enforce typos/taplo/actionlint syntax checking."
+}
