@@ -1,0 +1,8 @@
+{
+  "track_id": "core_pipeline_20260613",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-06-13T19:10:00Z",
+  "updated_at": "2026-06-13T19:10:00Z",
+  "description": "Build the core data acquisition and sync pipeline for hathi-nz, including HathiTrust volume inventory mapping, incremental Hugging Face sync via GitHub Actions, and strict metadata validation."
+}
