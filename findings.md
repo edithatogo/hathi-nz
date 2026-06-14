@@ -243,6 +243,60 @@ Follows Hugging Face dataset card YAML convention:
 - **All fields nullable/secondary**: sha256, size_bytes, pipeline_version (null until staged)
 - **Constant fields**: record_schema_version="1.0", corpus_id="corpus-nz-hathi"
 
+---
+
+## ORACLE — Architecture Guidance for Remaining Tracks (2026-06-14)
+
+### Assessment: Core Pipeline Complete ✅
+
+| Track | Status | Key Deliverables |
+|-------|--------|-----------------|
+| **core_pipeline_20260613** | ✅ COMPLETE | 4 scripts, 143 tests, 0 lint/type errors, 76% coverage |
+| **prose_quality_20260613** | [~] Phase 1 done, Phase 2 outstanding | typos.toml ✅, .vale.ini ✅ |
+| **config_mapping_20260613** | [~] Phase 1 partial, Phase 2 outstanding | schema.json ✅, DATASET_CARD.md ✅ |
+| **ocr_processing_20260613** | [~] Phase 1 partial, no code yet | Nothing implemented |
+| **release_archival_20260613** | [~] Phase 1 partial, no code yet | .zenodo.json ✅ |
+| **multi_git_archive_mirroring_20260614** | [ ] Phase 1 partial, Phase 2 doc work | mirror_sync.yml ✅ |
+
+---
+
+### Architecture: prose_quality_20260613 — Quality Command Integration
+
+**Design Decision: Makefile vs pixi tasks vs shell wrapper**
+
+The existing pipeline uses `pixi run` for all commands (test, lint, format, typecheck). Adding prose linters and spellchecks should follow the same pattern.
+
+**Recommendation**: Extend `pixi.toml` with new tasks rather than introducing a Makefile. This keeps the developer experience uniform.
+
+**Proposed pixi.toml additions:**
+```toml
+[tasks]
+# Existing (keep as-is)
+test = "pytest tests/ -x --tb=short -q"
+test-cov = "pytest tests/ --cov --cov-report=term-missing -x -q"
+lint = "ruff check scripts/ tests/"
+format = "ruff format scripts/ tests/"
+format-check = "ruff format --check scripts/ tests/"
+typecheck = "ty scripts/ tests/ --report"
+
+# New quality commands
+spell = "typos scripts/ tests/ manifests/ .github/ README.md DATASET_CARD.md"
+toml-check = "taplo check pixi.toml pyproject.toml typos.toml"
+workflow-syntax = "actionlint .github/workflows/*.yml"
+quality = { depends-on = ["lint", "format-check", "spell", "toml-check", "workflow-syntax", "typecheck", "test"] }
+```
+
+**Integration into ci.yml**: The `ci.yml` workflow should gain a `quality` job that runs lint, format-check, spell, toml-check, workflow-syntax in parallel with the existing test job.
+
+**Architecture Decision Records:**
+
+| ADR | Decision | Rationale |
+|-----|----------|-----------|
+| ADR-Q1 | pixi tasks over Makefile | Consistency with existing dev workflow |
+| ADR-Q2 | `quality` composite task | Single `pixi run quality` runs all checks |
+| ADR-Q3 | typos over codespell | Already in dev deps; faster; matches corpus-law-nz |
+| ADR-Q4 | actionlint for workflow validation | Catches GHA syntax early; already in dev deps |
+
 ### 5. Naming Convention Note
 
 Per corpus-law-nz sibling patterns:
@@ -311,3 +365,171 @@ flowchart LR
   U1 -->|HuggingFace Hub| H[(corpus-nz-hathi)]
   C2 -->|triggers| F1
 ```
+
+---
+
+### Architecture: config_mapping_20260613 — Multi-Configuration HF Dataset Design
+
+**Current State:**
+- `manifests/schema.json` defines Draft 2020-12 volume schema ✅
+- `DATASET_CARD.md` exists with YAML frontmatter ✅
+- Missing: tests for config loading, structured YAML config in dataset card
+
+**Proposed HF Dataset Configuration Structure:**
+
+The dataset card should define Hugging Face `configs` in its YAML frontmatter:
+
+```yaml
+configs:
+  - config_name: debates
+    data_dir: data/raw/debates
+    data_files:
+      - **/*.txt
+    features:
+      - name: htid
+        dtype: string
+      - name: text
+        dtype: string
+      - name: year
+        dtype: int32
+      - name: volume
+        dtype: string
+      - name: title
+        dtype: string
+      - name: rights
+        dtype: string
+    default: true
+```
+
+This enables `load_dataset("edithatogo/corpus-nz-hathi")` → debates (default), or `load_dataset(..., "debates")`.
+
+**Validation Tests Needed:**
+
+| Test | Purpose |
+|------|---------|
+| test_config_names_match_expected | Config names match `debates` (and future `legislation`) |
+| test_data_files_pattern | Glob patterns resolve to existing files |
+| test_features_schema_compatible | dtype mapping matches manifests/schema.json |
+| test_load_each_config | Integration test — actual `load_dataset()` call |
+
+---
+
+### Architecture: ocr_processing_20260613 — Layout-Aware Text Extraction Pipeline
+
+**Design Constraints:**
+1. HathiTrust provides page-level plain text files (not PDFs). Layout detection must work on text + coordinate metadata.
+2. Sibling `nlp-policy-nz` contains shared cleaning routines (de-hyphenation, header pruning).
+3. Progressive processing with state tracking.
+
+**Proposed Module Interface — `scripts/ocr_extract.py`:**
+
+| Function | Input | Output | Side Effects |
+|----------|-------|--------|-------------|
+| load_page_text(input_dir, htid) | Path, str | list[dict] | Reads text files |
+| detect_layout(pages) | list[dict] | list[dict] | None |
+| reconstruct_columns(pages_with_layout) | list[dict] | list[dict] | None |
+| clean_text(text, cleaning_config) | str, dict | str | None (from nlp-policy-nz) |
+| merge_pages(cleaned_pages) | list[dict] | str | None |
+| write_processed(htid, text, output_dir) | str, str, Path | None | Writes .txt file |
+| process_volume(htid, input_dir, output_dir, cleaning_config) | str, Path, Path, dict | dict | Orchestrator |
+
+**Data Flow:**
+```
+data/raw/{category}/year={YYYY}/{volume_num}/*.txt
+  → load_page_text() → [{page_num, text, coords}]
+  → detect_layout() → [{page_num, text, coords, layout_type}]
+  → reconstruct_columns() → [{page_num, ordered_text}]
+  → clean_text() (nlp-policy-nz) → cleaned text
+  → merge_pages() → full volume text
+  → write_processed() → data/processed/{category}/{htid}.txt
+```
+
+**Cleaning Pipeline (shared from nlp-policy-nz):**
+1. `dehyphenate(text)` — Join hyphenated line-breaks
+2. `strip_headers_footers(text)` — Remove running headers/page numbers
+3. `normalize_whitespace(text)` — Collapse multiple spaces
+4. `normalize_quotes(text)` — Unicode quote normalization
+5. `strip_control_chars(text)` — Remove non-printable characters
+
+---
+
+### Architecture: release_archival_20260613 — Zenodo Publication Pipeline
+
+**Proposed Modules:**
+- `scripts/package_release.py` — Archive packaging & validation
+- `scripts/publish_zenodo.py` — Zenodo API client
+
+**`scripts/package_release.py` Interface:**
+
+| Function | Input | Output | Side Effects |
+|----------|-------|--------|-------------|
+| collect_assets(stage_dir, metadata_dir) | Path, Path | dict | Reads directories |
+| build_manifest(assets) | dict | dict | None |
+| validate_zenodo_json(path) | Path | list[str] | Reads .zenodo.json |
+| create_archive(assets, output_path) | dict, Path | Path | Creates .zip |
+| compute_checksum(archive_path) | Path | str | Reads file |
+| package(version, stage_dir, metadata_dir, output_dir) | str, Path, Path, Path | dict | Orchestrator |
+
+**`scripts/publish_zenodo.py` Interface:**
+
+| Function | Input | Output | Side Effects |
+|----------|-------|--------|-------------|
+| get_zenodo_api(token, sandbox) | str, bool | Session | None |
+| create_deposition(api, metadata) | Session, dict | dict | HTTP POST |
+| upload_file(api, deposition_id, file_path) | Session, str, Path | dict | HTTP PUT |
+| publish_deposition(api, deposition_id) | Session, str | dict | HTTP POST |
+| deposit(archive_path, metadata, token, sandbox) | Path, dict, str, bool | dict | Orchestrator |
+
+**`.zenodo.json` additions for automation support:**
+```json
+{
+  "title": "corpus-nz-hathi: NZ Parliamentary Debates (1854\u20131990) from HathiTrust",
+  "description": "<p>Systematic corpus of 510 volumes of NZ Parliamentary Debates (Hansard) sourced from HathiTrust Digital Library.</p>",
+  "creators": [{"name": "Togo, Edith A.", "affiliation": "Flinders University"}],
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "upload_type": "dataset",
+  "prereserve_doi": true
+}
+```
+
+---
+
+### Architecture: multi_git_archive_mirroring_20260614 — Multisite Durability Strategy
+
+**Current State:** `.github/workflows/mirror_sync.yml` ✅ — SSH-based mirror to secondary Git remotes. Secrets must be configured on GitHub (gated).
+
+**Proposed Archive Mirroring Matrix:**
+
+| Target | Type | Cadence | Method | Status |
+|--------|------|---------|--------|--------|
+| **GitHub** | Primary Git | On push | Native | ✅ Active |
+| **GitLab** | Mirror Git | On push | SSH mirror via GHA | ✅ Workflow ready (secrets gated) |
+| **Codeberg** | Mirror Git | On push | SSH mirror via GHA | ✅ Workflow ready (secrets gated) |
+| **Hugging Face** | Primary Dataset | Daily (cron) | hf_sync.yml | ✅ Active |
+| **Zenodo** | Archive Dataset | Annual | publish_zenodo.py | 🔧 Scripts TBD |
+| **OSF** | Backup Archive | Annual (optional) | TBD | 📋 Future consideration |
+
+**Mirror Sync Workflow — Edge Cases:**
+
+| Scenario | Behavior |
+|----------|----------|
+| Credentials not set | Graceful skip (already implemented) |
+| Remote unreachable | Retry 3 times with 30s backoff, then log error |
+| Branch deleted on primary | Force push preserves mirror state |
+| Conflict on mirror | Force push overwrites (mirror is exact copy) |
+| Large repo (>1GB) | `fetch-depth: 0` ensures full history |
+
+---
+
+### Summary: Next Work for Each Track
+
+| Track | Immediate Next Step | Assigned Role |
+|-------|-------------------|---------------|
+| prose_quality | Implement pixi task modifications + ci.yml update | Junior |
+| config_mapping | Write config validation tests + YAML config in DATASET_CARD.md | Junior + Librarian |
+| ocr_processing | Implement scripts/ocr_extract.py with TDD | Junior + Oracle |
+| release_archival | Implement scripts/package_release.py + scripts/publish_zenodo.py | Junior + Oracle |
+| multi_git_archive_mirroring | Document Zenodo & OSF strategy in conductor (Phase 2) | Librarian |
+
+All tracks require Quality_Validator final sign-off before marking complete in tracks.md.

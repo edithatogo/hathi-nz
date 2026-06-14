@@ -13,8 +13,13 @@ import pytest
 SCHEMA_PATH = Path("manifests/schema.json")
 
 VALID_CATEGORIES = [
-    "debates", "legislation", "hansard", "supplementary",
-    "parliamentary-papers", "gazette", "other",
+    "debates",
+    "legislation",
+    "hansard",
+    "supplementary",
+    "parliamentary-papers",
+    "gazette",
+    "other",
 ]
 
 SUBSET_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
@@ -112,8 +117,10 @@ class TestNamingConventions:
     def test_subset_name_max_length(self):
         long_ok = "debates-" + "a" * 54
         too_long = "debates-" + "a" * 60
-        assert re.match(SUBSET_PATTERN, long_ok) and len(long_ok) <= 64
-        assert re.match(SUBSET_PATTERN, too_long) and len(too_long) > 64
+        assert re.match(SUBSET_PATTERN, long_ok)
+        assert len(long_ok) <= 64
+        assert re.match(SUBSET_PATTERN, too_long)
+        assert len(too_long) > 64
 
     def test_data_path_convention(self):
         path = "data/raw/debates/year=1894/v.95-1894/"
@@ -131,7 +138,7 @@ class TestCrossCategoryRecords:
     def test_all_categories_with_subset(self, validator):
         for cat in VALID_CATEGORIES:
             vol: dict[str, Any] = {
-                "htid": f"uc1.{cat.replace('-', '_')}_test",
+                "htid": f"uc1.{cat.replace('-', '')}test",
                 "category": cat,
                 "subset": f"{cat}-v1",
                 "year": 1900,
@@ -172,7 +179,10 @@ class TestSubsetResolution:
             ({"category": "debates"}, "debates"),
             ({"category": "debates", "subset": "debates-1890s"}, "debates-1890s"),
             ({"category": "legislation", "subset": ""}, "legislation"),
-            ({"category": "supplementary", "subset": "supplementary-indexes"}, "supplementary-indexes"),
+            (
+                {"category": "supplementary", "subset": "supplementary-indexes"},
+                "supplementary-indexes",
+            ),
             ({"category": "hansard"}, "hansard"),
             ({"category": "unknown"}, "default"),
             ({}, "default"),

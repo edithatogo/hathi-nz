@@ -1,11 +1,16 @@
 # Plan: Zenodo Release Archival Automation (release_archival_20260613)
 
 ## Phase 1: Archive Packaging & Validation
-- [~] Task: Write tests for release packager (verifying file listings and JSON schema validations).
-- [~] Task: Implement package construction and `.zenodo.json` verification inside `scripts/package_release.py`.
+- [x] Task: Write tests for release packager (verifying file listings and JSON schema validations).
+- [x] Task: Implement package construction and `.zenodo.json` verification inside `scripts/package_release.py`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Archive Packaging & Validation' (Protocol in workflow.md)
 
 ## Phase 2: Zenodo Upload Pipeline
-- [ ] Task: Write tests for Zenodo API client operations using mock API targets.
-- [ ] Task: Implement automated Zenodo deposition upload and publication script in `scripts/publish_zenodo.py`.
+- [x] Task: Write tests for Zenodo API client operations using mock API targets.
+- [x] Task: Implement automated Zenodo deposition upload and publication script in `scripts/publish_zenodo.py`.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Zenodo Upload Pipeline' (Protocol in workflow.md)
+
+## Local Evidence
+- [2026-06-14] Added `scripts/package_release.py`, `scripts/publish_zenodo.py`, and `tests/test_release_archival.py`.
+- [2026-06-14] `tests/test_release_archival.py` passes and the full local suite passes.
+- [2026-06-14] Actual Zenodo deposition creation, file upload, and publication remain gated external-account actions.

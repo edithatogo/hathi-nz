@@ -17,6 +17,29 @@ task_categories:
 - text-classification
 - token-classification
 - question-answering
+configs:
+- config_name: debates
+  data_dir: data/processed
+  data_files:
+  - metadata.parquet
+  default: true
+  features:
+  - name: htid
+    dtype: string
+  - name: category
+    dtype: string
+  - name: year
+    dtype: int64
+  - name: volume
+    dtype: string
+  - name: title
+    dtype: string
+  - name: rights
+    dtype: string
+  - name: collection_id
+    dtype: string
+  - name: source
+    dtype: string
 ---
 
 # corpus-nz-hathi: NZ Parliamentary Debates (1854–1990)

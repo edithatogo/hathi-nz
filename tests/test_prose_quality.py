@@ -9,7 +9,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -41,7 +40,6 @@ def test_vale_ini_has_styles() -> None:
 
 def test_vale_styles_directory() -> None:
     """Vale styles directory should exist or be installable."""
-    styles_path = PROJECT_ROOT / "styles"
     # styles may not exist yet; that's okay, just verify config references it
     ini_path = PROJECT_ROOT / ".vale.ini"
     content = ini_path.read_text(encoding="utf-8")
@@ -79,23 +77,24 @@ def test_ruff_can_run() -> None:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,
         )
         assert result.returncode == 0, f"ruff not available: {result.stderr}"
 
 
 def test_taplo_importable() -> None:
     """taplo (TOML formatter) should be importable if installed."""
-    try:
+    import contextlib
+
+    with contextlib.suppress(ImportError):
         import taplo as _  # noqa: F401
-    except ImportError:
-        # taplo may be a standalone binary
-        pass  # Not a hard failure — CI might have it as binary
 
 
 def test_typos_available() -> None:
     """typos binary should be discoverable (importable or on PATH)."""
     try:
         import typos as _  # noqa: F401
+
         return  # Import worked
     except ImportError:
         pass
@@ -105,6 +104,7 @@ def test_typos_available() -> None:
         capture_output=True,
         text=True,
         timeout=30,
+        check=False,
     )
     assert result.returncode == 0, f"typos not available: {result.stderr}"
 

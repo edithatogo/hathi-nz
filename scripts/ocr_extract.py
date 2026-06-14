@@ -87,9 +87,7 @@ def clean_text(raw_text: str) -> str:
     text = MULTI_BLANK.sub("\n\n", text)
 
     # Step 5: Final strip
-    text = text.strip()
-
-    return text
+    return text.strip()
 
 
 def detect_layout(page_text: str) -> dict[str, Any]:
@@ -112,6 +110,34 @@ def detect_layout(page_text: str) -> dict[str, Any]:
           - 'has_columns': bool
 
     """
+    lines = page_text.split("\n")
+    non_empty = [ln for ln in lines if ln.strip()]
+
+    if not non_empty:
+        return {
+            "column_estimate": 1,
+            "line_count": 0,
+            "avg_line_length": 0.0,
+            "max_line_length": 0,
+            "has_columns": False,
+        }
+
+    line_lengths = [len(ln.rstrip()) for ln in non_empty]
+    avg_len = sum(line_lengths) / len(line_lengths) if line_lengths else 0.0
+    max_len = max(line_lengths) if line_lengths else 0
+
+    # Multi-column heuristic: many short lines with significant whitespace gaps
+    # A typical full-width line in a book is 60-80 chars.
+    # If avg line length is < 40 and max > 50, likely multi-column
+    has_columns = avg_len < 40 and max_len > 50 and len(non_empty) > 5
+
+    return {
+        "column_estimate": 2 if has_columns else 1,
+        "line_count": len(non_empty),
+        "avg_line_length": round(avg_len, 1),
+        "max_line_length": max_len,
+        "has_columns": has_columns,
+    }
 
 
 def extract_text_from_zip(zip_path: Path, output_dir: Path) -> dict[str, Any]:
@@ -177,6 +203,24 @@ def extract_text_from_zip(zip_path: Path, output_dir: Path) -> dict[str, Any]:
             "total_chars": 0,
             "page_files": [],
             "layout_stats": {"pages": [], "error": str(exc)},
+        }
+
+    # Compute aggregate layout stats
+    column_counts = [p["layout"]["column_estimate"] for p in layout_stats["pages"]]
+    multi_col_pct = sum(1 for c in column_counts if c > 1) / max(len(column_counts), 1) * 100
+
+    layout_summary: dict[str, Any] = {
+        "pages_analyzed": len(layout_stats["pages"]),
+        "multi_column_pct": round(multi_col_pct, 1),
+        "avg_chars_per_page": round(total_chars / max(pages_extracted, 1)),
+    }
+
+    return {
+        "pages_extracted": pages_extracted,
+        "total_chars": total_chars,
+        "page_files": page_files,
+        "layout_stats": layout_summary,
+    }
 
 
 def process_volume(
@@ -314,53 +358,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-        }
-
-    # Compute aggregate layout stats
-    column_counts = [p["layout"]["column_estimate"] for p in layout_stats["pages"]]
-    multi_col_pct = (
-        sum(1 for c in column_counts if c > 1) / max(len(column_counts), 1) * 100
-    )
-
-    layout_summary: dict[str, Any] = {
-        "pages_analyzed": len(layout_stats["pages"]),
-        "multi_column_pct": round(multi_col_pct, 1),
-        "avg_chars_per_page": round(total_chars / max(pages_extracted, 1)),
-    }
-
-    return {
-        "pages_extracted": pages_extracted,
-        "total_chars": total_chars,
-        "page_files": page_files,
-        "layout_stats": layout_summary,
-    }
-
-    lines = page_text.split("\n")
-    non_empty = [l for l in lines if l.strip()]
-
-    if not non_empty:
-        return {
-            "column_estimate": 1,
-            "line_count": 0,
-            "avg_line_length": 0.0,
-            "max_line_length": 0,
-            "has_columns": False,
-        }
-
-    line_lengths = [len(l.rstrip()) for l in non_empty]
-    avg_len = sum(line_lengths) / len(line_lengths) if line_lengths else 0.0
-    max_len = max(line_lengths) if line_lengths else 0
-
-    # Multi-column heuristic: many short lines with significant whitespace gaps
-    # A typical full-width line in a book is 60-80 chars.
-    # If avg line length is < 40 and max > 50, likely multi-column
-    has_columns = avg_len < 40 and max_len > 50 and len(non_empty) > 5
-
-    return {
-        "column_estimate": 2 if has_columns else 1,
-        "line_count": len(non_empty),
-        "avg_line_length": round(avg_len, 1),
-        "max_line_length": max_len,
-        "has_columns": has_columns,
-    }

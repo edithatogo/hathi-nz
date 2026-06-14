@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import jsonschema
 import pytest
@@ -65,13 +65,23 @@ class TestZenodoRequiredFields:
 
     def test_upload_type_valid(self, zenodo_metadata):
         assert "upload_type" in zenodo_metadata
-        valid = {"publication", "poster", "presentation", "dataset", "image", "video", "software", "lesson", "physicalobject", "other"}
+        valid = {
+            "publication",
+            "poster",
+            "presentation",
+            "dataset",
+            "image",
+            "video",
+            "software",
+            "lesson",
+            "physicalobject",
+            "other",
+        }
         assert zenodo_metadata["upload_type"] in valid
 
     def test_all_required_fields_present(self, zenodo_metadata):
         for field in ZENODO_REQUIRED_FIELDS:
             assert field in zenodo_metadata, f"Missing: {field!r}"
-
 
 
 class TestZenodoOptionalFields:
@@ -88,16 +98,24 @@ class TestZenodoOptionalFields:
         if keywords:
             assert isinstance(keywords, list)
             for kw in keywords:
-                assert isinstance(kw, str) and len(kw.strip()) > 0
+                assert isinstance(kw, str)
+                assert len(kw.strip()) > 0
 
     def test_related_identifiers_structure(self, zenodo_metadata):
         related = zenodo_metadata.get("related_identifiers", [])
         if related:
             valid_relations = {
-                "isSupplementTo", "isSupplementedBy", "isNewVersionOf",
-                "isPreviousVersionOf", "isPartOf", "hasPart",
-                "isDocumentedBy", "documents", "isDerivedFrom",
-                "isSourceOf", "isIdenticalTo",
+                "isSupplementTo",
+                "isSupplementedBy",
+                "isNewVersionOf",
+                "isPreviousVersionOf",
+                "isPartOf",
+                "hasPart",
+                "isDocumentedBy",
+                "documents",
+                "isDerivedFrom",
+                "isSourceOf",
+                "isIdenticalTo",
             }
             for item in related:
                 assert "relation" in item
@@ -135,13 +153,16 @@ class TestZenodoCorpusSpecific:
     def test_method_describes_pipeline(self, zenodo_metadata):
         method = zenodo_metadata.get("method", "")
         if method:
-            assert any(p in method.lower() for p in ["hathifile", "collection id", "sha-256", "parquet", "manifest"])
+            assert any(
+                p in method.lower()
+                for p in ["hathifile", "collection id", "sha-256", "parquet", "manifest"]
+            )
 
 
 class TestReleasePackaging:
     """Test release packaging strategy."""
 
-    RELEASE_FILES = [
+    RELEASE_FILES: ClassVar[list[str]] = [
         "metadata.parquet",
         "manifests/schema.json",
         "manifests/latest_manifest.json",

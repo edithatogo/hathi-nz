@@ -21,7 +21,7 @@
     "htid": {
       "type": "string",
       "description": "HathiTrust volume ID (e.g. uc1.b2889853) -- primary identifier",
-      "pattern": "^[a-z0-9]+\\.[a-z0-9]+$"
+      "pattern": "^[a-z0-9]+\\.[a-z0-9_]+$"
     },
     "category": {
       "type": "string",

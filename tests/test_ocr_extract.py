@@ -7,13 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.ocr_extract import (
-    clean_text,
-    detect_layout,
-    extract_text_from_zip,
-    parse_args,
-    process_volume,
-)
+from scripts.ocr_extract import clean_text
 
 
 @pytest.fixture
@@ -41,6 +35,8 @@ def sample_text_with_headers() -> str:
         "\n"
         "5\n"
         "\n"
+    )
+
 
 @pytest.fixture
 def sample_multi_column_text() -> str:
@@ -138,6 +134,3 @@ class TestCleanText:
         text = "First hyphen-\nated word.\nSecond hyphen-\nated word."
         result = clean_text(text)
         assert "hyphenated" in result
-
-        "More content on the next logical page.\n"
-    )
