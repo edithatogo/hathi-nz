@@ -1,0 +1,5 @@
+{"ts": 1781368222.9974434, "agent": "oracle", "event": "spawned", "detail": "Task: Test task", "meta": {"model": "deepseek-v4-flash"}}
+{"ts": 1781368222.9974434, "agent": "oracle", "event": "status_change", "detail": "running", "meta": {}}
+{"ts": 1781368230.850301, "agent": "oracle", "event": "command_exec", "detail": "cd /workspace && pwd && ls -la", "meta": {"exit_code": 0}}
+{"ts": 1781368231.6537094, "agent": "oracle", "event": "warning", "detail": "stream_tail_unparsed", "meta": {"tail_chars": 770}}
+{"ts": 1781368231.6542406, "agent": "oracle", "event": "status_change", "detail": "idle", "meta": {}}

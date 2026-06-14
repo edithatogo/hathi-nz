@@ -1,0 +1,35 @@
+# Generated corpus outputs
+data/raw/*
+data/processed/*
+data/metadata/*
+data/_state/*
+!data/_state/.gitkeep
+generated/*
+!generated/metadata/
+!generated/metadata/**
+manifests/latest_manifest.json
+
+# Local caches
+.cache/
+.tmp/
+.tmp_*
+.test-tmp/
+.ruff_cache/
+.venv/
+.antigravitycli/
+__pycache__/
+*.pyc
+.pixi/
+
+# Environment
+.env
+*.env
+
+# Local logs & temp files
+logs/
+*.txt
+*.log
+_gen_write_*.py
+.coverage
+*.clean
+

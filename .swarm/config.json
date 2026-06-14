@@ -1,0 +1,43 @@
+{
+  "name": "swarm-mission",
+  "created_at": 1781368113.8478863,
+  "leader": "leader",
+  "members": [
+    {
+      "agent_id": "oracle@swarm-mission",
+      "name": "Oracle",
+      "color": "magenta",
+      "model": "deepseek-v4-flash",
+      "mode": "parallel",
+      "status": "pending"
+    },
+    {
+      "agent_id": "junior@swarm-mission",
+      "name": "Junior",
+      "color": "yellow",
+      "model": "deepseek-v4-flash",
+      "mode": "parallel",
+      "status": "pending"
+    },
+    {
+      "agent_id": "librarian@swarm-mission",
+      "name": "Librarian",
+      "color": "blue",
+      "model": "deepseek-v4-flash",
+      "mode": "parallel",
+      "status": "pending"
+    },
+    {
+      "agent_id": "quality_validator@swarm-mission",
+      "name": "Quality_Validator",
+      "color": "green",
+      "model": "deepseek-v4-flash",
+      "mode": "validator",
+      "status": "pending"
+    }
+  ],
+  "settings": {
+    "backend": "thread",
+    "poll_interval_ms": 1000
+  }
+}

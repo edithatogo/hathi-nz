@@ -1,0 +1,48 @@
+# HF Sync Pipeline — Daily HathiTrust → Hugging Face Hub sync
+#
+# Runs the full acquisition pipeline on a schedule or manual trigger.
+# Steps:
+#   1. fetch_hathitrust.py — Fetch/update the volume catalog manifest
+#   2. stage_hf_dataset.py  — Download and stage volume content
+#   3. validate_catalog.py  — Validate staged data (quality gate)
+#   4. upload_hf_dataset.py — Upload to Hugging Face Hub
+
+name: HF Sync Pipeline
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # Daily at 06:00 UTC
+  workflow_dispatch:      # Manual trigger from Actions tab
+
+env:
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+
+      - name: Fetch catalog
+        run: pixi run python scripts/fetch_hathitrust.py fetch
+
+      - name: Stage datasets
+        run: pixi run python scripts/stage_hf_dataset.py stage
+
+      - name: Validate catalog and staged data
+        run: |
+          pixi run python scripts/validate_catalog.py validate \
+            --manifest manifests/latest_manifest.json \
+            --stage-dir data/processed \
+            --fail-on-warning
+
+      - name: Upload to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: pixi run python scripts/upload_hf_dataset.py upload

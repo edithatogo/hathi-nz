@@ -1,0 +1,154 @@
+{
+  "": "https://corpus-nz-hathi.schemas/volume-record.schema.json",
+  "title": "HathiTrust Volume Record",
+  "description": "Schema for a single HathiTrust volume record in the corpus-nz-hathi manifest. Compatible with shared-nz-corpus-core schema. Includes HF multi-config subset routing.",
+  "type": "object",
+  "required": [
+    "htid",
+    "category",
+    "year",
+    "volume",
+    "title",
+    "rights",
+    "collection_id",
+    "source"
+  ],
+  "properties": {
+    "": {
+      "type": "string",
+      "description": "URI of the JSON Schema that this record conforms to (self-identifying)"
+    },
+    "htid": {
+      "type": "string",
+      "description": "HathiTrust volume ID (e.g. uc1.b2889853) -- primary identifier",
+      "pattern": "^[a-z0-9]+\\.[a-z0-9]+$"
+    },
+    "category": {
+      "type": "string",
+      "description": "Content category for the volume — used for HF config/subset routing",
+      "enum": [
+        "debates",
+        "legislation",
+        "hansard",
+        "supplementary",
+        "parliamentary-papers",
+        "gazette",
+        "other"
+      ]
+    },
+    "subset": {
+      "type": "string",
+      "description": "Hugging Face dataset config/subset name for this volume. Maps to a HF multi-config key, e.g. debates, debates-1890s, supplementary-indexes.",
+      "examples": [
+        "debates",
+        "debates-1890s",
+        "supplementary-indexes",
+        "hansard-v1"
+      ]
+    },
+    "year": {
+      "description": "Publication year (extracted from imprint or title). Null when indeterminate.",
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1800,
+          "maximum": 2100
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "volume": {
+      "type": "string",
+      "description": "Volume number or identifier string (from enumcron)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Full bibliographic title of the volume"
+    },
+    "oclc_num": {
+      "type": "string",
+      "description": "OCLC control number (optional)"
+    },
+    "rights": {
+      "type": "string",
+      "description": "Copyright / rights status code (normalized)",
+      "enum": [
+        "pd",
+        "ic-world",
+        "undetermined",
+        "suppressed"
+      ]
+    },
+    "collection_id": {
+      "type": "string",
+      "description": "HathiTrust collection ID (e.g. 71329709 for NZ Parliamentary Debates)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source institution code (e.g. uc1 for University of California)"
+    },
+    "enumcron": {
+      "type": "string",
+      "description": "Raw enumeration/chronology string from HathiFile"
+    },
+    "isbn": {
+      "type": "string",
+      "description": "ISBN if available"
+    },
+    "issn": {
+      "type": "string",
+      "description": "ISSN if available"
+    },
+    "lccn": {
+      "type": "string",
+      "description": "Library of Congress Control Number if available"
+    },
+    "sha256": {
+      "description": "SHA-256 checksum of the volume content file",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "size_bytes": {
+      "description": "File size in bytes of the volume content",
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pipeline_version": {
+      "description": "Pipeline version that produced this record",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^v?[0-9]+(\\.[0-9]+){0,2}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "record_schema_version": {
+      "const": "1.0",
+      "description": "Version of the volume record schema"
+    },
+    "corpus_id": {
+      "const": "corpus-nz-hathi",
+      "description": "Shared corpus identifier (cross-corpus compatibility)"
+    }
+  },
+  "additionalProperties": false
+}

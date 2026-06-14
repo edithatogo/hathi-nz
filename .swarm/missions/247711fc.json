@@ -1,0 +1,37 @@
+{
+  "mission_id": "247711fc",
+  "description": "Swarm Mission",
+  "started_at": 1781367682.3776667,
+  "status": "running",
+  "agents": [
+    {
+      "name": "Oracle",
+      "mode": "parallel",
+      "color": "magenta",
+      "status": "pending"
+    },
+    {
+      "name": "Junior",
+      "mode": "parallel",
+      "color": "yellow",
+      "status": "pending"
+    },
+    {
+      "name": "Librarian",
+      "mode": "parallel",
+      "color": "blue",
+      "status": "pending"
+    },
+    {
+      "name": "Quality_Validator",
+      "mode": "validator",
+      "color": "green",
+      "status": "pending"
+    }
+  ],
+  "attempt": 1,
+  "team_name": "swarm-mission",
+  "updated_at": 1781367682.380355,
+  "ended_at": 0.0,
+  "failure_reason": ""
+}

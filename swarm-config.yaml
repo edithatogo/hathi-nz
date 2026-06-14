@@ -1,0 +1,30 @@
+# Antigravity Swarm Configuration for Hathi NZ
+# --------------------------------
+
+# Spawn backend: auto | tmux | thread
+backend: thread
+
+# Default model for agents
+default_model: deepseek-v4-flash
+
+# Execution engine: gemini | qwen | cline
+engine: cline
+
+# Maximum parallel agents
+max_parallel: 4
+
+# Mailbox polling interval (milliseconds)
+poll_interval_ms: 1000
+
+# Permission mode: auto | ask | deny
+permission_mode: auto
+
+# Team presets (reusable team configurations)
+presets:
+  legal_nlp:
+    description: "New Zealand legal NLP corpus ingestion and processing team"
+    agents:
+      - {name: Oracle, mode: parallel}       # Architecture and complex parsing logic
+      - {name: Junior, mode: parallel}       # Ingestion scripts & GHA setup
+      - {name: Librarian, mode: parallel}    # Metadata mapping & documentation formatting
+      - {name: Quality_Validator, mode: validator} # Final QA validation & testing

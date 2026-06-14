@@ -1,0 +1,3 @@
+{"ts": 1781368113.8710158, "agent": "Oracle", "event": "spawned", "detail": "mode=parallel", "meta": {"backend": "thread", "retry": 0}}
+{"ts": 1781368113.8846428, "agent": "Junior", "event": "spawned", "detail": "mode=parallel", "meta": {"backend": "thread", "retry": 0}}
+{"ts": 1781368113.8975873, "agent": "Librarian", "event": "spawned", "detail": "mode=parallel", "meta": {"backend": "thread", "retry": 0}}

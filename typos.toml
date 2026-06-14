@@ -1,0 +1,61 @@
+[files]
+extend-exclude = [
+  ".git/",
+  ".pixi/",
+  ".ruff_cache/",
+  ".pytest_cache/",
+  ".swarm/",
+  "data/",
+  "generated/",
+  "logs/",
+  "node_modules/",
+  "__pycache__/",
+  "*.pyc",
+]
+
+[default]
+extend-ignore-re = [
+  # NZ legal / parliamentary terms
+  "hansard",
+  "hansard's",
+  "hathi",
+  "hati",
+  "hathitrust",
+  "hathiFiles?",
+  "hathifile",
+  "hathifiles?",
+  "huggingface",
+  "zenodo",
+  "corpus-nz-hathi",
+  "corpus-nz-hansard",
+  "corpus-law-nz",
+  "nlp-policy-nz",
+  "edithatogo",
+  # NZ Parliamentary / legal names
+  "parliament",
+  "parliamentary",
+  "debates",
+  "enumcron",
+  "pipeline_version",
+  "collection_id",
+  "oclc_num",
+  "size_bytes",
+  "lccn",
+  "hathi-nz",
+  "pixi",
+  "taplo",
+  "actionlint",
+  "zizmor",
+]
+
+[default.extend-words]
+# NZ spelling variants and technical terms
+parliment = "parliament"
+hathitrust = "HathiTrust"
+hathifile = "hathifile"
+hathi = "hathi"
+huggingface = "huggingface"
+zenodo = "zenodo"
+hansard = "hansard"
+htid = "htid"
+enumcron = "enumcron"

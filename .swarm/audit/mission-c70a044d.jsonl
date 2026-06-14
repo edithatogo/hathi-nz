@@ -1,0 +1,12 @@
+{"ts": 1781367859.799909, "agent": "Oracle", "event": "spawned", "detail": "mode=parallel", "meta": {"backend": "thread", "retry": 0}}
+{"ts": 1781367859.8102922, "agent": "Junior", "event": "spawned", "detail": "mode=parallel", "meta": {"backend": "thread", "retry": 0}}
+{"ts": 1781367859.8178766, "agent": "Librarian", "event": "spawned", "detail": "mode=parallel", "meta": {"backend": "thread", "retry": 0}}
+{"ts": 1781367958.336828, "agent": "Oracle", "event": "warning", "detail": "watchdog_soft_shutdown_requested", "meta": {"idle_seconds": 90.01}}
+{"ts": 1781367958.4502475, "agent": "Oracle", "event": "status_change", "detail": "shutdown", "meta": {}}
+{"ts": 1781367958.857064, "agent": "Junior", "event": "warning", "detail": "watchdog_soft_shutdown_requested", "meta": {"idle_seconds": 90.01}}
+{"ts": 1781367958.9579728, "agent": "Junior", "event": "status_change", "detail": "completed", "meta": {}}
+{"ts": 1781367958.9777343, "agent": "Junior", "event": "status_change", "detail": "shutdown", "meta": {}}
+{"ts": 1781367964.1224353, "agent": "Librarian", "event": "warning", "detail": "watchdog_soft_shutdown_requested", "meta": {"idle_seconds": 90.1}}
+{"ts": 1781367965.1511245, "agent": "Librarian", "event": "status_change", "detail": "shutdown", "meta": {}}
+{"ts": 1781367965.29624, "agent": "Quality_Validator", "event": "spawned", "detail": "mode=validator", "meta": {"backend": "thread", "retry": 0}}
+{"ts": 1781367972.788939, "agent": "Quality_Validator", "event": "status_change", "detail": "completed", "meta": {}}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://zenodo.org/schemas/deposits/records/legacy/record.json",
+  "title": "corpus-nz-hathi: NZ Parliamentary Debates (1854-1990) from HathiTrust",
+  "description": "A dataset of 510 volumes of New Zealand Parliamentary Debates (Hansard) spanning 1854 to 1990, sourced from the HathiTrust Digital Library (Collection ID 71329709). Contains full-text OCR of parliamentary proceedings, volume-level metadata, and provenance information for NLP research, legal analysis, and historical text mining.",
+  "creators": [
+    {
+      "name": "Togo, Edith A.",
+      "affiliation": "Flinders University",
+      "orcid": "0000-0000-0000-0000"
+    }
+  ],
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "upload_type": "dataset",
+  "communities": [
+    {
+      "identifier": "new-zealand-parliamentary-data"
+    },
+    {
+      "identifier": "zenodo"
+    }
+  ],
+  "keywords": [
+    "new-zealand",
+    "parliamentary-debates",
+    "hansard",
+    "hathitrust",
+    "historical-texts",
+    "legal-corpus",
+    "nlp",
+    "digital-humanities",
+    "te-reo-maori"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://huggingface.co/edithatogo/corpus-nz-hathi",
+      "resource_type": "dataset"
+    },
+    {
+      "relation": "isDocumentedBy",
+      "identifier": "https://github.com/edithatogo/hathi-nz",
+      "resource_type": "software"
+    }
+  ],
+  "notes": "Volume count: 510. Date range: 1854-1990. Rights status: Primarily public domain (pd).",
+  "version": "0.1.0",
+  "method": "Volumes were discovered by filtering HathiFile dumps for Collection ID 71329709. Each matching volume was parsed into a structured record with year extraction from imprint/title. Volume content was downloaded from HathiTrust, verified via SHA-256 checksums, and organized into Parquet-based metadata tables. The dataset is validated against JSON Schema Draft 2020-12 and synced to Hugging Face Hub via GitHub Actions.",
+  "references": [
+    "HathiTrust Digital Library. https://www.hathitrust.org/",
+    "NZ Parliamentary Debates Collection ID 71329709"
+  ]
+}

@@ -1,8 +1,8 @@
 # Plan: Prose Linting & Documentation Quality (prose_quality_20260613)
 
 ## Phase 1: Lint Tooling Setup & Config
-- [ ] Task: Create `typos.toml` for spelling exceptions.
-- [ ] Task: Initialize `.vale.ini` configuration and install local Vale styles.
+- [~] Task: Create `typos.toml` for spelling exceptions.
+- [~] Task: Initialize `.vale.ini` configuration and install local Vale styles.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Lint Tooling Setup & Config' (Protocol in workflow.md)
 
 ## Phase 2: Quality Command Integration
