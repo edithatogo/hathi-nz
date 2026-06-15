@@ -23,6 +23,7 @@ __pycache__/
 
 # Environment
 .env
+.env.local
 *.env
 
 # Local logs & temp files
@@ -32,4 +33,4 @@ logs/
 _gen_write_*.py
 .coverage
 *.clean
-
+
