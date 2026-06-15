@@ -27,7 +27,7 @@ jobs:
         uses: prefix-dev/setup-pixi@v0
         with:
           pixi-version: latest
-          cache: true
+          cache: false
 
       - name: Fetch catalog
         run: pixi run python scripts/fetch_hathitrust.py fetch
