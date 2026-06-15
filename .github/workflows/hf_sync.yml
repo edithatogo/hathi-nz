@@ -29,20 +29,32 @@ jobs:
           pixi-version: latest
           cache: false
 
-      - name: Fetch catalog
-        run: pixi run python scripts/fetch_hathitrust.py fetch
+      - name: Check committed catalog manifest
+        run: test -f manifests/latest_manifest.json
 
       - name: Stage datasets
-        run: pixi run python scripts/stage_hf_dataset.py stage
+        run: |
+          pixi run python scripts/stage_hf_dataset.py \
+            --manifest manifests/latest_manifest.json \
+            --download-dir data/raw \
+            --stage-dir data/processed \
+            --state-dir data/_state
 
       - name: Validate catalog and staged data
         run: |
-          pixi run python scripts/validate_catalog.py validate \
+          pixi run python scripts/validate_catalog.py \
             --manifest manifests/latest_manifest.json \
             --stage-dir data/processed \
+            --schema manifests/schema.json \
+            --report data/_state/validation_report.json \
             --fail-on-warning
 
       - name: Upload to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: pixi run python scripts/upload_hf_dataset.py upload
+        run: |
+          pixi run python scripts/upload_hf_dataset.py \
+            --stage-dir data/processed \
+            --repo-id edithatogo/corpus-nz-hathi \
+            --state-dir data/_state \
+            --commit-message "Auto-sync: corpus-nz-hathi update"
