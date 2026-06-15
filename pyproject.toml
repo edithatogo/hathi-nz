@@ -7,6 +7,7 @@ dependencies = [
   "duckdb>=1.5.3",
   "huggingface-hub>=1.18.0",
   "jsonschema>=4.26.0",
+  "loguru>=0.7.2",
   "polars>=1.41.2",
   "pyarrow>=21.0.0",
   "pydantic>=2.0.0",
@@ -111,3 +112,7 @@ extra-paths = ["."]
 
 [tool.ty.rules]
 all = "error"
+
+[tool.legal_nz]
+versioning = "semver"
+logging = "loguru"
