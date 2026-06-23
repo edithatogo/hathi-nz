@@ -1,0 +1,77 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "schedule:weekly",
+    "group:allNonMajor",
+    ":semanticCommitTypeAll(chore)",
+    ":automergeMinor",
+    ":automergePr",
+    ":automergeRequireAllStatusChecks",
+    ":disableDependencyDashboard",
+    ":automergeBranch"
+  ],
+  "timezone": "Pacific/Auckland",
+  "schedule": ["before 6am on Monday"],
+  "labels": ["dependencies", "automated"],
+  "assignees": ["edithatogo"],
+  "packageRules": [
+    {
+      "groupName": "Python Dependencies (Auto-merge)",
+      "matchManagers": ["pip_requirements", "pixi"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "branch",
+      "automergeStrategy": "fast-forward",
+      "commitMessagePrefix": "chore(deps):",
+      "labels": ["dependencies", "python", "auto-merge"]
+    },
+    {
+      "groupName": "Major Dependencies (Require Review)",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "commitMessagePrefix": "chore(deps)!: ",
+      "labels": ["dependencies", "major-update", "requires-review"]
+    },
+    {
+      "groupName": "GitHub Actions (Auto-merge)",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "branch",
+      "commitMessagePrefix": "chore(ci):",
+      "labels": ["dependencies", "github-actions", "automated", "auto-merge"]
+    },
+    {
+      "groupName": "npm (Auto-merge)",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "branch",
+      "commitMessagePrefix": "chore(npm):",
+      "labels": ["dependencies", "npm", "automated", "auto-merge"]
+    }
+  ],
+  "pip_requirements": {
+    "enabled": true
+  },
+  "npm": {
+    "minimumReleaseAge": "0 days",
+    "internalChecksFilter": "strict"
+  },
+  "github-actions": {
+    "enabled": true
+  },
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
+  "rangeStrategy": "bump",
+  "separateMajorMinor": true,
+  "separateMultipleMajor": false,
+  "separateMinorPatch": true,
+  "stabilityDays": 0,
+  "dependencyDashboard": false,
+  "suppressNotifications": ["prEditedNotification", "prAutomergedNotification"],
+  "rebaseWhen": "behind-base-branch",
+  "platformAutomerge": true,
+  "ignoreTests": false
+}
