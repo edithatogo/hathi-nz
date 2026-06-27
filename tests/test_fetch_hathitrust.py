@@ -297,7 +297,7 @@ class TestWriteManifest:
         manifest = write_manifest(volumes, out)
 
         assert manifest["meta"]["record_count"] == 1
-        assert "0.1.0" in manifest["meta"]["version"]
+        assert manifest["meta"]["version"]  # non-empty dynamic version
         assert manifest["meta"]["source"] is not None
         assert "generated_at" in manifest["meta"]
         assert manifest["volumes"] == volumes

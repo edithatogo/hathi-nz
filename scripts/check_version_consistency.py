@@ -53,9 +53,7 @@ def check_version_consistency() -> list[str]:
     pixi = tomllib.loads(_text("pixi.toml"))
     pixi_version = str(pixi["project"]["version"])
     if pixi_version != version_file:
-        failures.append(
-            f"Version mismatch: pixi.toml {pixi_version} != VERSION {version_file}"
-        )
+        failures.append(f"Version mismatch: pixi.toml {pixi_version} != VERSION {version_file}")
 
     # Git tag should match VERSION (with optional 'v' prefix)
     git_tag = _git_tag()
@@ -63,8 +61,7 @@ def check_version_consistency() -> list[str]:
         tag_version = _strip_v_prefix(git_tag)
         if tag_version != version_file:
             failures.append(
-                f"Version mismatch: git tag {git_tag} (→{tag_version}) "
-                f"!= VERSION {version_file}"
+                f"Version mismatch: git tag {git_tag} (→{tag_version}) != VERSION {version_file}"
             )
 
     return failures

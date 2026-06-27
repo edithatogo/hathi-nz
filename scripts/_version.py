@@ -51,8 +51,11 @@ def _from_metadata() -> str | None:
 
 
 def _looks_like_version(s: str) -> bool:
-    """Check if a string looks like a version (starts with digit or 'v' + digit)."""
-    if not s:
+    """Check if a string looks like a version (contains a dot, starts with digit or 'v' + digit).
+
+    Rejects bare commit SHAs (e.g. ``4ec0970``) which have no dots.
+    """
+    if not s or "." not in s:
         return False
     if s[0].isdigit():
         return True
