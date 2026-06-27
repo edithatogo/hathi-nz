@@ -31,7 +31,13 @@ logger = logging.getLogger(__name__)
 
 HATHI_ZIP_URL = "https://babel.hathitrust.org/cgi/zip"
 HATHI_META_URL = "https://share.hathitrust.org/api/volume"
-PIPELINE_VERSION = "0.1.0"
+
+try:
+    from _version import get_version
+
+    PIPELINE_VERSION = get_version()
+except ImportError:  # pragma: no cover
+    PIPELINE_VERSION = "0.0.0"
 
 # ---------------------------------------------------------------
 # Public interface

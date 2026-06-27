@@ -20,3 +20,26 @@ def test_version_consistency_check_passes() -> None:
 def test_version_is_well_formed() -> None:
     version = (ROOT / "VERSION").read_text("utf-8").strip()
     assert SEMVER_RE.fullmatch(version)
+
+
+@pytest.mark.unit
+def test_pixi_version_matches_version_file() -> None:
+    """pixi.toml version must match VERSION file."""
+    import tomllib
+
+    version_file = (ROOT / "VERSION").read_text("utf-8").strip()
+    pixi = tomllib.loads((ROOT / "pixi.toml").read_text("utf-8"))
+    assert pixi["project"]["version"] == version_file
+
+
+@pytest.mark.unit
+def test_pyproject_uses_dynamic_versioning() -> None:
+    """pyproject.toml must use hatch-vcs dynamic versioning."""
+    import tomllib
+
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text("utf-8"))
+    assert "version" not in pyproject["project"], "version should be dynamic, not static"
+    assert "dynamic" in pyproject["project"]
+    assert "version" in pyproject["project"]["dynamic"]
+    build_sys = pyproject.get("build-system", {})
+    assert "hatch-vcs" in build_sys.get("requires", [])

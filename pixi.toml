@@ -9,7 +9,7 @@ platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 test = "pytest tests/ --cov --cov-report=term-missing"
 lint = "ruff check ."
 format-check = "ruff format --check ."
-typecheck = "ty check scripts/"
+typecheck = "ty check scripts/ --exclude scripts/config.py"
 spell = "typos ."
 toml-check = "taplo check pixi.toml pyproject.toml"
 workflow-syntax = "actionlint .github/workflows/*.yml"
@@ -23,7 +23,9 @@ pyarrow = ">=21.0.0"
 huggingface_hub = ">=1.18.0"
 requests = ">=2.34.2"
 pydantic = ">=2.0.0"
+pydantic-settings = ">=2.0.0"
 jsonschema = ">=4.26.0"
+loguru = ">=0.7.2"
 
 [feature.dev.dependencies]
 pytest = ">=8.2.0"

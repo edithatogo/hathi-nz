@@ -19,6 +19,14 @@ from typing import Any
 
 import requests
 
+try:
+    from _version import get_version
+except ImportError:  # pragma: no cover
+
+    def get_version() -> str:
+        return "0.0.0"
+
+
 logger = logging.getLogger(__name__)
 
 # Default HathiTrust collection for NZ Parliamentary Debates
@@ -215,7 +223,7 @@ def write_manifest(
         "meta": {
             "generated_at": datetime.now(UTC).isoformat(),
             "source": f"HathiTrust Collection ID {DEFAULT_COLLECTION_ID}",
-            "version": "0.1.0",
+            "version": get_version(),
             "record_count": len(volumes),
             "schema": "manifests/schema.json",
         },
