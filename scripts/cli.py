@@ -16,7 +16,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_DIR = REPO_ROOT / "scripts"
 
-COMMANDS: dict[str, str] = {'fetch': 'fetch_hathitrust.py', 'ocr': 'ocr_extract.py', 'package': 'package_release.py', 'publish-zenodo': 'publish_zenodo.py', 'stage': 'stage_hf_dataset.py', 'upload': 'upload_hf_dataset.py', 'validate': 'validate_catalog.py'}
+COMMANDS: dict[str, str] = {
+    "fetch": "fetch_hathitrust.py",
+    "ocr": "ocr_extract.py",
+    "package": "package_release.py",
+    "publish-zenodo": "publish_zenodo.py",
+    "stage": "stage_hf_dataset.py",
+    "upload": "upload_hf_dataset.py",
+    "validate": "validate_catalog.py",
+}
 
 
 def _script_path(name: str) -> Path:
@@ -26,7 +34,9 @@ def _script_path(name: str) -> Path:
     path = SCRIPT_DIR / script
     if not path.is_file():
         available = ", ".join(sorted(COMMANDS))
-        raise SystemExit(f"Unknown command or missing script: {name}. Available aliases: {available}")
+        raise SystemExit(
+            f"Unknown command or missing script: {name}. Available aliases: {available}"
+        )
     return path
 
 
@@ -43,8 +53,12 @@ def _run_script(path: Path, args: Sequence[str]) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CLI-first dispatcher for repository scripts.")
     parser.add_argument("command", nargs="?", help="Approved command alias or scripts/*.py name.")
-    parser.add_argument("args", nargs=argparse.REMAINDER, help="Arguments passed to the selected script.")
-    parser.add_argument("--list", action="store_true", help="List approved command aliases and exit.")
+    parser.add_argument(
+        "args", nargs=argparse.REMAINDER, help="Arguments passed to the selected script."
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="List approved command aliases and exit."
+    )
     ns = parser.parse_args(argv)
     if ns.list:
         for alias, script in sorted(COMMANDS.items()):

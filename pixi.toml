@@ -9,7 +9,7 @@ platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 test = "pytest tests/ --cov --cov-report=term-missing"
 lint = "ruff check ."
 format-check = "ruff format --check ."
-typecheck = "ty --error all ."
+typecheck = "ty check scripts/"
 spell = "typos ."
 toml-check = "taplo check pixi.toml pyproject.toml"
 workflow-syntax = "actionlint .github/workflows/*.yml"

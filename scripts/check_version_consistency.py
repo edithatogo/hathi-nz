@@ -24,17 +24,13 @@ def check_version_consistency() -> list[str]:
     pyproject_version = str(pyproject["project"]["version"])
     if pyproject_version != version_file:
         failures.append(
-            "Version mismatch: pyproject.toml "
-            f"{pyproject_version} != VERSION {version_file}"
+            f"Version mismatch: pyproject.toml {pyproject_version} != VERSION {version_file}"
         )
 
     pixi = tomllib.loads(_text("pixi.toml"))
     pixi_version = str(pixi["project"]["version"])
     if pixi_version != version_file:
-        failures.append(
-            "Version mismatch: pixi.toml "
-            f"{pixi_version} != VERSION {version_file}"
-        )
+        failures.append(f"Version mismatch: pixi.toml {pixi_version} != VERSION {version_file}")
 
     return failures
 
