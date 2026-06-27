@@ -25,10 +25,21 @@ from typing import Any
 
 from huggingface_hub import HfApi
 
+try:
+    from config import get_settings
+except ImportError:  # pragma: no cover
+    get_settings = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_HF_REPO = "edithatogo/corpus-nz-hathi"
+def _default_repo() -> str:
+    if get_settings is not None:
+        return get_settings().HF_REPO_ID
+    return "edithatogo/corpus-nz-hathi"
+
+
+DEFAULT_HF_REPO = _default_repo()
 
 
 # ---------------------------------------------------------------
@@ -48,6 +59,10 @@ def get_hf_api(token: str | None = None) -> HfApi:
     """
     if token:
         return HfApi(token=token)
+    if get_settings is not None:
+        settings = get_settings()
+        if settings.HF_TOKEN:
+            return HfApi(token=settings.HF_TOKEN.get_secret_value())
     env_token = os.environ.get("HF_TOKEN")
     if env_token:
         return HfApi(token=env_token)

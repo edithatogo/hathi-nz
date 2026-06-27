@@ -27,10 +27,22 @@ except ImportError:  # pragma: no cover
         return "0.0.0"
 
 
+try:
+    from config import get_settings
+except ImportError:  # pragma: no cover
+    get_settings = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
 
+
+def _default_collection_id() -> str:
+    if get_settings is not None:
+        return get_settings().COLLECTION_ID
+    return "71329709"
+
+
 # Default HathiTrust collection for NZ Parliamentary Debates
-DEFAULT_COLLECTION_ID = "71329709"
+DEFAULT_COLLECTION_ID = _default_collection_id()
 
 # Base URLs
 HATHI_DATA_API = "https://share.hathitrust.org/api/volume"

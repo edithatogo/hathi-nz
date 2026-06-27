@@ -15,6 +15,11 @@ from typing import Any
 
 import requests
 
+try:
+    from config import get_settings
+except ImportError:  # pragma: no cover
+    get_settings = None  # type: ignore[assignment]
+
 ZENODO_API = "https://zenodo.org/api"
 ZENODO_SANDBOX_API = "https://sandbox.zenodo.org/api"
 
@@ -149,6 +154,10 @@ def main() -> int:
         return 0
 
     token = os.environ.get(args.token_env)
+    if not token and get_settings is not None:
+        settings = get_settings()
+        if args.token_env == "ZENODO_TOKEN" and settings.ZENODO_TOKEN:  # noqa: S105
+            token = settings.ZENODO_TOKEN.get_secret_value()
     if not token:
         print(f"Missing token environment variable: {args.token_env}")
         return 2
