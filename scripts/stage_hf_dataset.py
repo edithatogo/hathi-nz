@@ -19,17 +19,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import polars as pl
 import requests
+from loguru import logger
 
+from scripts.logging_utils import configure_logging
 from scripts.retry_utils import retry_on_transient_http_errors
-
-logger = logging.getLogger(__name__)
 
 HATHI_ZIP_URL = "https://babel.hathitrust.org/cgi/zip"
 HATHI_META_URL = "https://share.hathitrust.org/api/volume"
@@ -99,11 +98,11 @@ def _download_volume(
     if skip_existing and zip_path.exists():
         actual_size = zip_path.stat().st_size
         actual_sha256 = _compute_sha256(zip_path)
-        logger.info("Skipping existing %s (size=%d)", htid, actual_size)
+        logger.info("Skipping existing {} (size={})", htid, actual_size)
         return {"sha256": actual_sha256, "size_bytes": actual_size}
 
     url = f"{HATHI_ZIP_URL}?id={htid}"
-    logger.info("Downloading %s from %s", htid, url)
+    logger.info("Downloading {} from {}", htid, url)
     resp = requests.get(url, timeout=300, stream=True)
     resp.raise_for_status()
 
@@ -114,7 +113,7 @@ def _download_volume(
 
     actual_size = zip_path.stat().st_size
     actual_sha256 = _compute_sha256(zip_path)
-    logger.info("Downloaded %s (size=%d, sha256=%s)", htid, actual_size, actual_sha256)
+    logger.info("Downloaded {} (size={}, sha256={})", htid, actual_size, actual_sha256)
     return {"sha256": actual_sha256, "size_bytes": actual_size}
 
 
@@ -127,7 +126,7 @@ def download_volume(
     try:
         return _download_volume(htid, target_dir, skip_existing=skip_existing)
     except requests.RequestException as exc:
-        logger.warning("Failed to download %s: %s", htid, exc)
+        logger.warning("Failed to download {}: {}", htid, exc)
         return None
 
 
@@ -148,13 +147,13 @@ def verify_content(
 
     """
     if not file_path.exists():
-        logger.warning("File not found for verification: %s", file_path)
+        logger.warning("File not found for verification: {}", file_path)
         return False
 
     actual_size = file_path.stat().st_size
     if actual_size != expected_size_bytes:
         logger.warning(
-            "Size mismatch for %s: expected %d, got %d",
+            "Size mismatch for {}: expected {}, got {}",
             file_path,
             expected_size_bytes,
             actual_size,
@@ -164,7 +163,7 @@ def verify_content(
     actual_sha256 = _compute_sha256(file_path)
     if actual_sha256 != expected_sha256:
         logger.warning(
-            "SHA-256 mismatch for %s: expected %s, got %s",
+            "SHA-256 mismatch for {}: expected {}, got {}",
             file_path,
             expected_sha256,
             actual_sha256,
@@ -233,7 +232,7 @@ def write_stage_state(state_dir: Path, state: dict[str, Any]) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
     path = state_dir / "stage_state.json"
     path.write_text(json.dumps(state, indent=2, sort_keys=False), encoding="utf-8")
-    logger.info("Wrote stage state to %s", path)
+    logger.info("Wrote stage state to {}", path)
 
 
 # ---------------------------------------------------------------
@@ -314,13 +313,10 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 def main() -> int:
     """CLI entry point."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s | %(message)s",
-    )
+    configure_logging()
     args = parse_args()
     logger.info(
-        "Staging dataset: manifest=%s, download=%s, stage=%s",
+        "Staging dataset: manifest={}, download={}, stage={}",
         args.manifest,
         args.download_dir,
         args.stage_dir,
@@ -328,11 +324,11 @@ def main() -> int:
 
     # 1. Load manifest
     volumes = load_manifest(args.manifest)
-    logger.info("Loaded %d volumes from manifest", len(volumes))
+    logger.info("Loaded {} volumes from manifest", len(volumes))
 
     if args.limit > 0:
         volumes = volumes[: args.limit]
-        logger.info("Limited to %d volumes for testing", len(volumes))
+        logger.info("Limited to {} volumes for testing", len(volumes))
 
     # 2. Create download directory
     args.download_dir.mkdir(parents=True, exist_ok=True)
@@ -349,7 +345,7 @@ def main() -> int:
         result = download_volume(htid, args.download_dir)
         if result is None:
             failed_count += 1
-            logger.error("Failed to download %s", htid)
+            logger.error("Failed to download {}", htid)
             continue
 
         # Verify against expected checksum (if present in manifest)
@@ -364,7 +360,7 @@ def main() -> int:
             and not verify_content(zip_path, vol_sha256, vol_size)
         ):
             failed_count += 1
-            logger.error("Verification failed for %s", htid)
+            logger.error("Verification failed for {}", htid)
             continue
 
         enriched = dict(vol)
@@ -378,7 +374,7 @@ def main() -> int:
     args.stage_dir.mkdir(parents=True, exist_ok=True)
     parquet_path = args.stage_dir / "metadata.parquet"
     df.write_parquet(str(parquet_path))
-    logger.info("Wrote metadata parquet to %s (%d rows)", parquet_path, len(df))
+    logger.info("Wrote metadata parquet to {} ({} rows)", parquet_path, len(df))
 
     # 5. Write stage state
     state = {
@@ -396,14 +392,14 @@ def main() -> int:
 
     if failed_count > 0:
         logger.warning(
-            "Staging complete with %d failures out of %d volumes",
+            "Staging complete with {} failures out of {} volumes",
             failed_count,
             len(volumes),
         )
         return 1
 
     logger.info(
-        "Staging complete: %d volumes staged successfully",
+        "Staging complete: {} volumes staged successfully",
         len(staged_volumes),
     )
     return 0

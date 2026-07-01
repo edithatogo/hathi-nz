@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import logging
 import re
 from collections.abc import Callable
 from datetime import UTC, datetime, timezone
@@ -19,7 +18,9 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from loguru import logger
 
+from scripts.logging_utils import configure_logging
 from scripts.retry_utils import retry_on_transient_http_errors
 
 try:
@@ -37,8 +38,6 @@ except ImportError:  # pragma: no cover
     pass
 else:
     get_settings = _get_settings
-
-logger = logging.getLogger(__name__)
 
 
 def _default_collection_id() -> str:
@@ -167,7 +166,7 @@ def lookup_volume_metadata(htid: str) -> dict[str, Any] | None:
     try:
         return _lookup_volume_metadata(htid)
     except requests.RequestException as exc:
-        logger.warning("API lookup failed for %s: %s", htid, exc)
+        logger.warning("API lookup failed for {}: {}", htid, exc)
         return None
 
 
@@ -257,7 +256,7 @@ def write_manifest(
         json.dumps(manifest, indent=2, sort_keys=False),
         encoding="utf-8",
     )
-    logger.info("Wrote %d volume records to %s", len(volumes), output_path)
+    logger.info("Wrote {} volume records to {}", len(volumes), output_path)
     return manifest
 
 
@@ -316,15 +315,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 def main() -> int:
     """CLI entry point."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s | %(message)s",
-    )
+    configure_logging()
     args = parse_args()
 
     if args.command == "hathifile":
         logger.info(
-            "Parsing hathifile: %s (collection=%s, category=%s)",
+            "Parsing hathifile: {} (collection={}, category={})",
             args.hathifile,
             args.collection_id,
             args.category,

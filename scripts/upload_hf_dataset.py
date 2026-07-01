@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import logging
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -27,7 +26,9 @@ from typing import Any
 
 from huggingface_hub import HfApi
 from huggingface_hub.errors import HfHubHTTPError
+from loguru import logger
 
+from scripts.logging_utils import configure_logging
 from scripts.retry_utils import retry_on_transient_http_errors
 
 get_settings: Callable[[], Any] | None = None
@@ -37,8 +38,6 @@ except ImportError:  # pragma: no cover
     pass
 else:
     get_settings = _get_settings
-
-logger = logging.getLogger(__name__)
 
 
 def _copy_upload_tree(
@@ -132,7 +131,7 @@ def ensure_repo_exists(
     """
     try:
         _repo_info(api, repo_id)
-        logger.info("Repo %s already exists", repo_id)
+        logger.info("Repo {} already exists", repo_id)
         return True
     except HfHubHTTPError as exc:
         status_code = getattr(exc.response, "status_code", None)
@@ -141,10 +140,10 @@ def ensure_repo_exists(
 
     try:
         _create_repo(api, repo_id, token=token)
-        logger.info("Created repo %s", repo_id)
+        logger.info("Created repo {}", repo_id)
         return False
     except Exception as exc:
-        logger.warning("Failed to create repo %s: %s", repo_id, exc)
+        logger.warning("Failed to create repo {}: {}", repo_id, exc)
         return False
 
 
@@ -203,10 +202,10 @@ def upload_metadata_files(
     )
     try:
         result = _upload_folder(api, repo_id, upload_tree.name, ".", commit_message)
-        logger.info("Uploaded metadata files to %s", result)
+        logger.info("Uploaded metadata files to {}", result)
         return str(result)
     except Exception as exc:
-        logger.warning("Metadata upload failed: %s", exc)
+        logger.warning("Metadata upload failed: {}", exc)
         return None
     finally:
         upload_tree.cleanup()
@@ -253,12 +252,12 @@ def upload_volume_files(
         zip_path = data_dir / f"{safe_name}.zip"
 
         if not zip_path.exists():
-            logger.warning("Volume file not found: %s", zip_path)
+            logger.warning("Volume file not found: {}", zip_path)
             continue
 
         # Check if already uploaded
         if htid in uploaded_htids:
-            logger.info("Skipping already-uploaded volume %s", htid)
+            logger.info("Skipping already-uploaded volume {}", htid)
             continue
 
         files_to_upload.append(str(zip_path))
@@ -273,10 +272,10 @@ def upload_volume_files(
     )
     try:
         result = _upload_folder(api, repo_id, upload_tree.name, "volumes", commit_message)
-        logger.info("Uploaded %d volume files to %s", len(files_to_upload), result)
+        logger.info("Uploaded {} volume files to {}", len(files_to_upload), result)
         return str(result)
     except Exception as exc:
-        logger.warning("Volume upload failed: %s", exc)
+        logger.warning("Volume upload failed: {}", exc)
         return None
     finally:
         upload_tree.cleanup()
@@ -294,7 +293,7 @@ def load_upload_state(state_dir: Path) -> dict[str, Any]:
     """
     path = state_dir / "upload_state.json"
     if not path.exists():
-        logger.info("No previous upload state found at %s", path)
+        logger.info("No previous upload state found at {}", path)
         return {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -303,7 +302,7 @@ def load_upload_state(state_dir: Path) -> dict[str, Any]:
             return {}
         return data
     except (json.JSONDecodeError, OSError) as exc:
-        logger.warning("Failed to load upload state: %s", exc)
+        logger.warning("Failed to load upload state: {}", exc)
         return {}
 
 
@@ -318,7 +317,7 @@ def write_upload_state(state_dir: Path, state: dict[str, Any]) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
     path = state_dir / "upload_state.json"
     path.write_text(json.dumps(state, indent=2, sort_keys=False), encoding="utf-8")
-    logger.info("Wrote upload state to %s", path)
+    logger.info("Wrote upload state to {}", path)
 
 
 # ---------------------------------------------------------------
@@ -384,13 +383,10 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 def main() -> int:
     """CLI entry point."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s | %(message)s",
-    )
+    configure_logging()
     args = parse_args()
     logger.info(
-        "Uploading to HF: repo=%s, stage=%s, dry_run=%s",
+        "Uploading to HF: repo={}, stage={}, dry_run={}",
         args.repo_id,
         args.stage_dir,
         args.dry_run,
@@ -414,14 +410,14 @@ def main() -> int:
             manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
             volumes = manifest_data.get("volumes", [])
         except (json.JSONDecodeError, OSError) as exc:
-            logger.warning("Failed to load manifest: %s", exc)
-    logger.info("Loaded %d volumes from manifest", len(volumes))
+            logger.warning("Failed to load manifest: {}", exc)
+    logger.info("Loaded {} volumes from manifest", len(volumes))
 
     # 5. Upload metadata files
     meta_commit_url: str | None = None
     if args.dry_run:
-        logger.info("[DRY-RUN] Would upload metadata files from %s", args.stage_dir)
-        logger.info("[DRY-RUN] Would upload %d volume files", len(volumes))
+        logger.info("[DRY-RUN] Would upload metadata files from {}", args.stage_dir)
+        logger.info("[DRY-RUN] Would upload {} volume files", len(volumes))
         return 0
 
     meta_commit_url = upload_metadata_files(
@@ -457,9 +453,9 @@ def main() -> int:
     write_upload_state(args.state_dir, state)
 
     if meta_commit_url:
-        logger.info("Metadata uploaded: %s", meta_commit_url)
+        logger.info("Metadata uploaded: {}", meta_commit_url)
     if vol_commit_url:
-        logger.info("Volumes uploaded: %s", vol_commit_url)
+        logger.info("Volumes uploaded: {}", vol_commit_url)
     if not meta_commit_url and not vol_commit_url:
         logger.info("Nothing new to upload")
 

@@ -14,14 +14,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import logging
 import re
 import zipfile
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
+from scripts.logging_utils import configure_logging
 
 # ---------------------------------------------------------------
 # Constants
@@ -118,7 +118,7 @@ def load_page_text(input_dir: Path, htid: str) -> list[dict[str, Any]]:
     safe_name = htid.replace("/", "_").replace(".", "_")
     zip_path = input_dir / f"{safe_name}.zip"
     if not zip_path.exists():
-        logger.warning("ZIP file not found for %s at %s", htid, zip_path)
+        logger.warning("ZIP file not found for {} at {}", htid, zip_path)
         return []
 
     pages: list[dict[str, Any]] = []
@@ -269,7 +269,7 @@ def extract_text_from_zip(zip_path: Path, output_dir: Path) -> dict[str, Any]:
         raw_dir = zip_path.parent
         return process_volume(htid, raw_dir, output_dir)
     except zipfile.BadZipFile as exc:
-        logger.error("Bad ZIP file %s: %s", zip_path, exc)
+        logger.error("Bad ZIP file {}: {}", zip_path, exc)
         return {
             "pages_extracted": 0,
             "total_chars": 0,
@@ -367,12 +367,12 @@ def process_volume(
         }
 
         logger.info(
-            "Processed %s: %d pages, %d chars", htid, result["pages_extracted"], total_chars
+            "Processed {}: {} pages, {} chars", htid, result["pages_extracted"], total_chars
         )
         return result
 
     except Exception as exc:
-        logger.error("Failed to process %s: %s", htid, exc)
+        logger.error("Failed to process {}: {}", htid, exc)
         return {
             "htid": htid,
             "success": False,
@@ -426,14 +426,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 def main() -> int:
     """CLI entry point."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s | %(message)s",
-    )
+    configure_logging()
     args = parse_args()
 
     logger.info(
-        "Processing volume: htid=%s, raw=%s, processed=%s",
+        "Processing volume: htid={}, raw={}, processed={}",
         args.htid,
         args.raw_dir,
         args.processed_dir,
@@ -451,13 +448,13 @@ def main() -> int:
             json.dumps(result, indent=2, sort_keys=False),
             encoding="utf-8",
         )
-        logger.info("Results written to %s", args.output)
+        logger.info("Results written to {}", args.output)
 
     if result.get("success"):
         print(json.dumps(result, indent=2))
         return 0
 
-    logger.error("Processing failed: %s", result.get("error", "Unknown error"))
+    logger.error("Processing failed: {}", result.get("error", "Unknown error"))
     return 1
 
 

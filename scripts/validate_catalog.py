@@ -19,15 +19,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import jsonschema
+from loguru import logger
 
-logger = logging.getLogger(__name__)
-
+from scripts.logging_utils import configure_logging
 
 # ---------------------------------------------------------------
 # Constants
@@ -329,7 +328,7 @@ def write_report(report: dict[str, Any], report_path: Path) -> None:
         json.dumps(report, indent=2, sort_keys=False),
         encoding="utf-8",
     )
-    logger.info("Validation report written to %s", report_path)
+    logger.info("Validation report written to {}", report_path)
 
 
 # ---------------------------------------------------------------
@@ -431,7 +430,7 @@ def validate(
 
     """
     if not manifest_path.exists():
-        logger.error("Manifest not found: %s", manifest_path)
+        logger.error("Manifest not found: {}", manifest_path)
         report = generate_validation_report(
             schema_errors=[f"Manifest not found: {manifest_path}"],
             consistency_errors=[],
@@ -456,7 +455,7 @@ def validate(
         ), 1
 
     total_volumes = len(volumes)
-    logger.info("Validating %d volumes from %s", total_volumes, manifest_path)
+    logger.info("Validating {} volumes from {}", total_volumes, manifest_path)
 
     # Step 1: Schema validation
     logger.info("Step 1/3: Validating manifest schema...")
@@ -472,7 +471,7 @@ def validate(
     files_checked = 0
 
     if stage_dir is not None:
-        logger.info("Step 3/3: Verifying staged files in %s...", stage_dir)
+        logger.info("Step 3/3: Verifying staged files in {}...", stage_dir)
         files_checked, file_errors, file_warnings = verify_staged_files(stage_dir, volumes)
     else:
         logger.info("Step 3/3: Skipped (no --stage-dir provided)")
@@ -499,14 +498,11 @@ def validate(
 
 def main() -> int:
     """CLI entry point."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(levelname)s | %(message)s",
-    )
+    configure_logging()
     args = parse_args()
 
     if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+        configure_logging("DEBUG")
 
     report, exit_code = validate(
         manifest_path=args.manifest,
@@ -520,7 +516,7 @@ def main() -> int:
     # Print summary
     results = report["results"]
     logger.info(
-        "Validation %s: %d error(s), %d warning(s) across %d volume(s)",
+        "Validation {}: {} error(s), {} warning(s) across {} volume(s)",
         "PASSED" if results["passed"] else "FAILED",
         results["total_errors"],
         results["total_warnings"],

@@ -13,6 +13,10 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from loguru import logger
+
+from scripts.logging_utils import configure_logging
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_DIR = REPO_ROOT / "scripts"
 
@@ -34,6 +38,11 @@ def _script_path(name: str) -> Path:
     path = SCRIPT_DIR / script
     if not path.is_file():
         available = ", ".join(sorted(COMMANDS))
+        logger.error(
+            "Unknown command or missing script: {}. Available aliases: {}",
+            name,
+            available,
+        )
         raise SystemExit(
             f"Unknown command or missing script: {name}. Available aliases: {available}"
         )
@@ -51,6 +60,7 @@ def _run_script(path: Path, args: Sequence[str]) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    configure_logging()
     parser = argparse.ArgumentParser(description="CLI-first dispatcher for repository scripts.")
     parser.add_argument("command", nargs="?", help="Approved command alias or scripts/*.py name.")
     parser.add_argument(
