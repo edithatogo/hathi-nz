@@ -29,6 +29,7 @@ pydantic = ">=2.0.0"
 pydantic-settings = ">=2.0.0"
 jsonschema = ">=4.26.0"
 loguru = ">=0.7.2"
+tenacity = ">=9.0.0"
 
 [feature.dev.dependencies]
 pytest = ">=8.2.0"

@@ -14,9 +14,6 @@ on:
     - cron: "0 6 * * *"  # Daily at 06:00 UTC
   workflow_dispatch:      # Manual trigger from Actions tab
 
-env:
-  PYTHON_VERSION: "3.14"
-
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -28,6 +25,15 @@ jobs:
         with:
           pixi-version: latest
           cache: true
+
+      - name: Run tests
+        run: pixi run -e dev test -- --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=75
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: true
 
       - name: Prepare catalog manifest
         run: |

@@ -184,6 +184,35 @@ class TestDownloadVolume:
         result = download_volume("uc1.b2889853", tmp_path, skip_existing=False)
         assert result is None
 
+    def test_download_retries_transient_errors(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        calls = {"count": 0}
+
+        class MockResponse:
+            @staticmethod
+            def iter_content(chunk_size: int = 65536) -> Any:  # noqa: ARG004
+                return [b"retry content"]
+
+            @staticmethod
+            def raise_for_status() -> None:
+                return None
+
+        def mock_get(*args: object, **kwargs: object) -> MockResponse:  # noqa: ARG001
+            calls["count"] += 1
+            if calls["count"] < 3:
+                msg = "temporary download failure"
+                raise requests.exceptions.ConnectionError(msg)
+            return MockResponse()
+
+        monkeypatch.setattr("requests.get", mock_get)
+        result = download_volume("uc1.b2889853", tmp_path, skip_existing=False)
+
+        assert result is not None
+        assert calls["count"] == 3
+
 
 # ---------------------------------------------------------------
 # Tests: verify_content

@@ -5,7 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
+from huggingface_hub.errors import HfHubHTTPError
 
 from scripts.upload_hf_dataset import (
     DEFAULT_HF_REPO,
@@ -17,6 +19,13 @@ from scripts.upload_hf_dataset import (
     upload_volume_files,
     write_upload_state,
 )
+
+
+def _hf_http_error(status_code: int, message: str = "temporary HF failure") -> HfHubHTTPError:
+    request = httpx.Request("GET", "https://huggingface.co/api/test")
+    response = httpx.Response(status_code, request=request)
+    return HfHubHTTPError(message, response=response)
+
 
 # ---------------------------------------------------------------
 # Fixtures
@@ -131,8 +140,7 @@ class TestEnsureRepoExists:
                 self.called_create = False
 
             def repo_info(self, repo_id: str, repo_type: str = "dataset") -> Any:  # noqa: ARG002
-                msg = "Repo not found"
-                raise Exception(msg)
+                raise _hf_http_error(404, "Repo not found")
 
             def create_repo(
                 self,
@@ -152,8 +160,7 @@ class TestEnsureRepoExists:
     def test_create_fails(self) -> None:
         class MockApiFailCreate:
             def repo_info(self, repo_id: str, repo_type: str = "dataset") -> Any:  # noqa: ARG002, ARG001
-                msg = "Not found"
-                raise Exception(msg)
+                raise _hf_http_error(404, "Not found")
 
             def create_repo(
                 self,
@@ -168,6 +175,35 @@ class TestEnsureRepoExists:
         api = MockApiFailCreate()
         result = ensure_repo_exists(api, "edithatogo/new-repo")  # type: ignore[arg-type]
         assert result is False
+
+    def test_repo_info_retries_transient_errors(self) -> None:
+        class FlakyRepoApi:
+            def __init__(self) -> None:
+                self.repo_info_calls = 0
+                self.created = False
+
+            def repo_info(self, repo_id: str, repo_type: str = "dataset") -> dict[str, Any]:  # noqa: ARG002
+                self.repo_info_calls += 1
+                if self.repo_info_calls < 3:
+                    raise _hf_http_error(500, "Temporary server error")
+                return {"id": repo_id}
+
+            def create_repo(
+                self,
+                repo_id: str,
+                repo_type: str = "dataset",
+                token: str | None = None,
+                exist_ok: bool = False,  # noqa: ARG002
+            ) -> dict[str, Any]:
+                self.created = True
+                return {"id": repo_id}
+
+        api = FlakyRepoApi()
+        result = ensure_repo_exists(api, "edithatogo/new-repo")  # type: ignore[arg-type]
+
+        assert result is True
+        assert api.repo_info_calls == 3
+        assert api.created is False
 
 
 # ---------------------------------------------------------------
@@ -234,6 +270,37 @@ class TestUploadMetadataFiles:
 
         result = upload_metadata_files(api, "test/repo", stage_dir)  # type: ignore[arg-type]
         assert result is None
+
+    def test_upload_retries_transient_errors(
+        self, tmp_path: Path, sample_volumes: list[dict[str, Any]]
+    ) -> None:
+        class FlakyUploadApi:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def upload_folder(
+                self,
+                repo_id: str,
+                repo_type: str = "dataset",
+                folder_path: str = "",
+                path_in_repo: str = ".",
+                commit_message: str = "",
+            ) -> str:  # noqa: ARG002
+                self.calls += 1
+                if self.calls < 3:
+                    raise _hf_http_error(500, "temporary upload failure")
+                return f"https://huggingface.co/datasets/{repo_id}/commit/retry"
+
+        api = FlakyUploadApi()
+        stage_dir = tmp_path / "processed"
+        stage_dir.mkdir()
+        parquet = stage_dir / "metadata.parquet"
+        parquet.write_text("data", encoding="utf-8")
+
+        result = upload_metadata_files(api, "test/repo", stage_dir)
+
+        assert result == "https://huggingface.co/datasets/test/repo/commit/retry"
+        assert api.calls == 3
 
 
 # ---------------------------------------------------------------

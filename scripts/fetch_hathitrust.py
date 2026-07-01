@@ -20,6 +20,8 @@ from typing import Any
 
 import requests
 
+from scripts.retry_utils import retry_on_transient_http_errors
+
 try:
     from _version import get_version
 except ImportError:  # pragma: no cover
@@ -144,6 +146,14 @@ def _extract_year_from_title(title: str) -> int | None:
     return None
 
 
+@retry_on_transient_http_errors
+def _lookup_volume_metadata(htid: str) -> dict[str, Any]:
+    url = f"{HATHI_DATA_API}/{htid}/json"
+    resp = requests.get(url, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
 def lookup_volume_metadata(htid: str) -> dict[str, Any] | None:
     """Look up volume metadata from HathiTrust Data API (read-only endpoint).
 
@@ -154,11 +164,8 @@ def lookup_volume_metadata(htid: str) -> dict[str, Any] | None:
         JSON response dict or None if not found.
 
     """
-    url = f"{HATHI_DATA_API}/{htid}/json"
     try:
-        resp = requests.get(url, timeout=30)
-        resp.raise_for_status()
-        return resp.json()
+        return _lookup_volume_metadata(htid)
     except requests.RequestException as exc:
         logger.warning("API lookup failed for %s: %s", htid, exc)
         return None

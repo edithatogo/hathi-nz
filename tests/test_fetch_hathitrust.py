@@ -377,6 +377,35 @@ class TestLookupVolumeMetadata:
         result = lookup_volume_metadata("uc1.b2889853")
         assert result is None
 
+    def test_lookup_retries_transient_errors(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        calls = {"count": 0}
+
+        class MockResponse:
+            @staticmethod
+            def json() -> dict[str, str]:
+                return {"htid": "uc1.b2889853"}
+
+            @staticmethod
+            def raise_for_status() -> None:
+                return None
+
+        def mock_get(*args: object, **kwargs: object) -> MockResponse:  # noqa: ARG001
+            calls["count"] += 1
+            if calls["count"] < 3:
+                msg = "temporary network failure"
+                raise requests.exceptions.ConnectionError(msg)
+            return MockResponse()
+
+        monkeypatch.setattr("requests.get", mock_get)
+        result = lookup_volume_metadata("uc1.b2889853")
+
+        assert result is not None
+        assert result["htid"] == "uc1.b2889853"
+        assert calls["count"] == 3
+
 
 class TestParseArgs:
     def test_parse_hathifile_command(self, monkeypatch: pytest.MonkeyPatch) -> None:

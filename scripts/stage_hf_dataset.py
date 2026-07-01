@@ -27,6 +27,8 @@ from typing import Any
 import polars as pl
 import requests
 
+from scripts.retry_utils import retry_on_transient_http_errors
+
 logger = logging.getLogger(__name__)
 
 HATHI_ZIP_URL = "https://babel.hathitrust.org/cgi/zip"
@@ -70,11 +72,12 @@ def load_manifest(manifest_path: Path) -> list[dict[str, Any]]:
     return volumes
 
 
-def download_volume(
+@retry_on_transient_http_errors
+def _download_volume(
     htid: str,
     target_dir: Path,
     skip_existing: bool = True,
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     """Download a HathiTrust volume (ZIP content) to target_dir.
 
     Uses HathiTrust babel ZIP download endpoint.
@@ -100,13 +103,9 @@ def download_volume(
         return {"sha256": actual_sha256, "size_bytes": actual_size}
 
     url = f"{HATHI_ZIP_URL}?id={htid}"
-    try:
-        logger.info("Downloading %s from %s", htid, url)
-        resp = requests.get(url, timeout=300, stream=True)
-        resp.raise_for_status()
-    except requests.RequestException as exc:
-        logger.warning("Failed to download %s: %s", htid, exc)
-        return None
+    logger.info("Downloading %s from %s", htid, url)
+    resp = requests.get(url, timeout=300, stream=True)
+    resp.raise_for_status()
 
     with zip_path.open("wb") as f:
         for chunk in resp.iter_content(chunk_size=65536):
@@ -117,6 +116,19 @@ def download_volume(
     actual_sha256 = _compute_sha256(zip_path)
     logger.info("Downloaded %s (size=%d, sha256=%s)", htid, actual_size, actual_sha256)
     return {"sha256": actual_sha256, "size_bytes": actual_size}
+
+
+def download_volume(
+    htid: str,
+    target_dir: Path,
+    skip_existing: bool = True,
+) -> dict[str, Any] | None:
+    """Download a HathiTrust volume (ZIP content) to target_dir."""
+    try:
+        return _download_volume(htid, target_dir, skip_existing=skip_existing)
+    except requests.RequestException as exc:
+        logger.warning("Failed to download %s: %s", htid, exc)
+        return None
 
 
 def verify_content(

@@ -27,6 +27,9 @@ from pathlib import Path
 from typing import Any
 
 from huggingface_hub import HfApi
+from huggingface_hub.errors import HfHubHTTPError
+
+from scripts.retry_utils import retry_on_transient_http_errors
 
 get_settings: Callable[[], Any] | None = None
 try:
@@ -59,6 +62,33 @@ def _default_repo() -> str:
 
 
 DEFAULT_HF_REPO = _default_repo()
+
+
+@retry_on_transient_http_errors
+def _repo_info(api: HfApi, repo_id: str) -> Any:
+    return api.repo_info(repo_id=repo_id, repo_type="dataset")
+
+
+@retry_on_transient_http_errors
+def _create_repo(api: HfApi, repo_id: str, token: str | None = None) -> Any:
+    return api.create_repo(repo_id=repo_id, repo_type="dataset", token=token, exist_ok=True)
+
+
+@retry_on_transient_http_errors
+def _upload_folder(
+    api: HfApi,
+    repo_id: str,
+    folder_path: str,
+    path_in_repo: str,
+    commit_message: str,
+) -> Any:
+    return api.upload_folder(
+        repo_id=repo_id,
+        repo_type="dataset",
+        folder_path=folder_path,
+        path_in_repo=path_in_repo,
+        commit_message=commit_message,
+    )
 
 
 # ---------------------------------------------------------------
@@ -105,14 +135,16 @@ def ensure_repo_exists(
 
     """
     try:
-        api.repo_info(repo_id=repo_id, repo_type="dataset")
+        _repo_info(api, repo_id)
         logger.info("Repo %s already exists", repo_id)
         return True
-    except Exception:
-        pass
+    except HfHubHTTPError as exc:
+        status_code = getattr(exc.response, "status_code", None)
+        if status_code != 404:
+            raise
 
     try:
-        api.create_repo(repo_id=repo_id, repo_type="dataset", token=token, exist_ok=True)
+        _create_repo(api, repo_id, token=token)
         logger.info("Created repo %s", repo_id)
         return False
     except Exception as exc:
@@ -174,13 +206,7 @@ def upload_metadata_files(
         list(zip(map(Path, paths_to_upload), path_in_repo, strict=False))
     )
     try:
-        result = api.upload_folder(
-            repo_id=repo_id,
-            repo_type="dataset",
-            folder_path=upload_tree.name,
-            path_in_repo=".",
-            commit_message=commit_message,
-        )
+        result = _upload_folder(api, repo_id, upload_tree.name, ".", commit_message)
         logger.info("Uploaded metadata files to %s", result)
         return str(result)
     except Exception as exc:
@@ -250,13 +276,7 @@ def upload_volume_files(
         [(Path(file_path), Path(file_path).name) for file_path in files_to_upload]
     )
     try:
-        result = api.upload_folder(
-            repo_id=repo_id,
-            repo_type="dataset",
-            folder_path=upload_tree.name,
-            path_in_repo="volumes",
-            commit_message=commit_message,
-        )
+        result = _upload_folder(api, repo_id, upload_tree.name, "volumes", commit_message)
         logger.info("Uploaded %d volume files to %s", len(files_to_upload), result)
         return str(result)
     except Exception as exc:
