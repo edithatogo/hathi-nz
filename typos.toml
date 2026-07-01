@@ -47,7 +47,6 @@ extend-ignore-re = [
   "taplo",
   "actionlint",
   "zizmor",
-  "^[0-9a-f]{7,40}$",
 ]
 
 [default.extend-words]
