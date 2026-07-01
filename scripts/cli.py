@@ -24,6 +24,7 @@ COMMANDS: dict[str, str] = {
     "fetch": "fetch_hathitrust.py",
     "ocr": "ocr_extract.py",
     "package": "package_release.py",
+    "publish-osf": "publish_osf.py",
     "publish-zenodo": "publish_zenodo.py",
     "stage": "stage_hf_dataset.py",
     "upload": "upload_hf_dataset.py",

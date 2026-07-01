@@ -172,6 +172,11 @@ print(df.head())
 
 - **Live HF dataset**: Updated daily or as new volumes are discovered/verified.
 - **Zenodo snapshots**: Annual DOI-backed archival releases for academic citation.
+- **OSF mirrors**: Release bundles mirrored to an OSF project for secondary redundancy.
+
+## Release Mirrors
+
+The OSF mirror reuses the same prepared release archives and manifest files as Zenodo. Publish steps read `.osf.json` for mirror-specific metadata and use `OSF_TOKEN` plus `OSF_PROJECT_ID` to upload into the configured OSF project.
 
 ## Citation
 

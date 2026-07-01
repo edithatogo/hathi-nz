@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     ZENODO_TOKEN: SecretStr | None = None
     ZENODO_SANDBOX: bool = False
 
+    # OSF
+    OSF_TOKEN: SecretStr | None = None
+    OSF_PROJECT_ID: str | None = None
+
     # HathiTrust
     COLLECTION_ID: str = "71329709"
 

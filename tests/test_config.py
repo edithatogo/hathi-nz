@@ -24,13 +24,17 @@ from config import Settings, get_settings  # noqa: E402
 
 
 @pytest.mark.unit
-def test_settings_has_defaults() -> None:
+def test_settings_has_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """Settings should provide sensible defaults."""
+    monkeypatch.delenv("OSF_TOKEN", raising=False)
+    monkeypatch.delenv("OSF_PROJECT_ID", raising=False)
     settings = Settings()
     assert settings.HF_REPO_ID == "edithatogo/corpus-nz-hathi"
     assert settings.COLLECTION_ID == "71329709"
     assert settings.LOG_LEVEL == "INFO"
     assert settings.ZENODO_SANDBOX is False
+    assert settings.OSF_TOKEN is None
+    assert settings.OSF_PROJECT_ID is None
 
 
 @pytest.mark.unit
@@ -42,11 +46,14 @@ def test_settings_hf_token_is_secret() -> None:
 
 
 @pytest.mark.unit
-def test_settings_token_none_by_default() -> None:
+def test_settings_token_none_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
     """Tokens should be None when not provided (no .env loading)."""
+    monkeypatch.delenv("OSF_TOKEN", raising=False)
+    monkeypatch.delenv("OSF_PROJECT_ID", raising=False)
     settings = Settings(_env_file=None)
     assert settings.HF_TOKEN is None
     assert settings.ZENODO_TOKEN is None
+    assert settings.OSF_TOKEN is None
 
 
 @pytest.mark.unit
@@ -63,7 +70,12 @@ def test_settings_env_loading(monkeypatch: pytest.MonkeyPatch) -> None:
     """Settings should load from environment variables."""
     monkeypatch.setenv("HF_TOKEN", "hf_env_token")
     monkeypatch.setenv("COLLECTION_ID", "12345678")
+    monkeypatch.setenv("OSF_TOKEN", "osf_env_token")
+    monkeypatch.setenv("OSF_PROJECT_ID", "abcd1")
     settings = Settings()
     assert settings.HF_TOKEN is not None
     assert settings.HF_TOKEN.get_secret_value() == "hf_env_token"
     assert settings.COLLECTION_ID == "12345678"
+    assert settings.OSF_TOKEN is not None
+    assert settings.OSF_TOKEN.get_secret_value() == "osf_env_token"
+    assert settings.OSF_PROJECT_ID == "abcd1"

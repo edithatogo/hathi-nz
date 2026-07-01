@@ -1,0 +1,22 @@
+{
+  "title": "corpus-nz-hathi: NZ Parliamentary Debates (1854-1990) from HathiTrust",
+  "description": "OSF mirror metadata for prepared corpus-nz-hathi release archives generated from the Hathi NZ pipeline. The mirror reuses the same packaged release bundles and provenance metadata published for Zenodo snapshots.",
+  "category": "data",
+  "tags": [
+    "new-zealand",
+    "parliamentary-debates",
+    "hansard",
+    "hathitrust",
+    "historical-texts",
+    "legal-corpus",
+    "open-science",
+    "osf"
+  ],
+  "source_metadata": ".zenodo.json",
+  "release_archive": "dist/corpus-nz-hathi-<version>.zip",
+  "release_manifest": "dist/corpus-nz-hathi-<version>-manifest.json",
+  "project_notes": [
+    "Use OSF_PROJECT_ID and OSF_TOKEN to publish from GitHub Actions or local dry-run execution.",
+    "This mirror is a secondary publication target alongside Hugging Face and Zenodo."
+  ]
+}

@@ -28,14 +28,14 @@ def test_configure_logging_installs_expected_sink(monkeypatch) -> None:
         sink: object,
         *,
         level: str,
-        log_format: str,
         colorize: bool,
         backtrace: bool,
         diagnose: bool,
+        **kwargs: object,
     ) -> int:
         calls["sink"] = sink
         calls["level"] = level
-        calls["format"] = log_format
+        calls["format"] = kwargs["format"]
         calls["colorize"] = colorize
         calls["backtrace"] = backtrace
         calls["diagnose"] = diagnose

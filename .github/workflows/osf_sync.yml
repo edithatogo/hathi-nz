@@ -1,0 +1,70 @@
+name: OSF Sync
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version to package and mirror.
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: false
+          environments: dev
+
+      - name: Check OSF credentials
+        env:
+          OSF_TOKEN: ${{ secrets.OSF_TOKEN }}
+          OSF_PROJECT_ID: ${{ secrets.OSF_PROJECT_ID }}
+        run: |
+          if [ -z "$OSF_TOKEN" ] || [ -z "$OSF_PROJECT_ID" ]; then
+            echo "OSF credentials are not fully set, skipping publish."
+            exit 0
+          fi
+
+      - name: Determine release version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.event.release.tag_name }}"
+          fi
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Package release archive
+        run: |
+          pixi run python scripts/package_release.py \
+            --version "${{ steps.version.outputs.version }}"
+
+      - name: Publish to OSF
+        env:
+          OSF_TOKEN: ${{ secrets.OSF_TOKEN }}
+          OSF_PROJECT_ID: ${{ secrets.OSF_PROJECT_ID }}
+        run: |
+          pixi run python scripts/publish_osf.py \
+            --source-dir dist \
+            --metadata .osf.json \
+            --project-id "$OSF_PROJECT_ID" \
+            --remote-dir "releases/${{ steps.version.outputs.version }}" \
+            --execute
