@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,7 @@ except ImportError:  # pragma: no cover
 
 ZENODO_API = "https://zenodo.org/api"
 ZENODO_SANDBOX_API = "https://sandbox.zenodo.org/api"
+ZENODO_DOI_SENTENCE = re.compile(r"For academic citation, use the Zenodo DOI .*?\.")
 
 
 class ZenodoSession(requests.Session):
@@ -90,12 +92,44 @@ def publish_deposition(api: requests.Session, deposition_id: str) -> dict[str, A
     return data
 
 
+def _extract_publication_doi(publication: dict[str, Any]) -> str:
+    """Return the DOI from a Zenodo publication response."""
+    doi = publication.get("doi")
+    if isinstance(doi, str) and doi.strip():
+        return doi.strip()
+
+    metadata = publication.get("metadata")
+    if isinstance(metadata, dict):
+        reserved = metadata.get("prereserve_doi")
+        if isinstance(reserved, dict):
+            reserved_doi = reserved.get("doi")
+            if isinstance(reserved_doi, str) and reserved_doi.strip():
+                return reserved_doi.strip()
+
+    msg = "Zenodo publication response did not include a DOI"
+    raise ValueError(msg)
+
+
+def update_dataset_card_doi(card_path: Path, doi: str) -> bool:
+    """Write the published Zenodo DOI back into the dataset card."""
+    text = card_path.read_text(encoding="utf-8")
+    doi_url = f"https://doi.org/{doi}"
+    replacement = f"For academic citation, use the Zenodo DOI [{doi}]({doi_url})."
+    updated_text, substitutions = ZENODO_DOI_SENTENCE.subn(replacement, text, count=1)
+    if substitutions == 0:
+        suffix = "\n" if text.endswith("\n") else "\n\n"
+        updated_text = f"{text.rstrip()}{suffix}{replacement}\n"
+    card_path.write_text(updated_text, encoding="utf-8")
+    return True
+
+
 def deposit(
     archive_path: Path,
     metadata: dict[str, Any],
     token: str,
     sandbox: bool = True,
     publish: bool = False,
+    dataset_card_path: Path | None = Path("DATASET_CARD.md"),
 ) -> dict[str, Any]:
     """Create a deposition, upload an archive, and optionally publish it."""
     api = get_zenodo_api(token=token, sandbox=sandbox)
@@ -108,8 +142,12 @@ def deposit(
         "published": False,
     }
     if publish:
-        result["publication"] = publish_deposition(api, deposition_id)
+        publication = publish_deposition(api, deposition_id)
+        result["publication"] = publication
         result["published"] = True
+        if dataset_card_path is not None:
+            doi = _extract_publication_doi(publication)
+            result["dataset_card_updated"] = update_dataset_card_doi(dataset_card_path, doi)
     return result
 
 
@@ -118,6 +156,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Publish a prepared release archive to Zenodo.")
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--metadata", type=Path, default=Path(".zenodo.json"))
+    parser.add_argument("--dataset-card", type=Path, default=Path("DATASET_CARD.md"))
     parser.add_argument("--token-env", default="ZENODO_TOKEN")
     parser.add_argument("--sandbox", action="store_true", default=True)
     parser.add_argument(
@@ -145,6 +184,7 @@ def main() -> int:
                     "dry_run": True,
                     "archive": args.archive.as_posix(),
                     "metadata": args.metadata.as_posix(),
+                    "dataset_card": args.dataset_card.as_posix(),
                     "sandbox": sandbox,
                     "publish": args.publish,
                 },
@@ -168,6 +208,7 @@ def main() -> int:
         token=token,
         sandbox=sandbox,
         publish=args.publish,
+        dataset_card_path=args.dataset_card,
     )
     print(json.dumps(result, indent=2))
     return 0

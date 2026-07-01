@@ -15,7 +15,7 @@ from scripts.package_release import (
     create_archive,
     validate_zenodo_json,
 )
-from scripts.publish_zenodo import deposit
+from scripts.publish_zenodo import deposit, update_dataset_card_doi
 
 
 def test_validate_zenodo_json_accepts_repo_metadata() -> None:
@@ -100,11 +100,38 @@ class _Session:
 def test_deposit_uses_injected_boundaries(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     archive = tmp_path / "release.zip"
     archive.write_bytes(b"zip")
+    card = tmp_path / "DATASET_CARD.md"
+    card.write_text(
+        "For academic citation, use the Zenodo DOI _(once available)_.\n",
+        encoding="utf-8",
+    )
     session = _Session()
 
     monkeypatch.setattr("scripts.publish_zenodo.get_zenodo_api", lambda token, sandbox: session)
 
-    result = deposit(archive, {"title": "Test"}, token="token", publish=True)
+    result = deposit(
+        archive,
+        {"title": "Test"},
+        token="token",
+        publish=True,
+        dataset_card_path=card,
+    )
 
     assert result["published"] is True
+    assert result["dataset_card_updated"] is True
     assert ("put", "https://bucket.example/123/release.zip") in session.calls
+    assert "[10.0000/example](https://doi.org/10.0000/example)" in card.read_text(encoding="utf-8")
+
+
+def test_update_dataset_card_doi_rewrites_placeholder(tmp_path: Path) -> None:
+    card = tmp_path / "DATASET_CARD.md"
+    card.write_text(
+        "For academic citation, use the Zenodo DOI _(once available)_.\n",
+        encoding="utf-8",
+    )
+
+    assert update_dataset_card_doi(card, "10.1234/example")
+    assert card.read_text(encoding="utf-8") == (
+        "For academic citation, use the Zenodo DOI [10.1234/example]"
+        "(https://doi.org/10.1234/example).\n"
+    )
