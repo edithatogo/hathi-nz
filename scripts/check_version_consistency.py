@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import re
 import subprocess
 import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-
-SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$")
 
 
 def _text(path: str) -> str:
@@ -44,20 +41,18 @@ def check_version_consistency() -> list[str]:
     if "hatch-vcs" not in build_sys.get("requires", []):
         failures.append("pyproject.toml build-system missing hatch-vcs dependency")
 
-    # pixi.toml must match the repository git tag for release consistency.
+    # pixi.toml should not pin a version; the package version is derived from git tags.
     pixi = tomllib.loads(_text("pixi.toml"))
-    pixi_version = str(pixi["project"]["version"])
-    if not SEMVER_RE.fullmatch(pixi_version):
-        failures.append(f"pixi.toml version is not SemVer-compatible: {pixi_version}")
+    project = pixi.get("project", {})
+    if "version" in project:
+        failures.append("pixi.toml project version must be omitted")
 
-    # Git tag should match the pinned pixi version (with optional 'v' prefix)
+    # Git tag should be semver-like when present.
     git_tag = _git_tag()
     if git_tag:
         tag_version = _strip_v_prefix(git_tag)
-        if tag_version != pixi_version:
-            failures.append(
-                f"Version mismatch: git tag {git_tag} (→{tag_version}) != pixi.toml {pixi_version}"
-            )
+        if not tag_version or not tag_version[0].isdigit():
+            failures.append(f"Git tag is not version-like: {git_tag}")
 
     return failures
 

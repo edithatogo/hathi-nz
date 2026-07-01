@@ -1,6 +1,5 @@
 [project]
 name = "hathi-nz"
-version = "0.1.0"
 description = "New Zealand parliamentary debates volume corpus from HathiTrust, with incremental Hugging Face sync."
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]

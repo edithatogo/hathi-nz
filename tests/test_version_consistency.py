@@ -19,7 +19,7 @@ ROOT = _repo_root(Path(__file__).resolve())
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import check_version_consistency as check_version_consistency_module  # noqa: E402
-from check_version_consistency import SEMVER_RE, check_version_consistency  # noqa: E402
+from check_version_consistency import check_version_consistency  # noqa: E402
 
 
 @pytest.mark.unit
@@ -29,22 +29,19 @@ def test_version_consistency_check_passes() -> None:
 
 @pytest.mark.unit
 def test_version_is_well_formed() -> None:
-    import tomllib
 
-    pixi = tomllib.loads((ROOT / "pixi.toml").read_text("utf-8"))
-    version = pixi["project"]["version"]
-    assert SEMVER_RE.fullmatch(version)
+    git_tag = check_version_consistency_module._git_tag()
+    assert git_tag is not None
+    assert git_tag.removeprefix("v")[0].isdigit()
 
 
 @pytest.mark.unit
-def test_pixi_version_matches_git_tag() -> None:
-    """pixi.toml version must match the repository git tag."""
+def test_pixi_omits_version_field() -> None:
+    """pixi.toml must not pin a version when git tags drive versioning."""
     import tomllib
 
     pixi = tomllib.loads((ROOT / "pixi.toml").read_text("utf-8"))
-    git_tag = check_version_consistency_module._git_tag()
-    assert git_tag is not None
-    assert pixi["project"]["version"] == git_tag.removeprefix("v")
+    assert "version" not in pixi["project"]
 
 
 @pytest.mark.unit
@@ -75,7 +72,7 @@ def test_check_version_consistency_reports_all_failures(monkeypatch: pytest.Monk
     failures = check_version_consistency()
 
     assert "pyproject.toml build-system missing hatch-vcs dependency" in failures
-    assert "Version mismatch: git tag v9.9.9 (→9.9.9) != pixi.toml 1.2.4" in failures
+    assert "pixi.toml project version must be omitted" in failures
 
 
 @pytest.mark.unit
