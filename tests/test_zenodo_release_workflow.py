@@ -40,11 +40,13 @@ def test_zenodo_release_workflow_invokes_release_pipeline() -> None:
     assert "scripts/check_version_consistency.py" in workflow
     assert "scripts/package_release.py" in workflow
     assert "scripts/publish_zenodo.py" in workflow
+    assert "set -euo pipefail" in workflow
     assert "--publish" in workflow
     assert "--execute" in workflow
     assert "DATASET_CARD.md" in workflow
     assert "ZENODO_TOKEN" in workflow
     assert "GITHUB_STEP_SUMMARY" in workflow
+    assert "id: publish" in workflow
 
 
 def test_release_docs_point_to_zenodo_workflow() -> None:

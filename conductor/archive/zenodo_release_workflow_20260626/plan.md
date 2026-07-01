@@ -28,3 +28,4 @@
 ## Local Evidence
 - [2026-07-01] `pixi run -e dev pytest tests/test_zenodo_release_workflow.py tests/test_release_archival.py tests/test_version_consistency.py` passed.
 - [2026-07-01] `pixi run -e dev quality` passed.
+- [2026-07-01] Zenodo workflow now uses `set -euo pipefail` and `publish_zenodo.py` honors custom token env names.

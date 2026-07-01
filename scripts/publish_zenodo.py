@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -196,8 +197,8 @@ def main() -> int:
         )
         return 0
 
-    token: str | None = None
-    if get_settings is not None:
+    token: str | None = os.getenv(args.token_env)
+    if not token and get_settings is not None:
         settings = get_settings()
         if args.token_env == "ZENODO_TOKEN" and settings.ZENODO_TOKEN:  # noqa: S105
             token = settings.ZENODO_TOKEN.get_secret_value()

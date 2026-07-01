@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -157,3 +158,40 @@ def test_update_dataset_card_doi_rewrites_placeholder(tmp_path: Path) -> None:
         "For academic citation, use the Zenodo DOI [10.1234/example]"
         "(https://doi.org/10.1234/example).\n"
     )
+
+
+def test_main_honors_custom_token_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    archive = tmp_path / "release.zip"
+    metadata = tmp_path / ".zenodo.json"
+    archive.write_bytes(b"zip")
+    metadata.write_text("{}", encoding="utf-8")
+    custom_token = "".join(["custom", "-", "token"])
+    monkeypatch.setenv("CUSTOM_ZENODO_TOKEN", custom_token)
+
+    session = _Session()
+    captured: dict[str, str | bool] = {}
+
+    def _get_api(token: str, sandbox: bool) -> _Session:
+        captured["token"] = token
+        captured["sandbox"] = str(sandbox)
+        return session
+
+    def _parse_args() -> argparse.Namespace:
+        return argparse.Namespace(
+            archive=archive,
+            metadata=metadata,
+            dataset_card=None,
+            token_env="CUSTOM_ZENODO_TOKEN",
+            production=False,
+            publish=False,
+            dry_run=False,
+        )
+
+    monkeypatch.setattr("scripts.publish_zenodo.get_zenodo_api", _get_api)
+    monkeypatch.setattr("scripts.publish_zenodo.parse_args", _parse_args)
+
+    from scripts import publish_zenodo
+
+    assert publish_zenodo.main() == 0
+    assert captured["token"] == custom_token
+    assert session.calls[0] == ("post", "https://sandbox.example/api/deposit/depositions")

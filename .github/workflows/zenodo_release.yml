@@ -67,11 +67,13 @@ jobs:
             --version "${{ steps.version.outputs.version }}"
 
       - name: Publish to Zenodo
+        id: publish
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
           ZENODO_PRODUCTION: ${{ github.event.inputs.production }}
         shell: bash
         run: |
+          set -euo pipefail
           if [ -z "$ZENODO_TOKEN" ]; then
             echo "Missing Zenodo token."
             exit 1
