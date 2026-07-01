@@ -63,12 +63,11 @@ def profile_with_scalene(module_name: str, script_file: str) -> Path:
                 sys.executable,
                 "-m",
                 "scalene",
+                "run",
                 "--outfile",
                 str(output_path),
                 "--reduced-profile",
-                "---",
                 str(wrapper_path),
-                script_file,
             ],
             check=True,
         )
