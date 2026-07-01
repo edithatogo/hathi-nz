@@ -21,16 +21,55 @@ from scripts.validate_catalog import (
     write_report,
 )
 
+SCHEMA_TEMPLATE: dict[str, Any] = {
+    "type": "object",
+    "required": [
+        "htid",
+        "category",
+        "year",
+        "volume",
+        "title",
+        "rights",
+        "collection_id",
+        "source",
+    ],
+    "properties": {
+        "htid": {"type": "string", "pattern": "^[a-z0-9]+\\.[a-z0-9_]+$"},
+        "category": {
+            "type": "string",
+            "enum": [
+                "debates",
+                "legislation",
+                "hansard",
+                "supplementary",
+                "parliamentary-papers",
+                "gazette",
+                "other",
+            ],
+        },
+        "year": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "volume": {"type": "string"},
+        "title": {"type": "string"},
+        "rights": {
+            "type": "string",
+            "enum": ["pd", "ic-world", "undetermined", "suppressed"],
+        },
+        "collection_id": {"type": "string"},
+        "source": {"type": "string"},
+        "sha256": {
+            "anyOf": [{"type": "string", "pattern": "^[a-f0-9]{64}$"}, {"type": "null"}],
+        },
+        "size_bytes": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+    },
+    "additionalProperties": False,
+}
 
-def _repo_root(start: Path) -> Path:
-    for candidate in (start, *start.parents):
-        if (candidate / "pixi.toml").exists():
-            return candidate
-    return start.parents[1]
 
-
-ROOT = _repo_root(Path(__file__).resolve())
-SCHEMA_PATH = ROOT / "manifests/schema.json"
+@pytest.fixture
+def schema_path(tmp_path: Path) -> Path:
+    path = tmp_path / "schema.json"
+    path.write_text(json.dumps(SCHEMA_TEMPLATE), encoding="utf-8")
+    return path
 
 
 @pytest.fixture
@@ -50,86 +89,102 @@ def valid_volume() -> dict[str, Any]:
 
 
 @pytest.fixture
-def valid_manifest(valid_volume: dict[str, Any]) -> dict[str, Any]:
+def valid_manifest(valid_volume: dict[str, Any], schema_path: Path) -> dict[str, Any]:
     return {
         "meta": {
             "generated_at": "2026-06-14T12:00:00+00:00",
             "source": "HathiTrust Collection ID 71329709",
             "version": "0.1.0",
             "record_count": 1,
-            "schema": str(SCHEMA_PATH.relative_to(ROOT)),
+            "schema": schema_path.name,
         },
         "volumes": [valid_volume],
     }
 
 
 @pytest.fixture
-def empty_manifest() -> dict[str, Any]:
+def empty_manifest(schema_path: Path) -> dict[str, Any]:
     return {
         "meta": {
             "generated_at": None,
             "source": "test",
             "version": "0.1.0",
             "record_count": 0,
-            "schema": str(SCHEMA_PATH.relative_to(ROOT)),
+            "schema": schema_path.name,
         },
         "volumes": [],
     }
 
 
-def _full_meta() -> dict[str, Any]:
+def _full_meta(schema_path: Path) -> dict[str, Any]:
     """Return a full meta dict for schema validation."""
     return {
         "generated_at": "2026-01-01",
         "source": "test",
         "version": "0.1.0",
         "record_count": 1,
-        "schema": str(SCHEMA_PATH.relative_to(ROOT)),
+        "schema": schema_path.name,
     }
 
 
 class TestValidateManifestSchema:
-    def test_valid_volume_passes(self, valid_manifest: dict[str, Any]) -> None:
-        errors = validate_manifest_schema(valid_manifest)
+    def test_valid_volume_passes(
+        self,
+        valid_manifest: dict[str, Any],
+        schema_path: Path,
+    ) -> None:
+        errors = validate_manifest_schema(valid_manifest, schema_path=schema_path)
         assert errors == []
 
-    def test_empty_manifest_passes(self, empty_manifest: dict[str, Any]) -> None:
-        errors = validate_manifest_schema(empty_manifest)
+    def test_empty_manifest_passes(
+        self,
+        empty_manifest: dict[str, Any],
+        schema_path: Path,
+    ) -> None:
+        errors = validate_manifest_schema(empty_manifest, schema_path=schema_path)
         assert errors == []
 
-    def test_missing_required_field(self, valid_volume: dict[str, Any]) -> None:
+    def test_missing_required_field(
+        self,
+        valid_volume: dict[str, Any],
+        schema_path: Path,
+    ) -> None:
         del valid_volume["htid"]
-        manifest = {"meta": _full_meta(), "volumes": [valid_volume]}
-        errors = validate_manifest_schema(manifest)
+        manifest = {"meta": _full_meta(schema_path), "volumes": [valid_volume]}
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         assert any("htid" in e for e in errors)
 
-    def test_invalid_rights_enum(self, valid_volume: dict[str, Any]) -> None:
+    def test_invalid_rights_enum(self, valid_volume: dict[str, Any], schema_path: Path) -> None:
         valid_volume["rights"] = "invalid_rights_code"
-        manifest = {"meta": _full_meta(), "volumes": [valid_volume]}
-        errors = validate_manifest_schema(manifest)
+        manifest = {"meta": _full_meta(schema_path), "volumes": [valid_volume]}
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         assert any("invalid_rights_code" in e for e in errors)
 
-    def test_wrong_year_type(self, valid_volume: dict[str, Any]) -> None:
+    def test_wrong_year_type(self, valid_volume: dict[str, Any], schema_path: Path) -> None:
         valid_volume["year"] = "not_an_integer"
-        manifest = {"meta": _full_meta(), "volumes": [valid_volume]}
-        errors = validate_manifest_schema(manifest)
+        manifest = {"meta": _full_meta(schema_path), "volumes": [valid_volume]}
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         assert any("not_an_integer" in e or "year" in e for e in errors)
 
-    def test_extra_field_rejected(self, valid_volume: dict[str, Any]) -> None:
+    def test_extra_field_rejected(self, valid_volume: dict[str, Any], schema_path: Path) -> None:
         valid_volume["extra_field"] = "should not be here"
-        manifest = {"meta": _full_meta(), "volumes": [valid_volume]}
-        errors = validate_manifest_schema(manifest)
+        manifest = {"meta": _full_meta(schema_path), "volumes": [valid_volume]}
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         assert any("extra_field" in e for e in errors)
 
-    def test_missing_meta_keys(self) -> None:
+    def test_missing_meta_keys(self, schema_path: Path) -> None:
         manifest = {"meta": {}, "volumes": []}
-        errors = validate_manifest_schema(manifest)
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         meta_keys_found = [e for e in errors if "meta" in e]
         assert len(meta_keys_found) >= 1
 
-    def test_volumes_not_a_list(self, valid_volume: dict[str, Any]) -> None:
-        manifest: dict[str, Any] = {"meta": _full_meta(), "volumes": valid_volume}
-        errors = validate_manifest_schema(manifest)
+    def test_volumes_not_a_list(
+        self,
+        valid_volume: dict[str, Any],
+        schema_path: Path,
+    ) -> None:
+        manifest: dict[str, Any] = {"meta": _full_meta(schema_path), "volumes": valid_volume}
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         assert any("list" in e for e in errors)
 
     def test_schema_file_not_found(self, valid_manifest: dict[str, Any], tmp_path: Path) -> None:
@@ -143,18 +198,22 @@ class TestValidateManifestSchema:
         errors = validate_manifest_schema(valid_manifest, schema_path=bad)
         assert any("not valid JSON" in e for e in errors)
 
-    def test_multiple_volumes_all_valid(self, valid_volume: dict[str, Any]) -> None:
+    def test_multiple_volumes_all_valid(
+        self,
+        valid_volume: dict[str, Any],
+        schema_path: Path,
+    ) -> None:
         volumes = [dict(valid_volume) for _ in range(5)]
         for i, v in enumerate(volumes):
             v["htid"] = f"test.{i:04d}"
-        manifest = {"meta": _full_meta(), "volumes": volumes}
-        errors = validate_manifest_schema(manifest)
+        manifest = {"meta": _full_meta(schema_path), "volumes": volumes}
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         assert errors == []
 
-    def test_null_year_accepted(self, valid_volume: dict[str, Any]) -> None:
+    def test_null_year_accepted(self, valid_volume: dict[str, Any], schema_path: Path) -> None:
         valid_volume["year"] = None
-        manifest = {"meta": _full_meta(), "volumes": [valid_volume]}
-        errors = validate_manifest_schema(manifest)
+        manifest = {"meta": _full_meta(schema_path), "volumes": [valid_volume]}
+        errors = validate_manifest_schema(manifest, schema_path=schema_path)
         assert errors == []
 
 
@@ -377,14 +436,13 @@ class TestComputeSha256:
 class TestValidate:
     def test_validate_missing_manifest(self, tmp_path: Path) -> None:
         missing = tmp_path / "missing.json"
-        report, exit_code = validate(
-            manifest_path=missing,
-            schema_path=SCHEMA_PATH,
-        )
+        schema_path = tmp_path / "schema.json"
+        schema_path.write_text(json.dumps(SCHEMA_TEMPLATE), encoding="utf-8")
+        report, exit_code = validate(manifest_path=missing, schema_path=schema_path)
         assert exit_code == 1
         assert report["results"]["passed"] is False
 
-    def test_validate_empty_manifest(self, tmp_path: Path) -> None:
+    def test_validate_empty_manifest(self, tmp_path: Path, schema_path: Path) -> None:
         manifest_path = tmp_path / "empty_manifest.json"
         manifest = {
             "meta": {
@@ -392,19 +450,16 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 0,
-                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
+                "schema": schema_path.name,
             },
             "volumes": [],
         }
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        report, exit_code = validate(
-            manifest_path=manifest_path,
-            schema_path=SCHEMA_PATH,
-        )
+        report, exit_code = validate(manifest_path=manifest_path, schema_path=schema_path)
         assert exit_code == 0
         assert report["results"]["passed"] is True
 
-    def test_validate_with_errors(self, tmp_path: Path) -> None:
+    def test_validate_with_errors(self, tmp_path: Path, schema_path: Path) -> None:
         manifest_path = tmp_path / "bad_manifest.json"
         manifest = {
             "meta": {
@@ -412,7 +467,7 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 2,
-                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
+                "schema": schema_path.name,
             },
             "volumes": [
                 {"htid": "test.1", "category": "debates", "year": 1886, "rights": "pd"},
@@ -420,15 +475,12 @@ class TestValidate:
             ],
         }
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        report, exit_code = validate(
-            manifest_path=manifest_path,
-            schema_path=SCHEMA_PATH,
-        )
+        report, exit_code = validate(manifest_path=manifest_path, schema_path=schema_path)
         assert exit_code == 1
         assert report["results"]["passed"] is False
         assert report["results"]["total_errors"] > 0
 
-    def test_validate_with_stage_dir(self, tmp_path: Path) -> None:
+    def test_validate_with_stage_dir(self, tmp_path: Path, schema_path: Path) -> None:
         manifest_path = tmp_path / "manifest.json"
         content = b"test volume data"
         sha256 = hashlib.sha256(content).hexdigest()
@@ -439,7 +491,7 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 1,
-                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
+                "schema": schema_path.name,
             },
             "volumes": [
                 {
@@ -462,15 +514,13 @@ class TestValidate:
         src_dir.mkdir(parents=True)
         (src_dir / "uc1.test001.zip").write_bytes(content)
         report, exit_code = validate(
-            manifest_path=manifest_path,
-            schema_path=SCHEMA_PATH,
-            stage_dir=stage_dir,
+            manifest_path=manifest_path, schema_path=schema_path, stage_dir=stage_dir
         )
         assert exit_code == 0
         assert report["results"]["passed"] is True
         assert report["manifest"]["files_checked"] == 1
 
-    def test_fail_on_warning(self, tmp_path: Path) -> None:
+    def test_fail_on_warning(self, tmp_path: Path, schema_path: Path) -> None:
         manifest_path = tmp_path / "manifest.json"
         content = b"warning test"
         manifest = {
@@ -479,7 +529,7 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 1,
-                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
+                "schema": schema_path.name,
             },
             "volumes": [
                 {
@@ -501,7 +551,7 @@ class TestValidate:
         (src_dir / "test.001.zip").write_bytes(content)
         report, exit_code = validate(
             manifest_path=manifest_path,
-            schema_path=SCHEMA_PATH,
+            schema_path=schema_path,
             stage_dir=stage_dir,
             fail_on_warning=True,
         )
