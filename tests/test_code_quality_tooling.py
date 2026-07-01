@@ -48,6 +48,7 @@ def test_ci_runs_mutmutation_and_enforces_coverage() -> None:
 
     assert "mutmut" in content
     assert "codecov/codecov-action@v5" in content
+    assert "use_oidc: true" in content
     assert "--cov-report=xml" in content
     assert "--cov-fail-under=75" in content
 
@@ -56,6 +57,7 @@ def test_hf_sync_uploads_coverage_and_has_no_dead_python_env() -> None:
     content = HF_SYNC_PATH.read_text(encoding="utf-8")
 
     assert "codecov/codecov-action@v5" in content
+    assert "use_oidc: true" in content
     assert "--cov-report=xml" in content
     assert "PYTHON_VERSION" not in content
 
