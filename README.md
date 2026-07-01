@@ -3,6 +3,7 @@
 **Systematic acquisition, staging, validation, and sync pipeline** for the **NZ Parliamentary Debates (Hansard, 1854–1990)** corpus from HathiTrust Digital Library, published to Hugging Face Hub as [`edithatogo/corpus-nz-hathi`](https://huggingface.co/edithatogo/corpus-nz-hathi).
 
 [![OSF Mirror](https://img.shields.io/badge/OSF-mirror-blue)](https://osf.io/)
+[![Zenodo DOI](https://img.shields.io/badge/Zenodo-DOI-blue)](https://zenodo.org/)
 
 ```mermaid
 flowchart LR

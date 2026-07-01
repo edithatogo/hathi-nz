@@ -51,6 +51,7 @@ def test_release_docs_point_to_zenodo_workflow() -> None:
     readme = README_PATH.read_text(encoding="utf-8")
     dataset_card = DATASET_CARD_PATH.read_text(encoding="utf-8")
 
+    assert "Zenodo DOI" in readme
     assert "Zenodo Release Workflow" in readme
     assert "workflow_dispatch" in readme
     assert "Zenodo Release Workflow" in dataset_card
