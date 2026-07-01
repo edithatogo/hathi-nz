@@ -48,12 +48,33 @@ def _base_url(api: requests.Session) -> str:
     return str(getattr(api, "base_url", ZENODO_SANDBOX_API))
 
 
+def _raise_for_status(response: requests.Response, action: str) -> None:
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        details = response.text.strip()
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = None
+        if payload is not None:
+            details = (
+                f"{details}\n{json.dumps(payload, indent=2)}"
+                if details
+                else json.dumps(payload, indent=2)
+            )
+        msg = f"Zenodo {action} failed with {response.status_code} for {response.url}"
+        if details:
+            msg = f"{msg}: {details}"
+        raise requests.HTTPError(msg, response=response) from exc
+
+
 def create_deposition(api: requests.Session, metadata: dict[str, Any]) -> dict[str, Any]:
     """Create a Zenodo deposition with metadata."""
     response = api.post(
         f"{_base_url(api)}/deposit/depositions", json={"metadata": metadata}, timeout=60
     )
-    response.raise_for_status()
+    _raise_for_status(response, "create deposition")
     data = response.json()
     if not isinstance(data, dict):
         msg = "Zenodo create deposition response was not an object"
@@ -66,7 +87,7 @@ def upload_file(api: requests.Session, deposition_id: str, file_path: Path) -> d
     deposition_response = api.get(
         f"{_base_url(api)}/deposit/depositions/{deposition_id}", timeout=60
     )
-    deposition_response.raise_for_status()
+    _raise_for_status(deposition_response, "fetch deposition")
     deposition = deposition_response.json()
     bucket = deposition.get("links", {}).get("bucket")
     if not bucket:
@@ -75,7 +96,7 @@ def upload_file(api: requests.Session, deposition_id: str, file_path: Path) -> d
 
     with file_path.open("rb") as file:
         response = api.put(f"{bucket}/{file_path.name}", data=file, timeout=300)
-    response.raise_for_status()
+    _raise_for_status(response, "upload")
     data = response.json()
     if not isinstance(data, dict):
         msg = "Zenodo upload response was not an object"
@@ -88,7 +109,7 @@ def publish_deposition(api: requests.Session, deposition_id: str) -> dict[str, A
     response = api.post(
         f"{_base_url(api)}/deposit/depositions/{deposition_id}/actions/publish", timeout=60
     )
-    response.raise_for_status()
+    _raise_for_status(response, "publish deposition")
     data = response.json()
     if not isinstance(data, dict):
         msg = "Zenodo publish response was not an object"
