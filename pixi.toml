@@ -14,7 +14,7 @@ pyright-check = "pyright scripts/"
 spell = "typos ."
 toml-check = "taplo check pixi.toml pyproject.toml"
 workflow-syntax = "actionlint .github/workflows/*.yml"
-mutmut-run = "mutmut run --ci"
+mutmut-run = "mutmut run"
 profile-pipelines-scalene = "python scripts/profile_pipelines.py"
 quality = { depends_on = ["lint", "format-check", "spell", "toml-check", "workflow-syntax"] }
 

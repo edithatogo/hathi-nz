@@ -75,4 +75,4 @@ jobs:
           cache: false
           environments: dev
       - name: Run mutmut
-        run: pixi run -e dev mutmut run --ci
+        run: pixi run -e dev mutmut run
