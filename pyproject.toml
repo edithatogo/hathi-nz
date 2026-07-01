@@ -31,6 +31,9 @@ nz-hathi-corpus = "scripts.cli:main"
 dev = [
   "pytest>=8.2.0",
   "pytest-cov>=6.0.0",
+  "mutmut>=3.6.0",
+  "pyright>=1.1.404",
+  "scalene>=1.5.52",
   "ruff>=0.15.16",
   "taplo>=0.9.3",
   "ty>=0.0.46",
@@ -111,8 +114,29 @@ omit = [
 branch = true
 
 [tool.coverage.report]
-fail_under = 60
+fail_under = 75
 show_missing = true
+
+[tool.pyright]
+include = ["scripts"]
+exclude = [
+  ".git",
+  ".pixi",
+  ".test-tmp",
+  ".tmp",
+  "data",
+  "generated",
+]
+typeCheckingMode = "basic"
+pythonVersion = "3.11"
+venvPath = "."
+venv = ".pixi/envs/dev"
+
+[tool.mutmut]
+paths_to_mutate = "scripts/"
+runner = "python -m pytest tests/"
+tests_dir = "tests/"
+backup = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

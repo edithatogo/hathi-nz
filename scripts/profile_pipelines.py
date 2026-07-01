@@ -1,146 +1,111 @@
 #!/usr/bin/env python
 """Profile the HathiTrust metadata inventory and large manifest/checksum paths."""
 
-import cProfile
-import io
-import pstats
-import sys
-from pathlib import Path
+from __future__ import annotations
 
-# Add scripts to path
-sys.path.insert(0, str(Path(__file__).parent))
+import argparse
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from textwrap import dedent
 
 from rich.console import Console
 
 console = Console()
 
-# Base directory for this repo
 BASE_DIR = Path(__file__).parent.parent
+LOGS_DIR = BASE_DIR / "logs"
+
+PROFILE_TARGETS = (
+    ("fetch_hathitrust", "fetch_hathitrust.py"),
+    ("validate_catalog", "validate_catalog.py"),
+    ("ocr_extract", "ocr_extract.py"),
+    ("package_release", "package_release.py"),
+)
 
 
-def profile_fetch_hathitrust():
-    """Profile the fetch_hathitrust script."""
-    console.print("[bold cyan]Profiling fetch_hathitrust...[/bold cyan]")
+def _write_profile_wrapper(module_name: str) -> Path:
+    """Create a tiny wrapper script to profile a module import path."""
+    LOGS_DIR.mkdir(exist_ok=True)
+    fd, raw_path = tempfile.mkstemp(prefix=f"profile_{module_name}_", suffix=".py")
+    os.close(fd)
+    wrapper_path = Path(raw_path)
+    wrapper_path.write_text(
+        dedent(
+            f"""
+            from scripts import {module_name} as _target
 
-    profiler = cProfile.Profile()
-    profiler.enable()
 
+            def main() -> None:
+                _ = _target  # Import for profiling side effects.
+
+
+            if __name__ == "__main__":
+                main()
+            """
+        ).strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    return wrapper_path
+
+
+def profile_with_scalene(module_name: str, script_file: str) -> Path:
+    """Run Scalene against a lightweight wrapper for a script module."""
+    console.print(f"[bold cyan]Profiling {module_name} with Scalene...[/bold cyan]")
+    output_path = LOGS_DIR / f"profile_{module_name}.txt"
+    wrapper_path = _write_profile_wrapper(module_name)
     try:
-        from fetch_hathitrust import main as fetch_main
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "scalene",
+                "--outfile",
+                str(output_path),
+                "--reduced-profile",
+                "---",
+                str(wrapper_path),
+                script_file,
+            ],
+            check=True,
+        )
+    finally:
+        wrapper_path.unlink(missing_ok=True)
 
-        console.print("[yellow]fetch_hathitrust imported (full run requires CLI args)[/yellow]")
-    except ImportError as e:
-        console.print(f"[red]Could not import fetch_hathitrust: {e}[/red]")
-
-    profiler.disable()
-
-    s = io.StringIO()
-    ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
-    ps.print_stats(30)
-    console.print(s.getvalue())
-
-    output_path = BASE_DIR / "logs" / "profile_fetch_hathitrust.txt"
-    output_path.parent.mkdir(exist_ok=True)
-    output_path.write_text(s.getvalue())
     console.print(f"[green]Profile saved to {output_path}[/green]")
+    return output_path
 
 
-def profile_validate_catalog():
-    """Profile the validate_catalog script."""
-    console.print("[bold cyan]Profiling validate_catalog...[/bold cyan]")
-
-    profiler = cProfile.Profile()
-    profiler.enable()
-
-    try:
-        from validate_catalog import main as validate_main
-
-        console.print("[yellow]validate_catalog imported (full run requires CLI args)[/yellow]")
-    except ImportError as e:
-        console.print(f"[red]Could not import validate_catalog: {e}[/red]")
-
-    profiler.disable()
-
-    s = io.StringIO()
-    ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
-    ps.print_stats(30)
-    console.print(s.getvalue())
-
-    output_path = BASE_DIR / "logs" / "profile_validate_catalog.txt"
-    output_path.parent.mkdir(exist_ok=True)
-    output_path.write_text(s.getvalue())
-    console.print(f"[green]Profile saved to {output_path}[/green]")
+def parse_args(args: list[str] | None = None) -> argparse.Namespace:
+    """Parse CLI arguments."""
+    parser = argparse.ArgumentParser(description="Profile core pipeline scripts with Scalene.")
+    parser.add_argument(
+        "--target",
+        choices=[name for name, _ in PROFILE_TARGETS] + ["all"],
+        default="all",
+        help="Which pipeline script to profile.",
+    )
+    return parser.parse_args(args)
 
 
-def profile_ocr_extract():
-    """Profile the OCR extraction script."""
-    console.print("[bold cyan]Profiling ocr_extract...[/bold cyan]")
+def main(args: list[str] | None = None) -> int:
+    """Run the requested profiling tasks."""
+    parsed = parse_args(args)
+    LOGS_DIR.mkdir(exist_ok=True)
 
-    profiler = cProfile.Profile()
-    profiler.enable()
+    targets = PROFILE_TARGETS
+    if parsed.target != "all":
+        targets = tuple(target for target in PROFILE_TARGETS if target[0] == parsed.target)
 
-    try:
-        from ocr_extract import main as ocr_main
-
-        console.print("[yellow]ocr_extract imported (full run requires CLI args)[/yellow]")
-    except ImportError as e:
-        console.print(f"[red]Could not import ocr_extract: {e}[/red]")
-
-    profiler.disable()
-
-    s = io.StringIO()
-    ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
-    ps.print_stats(30)
-    console.print(s.getvalue())
-
-    output_path = BASE_DIR / "logs" / "profile_ocr_extract.txt"
-    output_path.parent.mkdir(exist_ok=True)
-    output_path.write_text(s.getvalue())
-    console.print(f"[green]Profile saved to {output_path}[/green]")
-
-
-def profile_package_release():
-    """Profile the package_release script (manifest/checksum)."""
-    console.print("[bold cyan]Profiling package_release...[/bold cyan]")
-
-    profiler = cProfile.Profile()
-    profiler.enable()
-
-    try:
-        from package_release import main as package_main
-
-        console.print("[yellow]package_release imported (full run requires CLI args)[/yellow]")
-    except ImportError as e:
-        console.print(f"[red]Could not import package_release: {e}[/red]")
-
-    profiler.disable()
-
-    s = io.StringIO()
-    ps = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
-    ps.print_stats(30)
-    console.print(s.getvalue())
-
-    output_path = BASE_DIR / "logs" / "profile_package_release.txt"
-    output_path.parent.mkdir(exist_ok=True)
-    output_path.write_text(s.getvalue())
-    console.print(f"[green]Profile saved to {output_path}[/green]")
-
-
-def main():
-    """Run all profiling tasks."""
-    console.print("[bold]Starting hathi-nz profiling[/bold]")
-
-    # Ensure logs directory exists
-    (BASE_DIR / "logs").mkdir(exist_ok=True)
-
-    # Run profiles
-    profile_fetch_hathitrust()
-    profile_validate_catalog()
-    profile_ocr_extract()
-    profile_package_release()
+    for module_name, script_file in targets:
+        profile_with_scalene(module_name, script_file)
 
     console.print("[bold green]Profiling complete![/bold green]")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

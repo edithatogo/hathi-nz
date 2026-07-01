@@ -200,6 +200,12 @@ pixi run python -c "import polars; print('OK', polars.__version__)"
 ### Development
 
 ```bash
+# Install local pre-commit hooks
+pixi run pre-commit install
+
+# Run all configured hooks
+pixi run pre-commit run --all-files
+
 # Run tests
 pixi run pytest
 

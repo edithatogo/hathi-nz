@@ -13,6 +13,7 @@ import hashlib
 import json
 import logging
 import re
+from collections.abc import Callable
 from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,10 +28,13 @@ except ImportError:  # pragma: no cover
         return "0.0.0"
 
 
+get_settings: Callable[[], Any] | None = None
 try:
-    from config import get_settings
+    from config import get_settings as _get_settings
 except ImportError:  # pragma: no cover
-    get_settings = None  # type: ignore[assignment]
+    pass
+else:
+    get_settings = _get_settings
 
 logger = logging.getLogger(__name__)
 

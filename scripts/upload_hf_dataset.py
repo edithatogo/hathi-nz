@@ -22,15 +22,19 @@ import logging
 import os
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from huggingface_hub import HfApi
 
+get_settings: Callable[[], Any] | None = None
 try:
-    from config import get_settings
+    from config import get_settings as _get_settings
 except ImportError:  # pragma: no cover
-    get_settings = None  # type: ignore[assignment]
+    pass
+else:
+    get_settings = _get_settings
 
 logger = logging.getLogger(__name__)
 

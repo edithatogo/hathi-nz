@@ -1,0 +1,64 @@
+fail_fast: false
+exclude: |
+  (?x)^(
+    \.gitignore|
+    \.swarm/.*|
+    VERSION|
+    conductor/tracks/.*/archive_strategy\.md|
+    conductor/tracks/.*/metadata\.json|
+    conductor/tracks/.*/plan\.md|
+    conductor/tracks/.*/spec\.md|
+    pixi\.toml|
+    pyproject\.toml|
+    subagents\.yaml|
+    task_plan\.md
+  )$
+
+default_install_hook_types:
+  - pre-commit
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args:
+          - --fix
+          - --exit-non-zero-on-fix
+        types_or:
+          - python
+          - pyi
+        require_serial: true
+
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: ty
+        entry: ty check
+        language: system
+        pass_filenames: false
+        args:
+          - scripts/
+          - --exclude
+          - scripts/config.py
+        types_or:
+          - python
+          - pyi
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.47.2
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
+    hooks:
+      - id: taplo-format

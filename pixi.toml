@@ -10,9 +10,12 @@ test = "pytest tests/ --cov --cov-report=term-missing"
 lint = "ruff check ."
 format-check = "ruff format --check ."
 typecheck = "ty check scripts/ --exclude scripts/config.py"
+pyright-check = "pyright scripts/"
 spell = "typos ."
 toml-check = "taplo check pixi.toml pyproject.toml"
 workflow-syntax = "actionlint .github/workflows/*.yml"
+mutmut-run = "mutmut run --paths-to-mutate scripts/ --tests-dir tests/"
+profile-pipelines-scalene = "python scripts/profile_pipelines.py"
 quality = { depends_on = ["lint", "format-check", "spell", "toml-check", "workflow-syntax"] }
 
 [dependencies]
@@ -37,6 +40,11 @@ taplo = ">=0.9.3"
 zizmor = ">=1.25.2"
 pre-commit = ">=4.0.0"
 hypothesis = ">=6.100.0"
+
+[feature.dev.pypi-dependencies]
+mutmut = ">=3.6.0"
+pyright = ">=1.1.404"
+scalene = ">=1.5.52"
 
 [environments]
 default = { features = [] }
