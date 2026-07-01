@@ -30,10 +30,17 @@ PIXI_PATH = ROOT / "pixi.toml"
 
 class _FakeStorage:
     def __init__(self) -> None:
-        self.uploads: list[tuple[str, bytes, bool]] = []
+        self.uploads: list[tuple[str, bytes, bool, bool]] = []
 
-    def create_file(self, path: str, fp: Any, update: bool = False) -> dict[str, str]:
-        self.uploads.append((path, fp.read(), update))
+    def create_file(
+        self,
+        path: str,
+        fp: Any,
+        *,
+        force: bool = False,
+        update: bool = False,
+    ) -> dict[str, str]:
+        self.uploads.append((path, fp.read(), force, update))
         return {"path": path}
 
 
@@ -106,7 +113,10 @@ def test_publish_release_uploads_release_tree(
         "releases/0.1.0/corpus-nz-hathi-0.1.0.zip",
         "releases/0.1.0/.osf.json",
     }
-    assert {path for path, _content, _update in storage.uploads} == set(result["uploaded_files"])
+    assert {path for path, _content, _force, _update in storage.uploads} == set(
+        result["uploaded_files"]
+    )
+    assert all(force is True for _path, _content, force, _update in storage.uploads)
 
 
 def test_main_dry_run_reports_planned_uploads(
@@ -156,6 +166,22 @@ def test_main_dry_run_reports_planned_uploads(
     }
 
 
+def test_resolve_credentials_honors_custom_token_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    custom_token = "".join(["custom", "-", "token"])
+    monkeypatch.setenv("CUSTOM_OSF_TOKEN", custom_token)
+    args = argparse.Namespace(
+        token_env="CUSTOM_OSF_TOKEN",
+        project_id="custom-project",
+    )
+
+    token, project_id = publish_osf._resolve_credentials(args)
+
+    assert token == custom_token
+    assert project_id == "custom-project"
+
+
 def test_osf_docs_and_dependency_declarations() -> None:
     readme = README_PATH.read_text(encoding="utf-8")
     dataset_card = DATASET_CARD_PATH.read_text(encoding="utf-8")
@@ -169,5 +195,7 @@ def test_osf_docs_and_dependency_declarations() -> None:
     assert "OSF_TOKEN" in dataset_card
     assert "OSF Sync" in workflow
     assert "OSF_PROJECT_ID" in workflow
+    assert "available=false" in workflow
+    assert "steps.credentials.outputs.available == 'true'" in workflow
     assert "osfclient" in pyproject
     assert "osfclient" in pixi

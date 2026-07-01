@@ -31,16 +31,20 @@ jobs:
           environments: dev
 
       - name: Check OSF credentials
+        id: credentials
         env:
           OSF_TOKEN: ${{ secrets.OSF_TOKEN }}
           OSF_PROJECT_ID: ${{ secrets.OSF_PROJECT_ID }}
         run: |
           if [ -z "$OSF_TOKEN" ] || [ -z "$OSF_PROJECT_ID" ]; then
             echo "OSF credentials are not fully set, skipping publish."
+            echo "available=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          echo "available=true" >> "$GITHUB_OUTPUT"
 
       - name: Determine release version
+        if: ${{ steps.credentials.outputs.available == 'true' }}
         id: version
         shell: bash
         run: |
@@ -53,11 +57,13 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Package release archive
+        if: ${{ steps.credentials.outputs.available == 'true' }}
         run: |
           pixi run python scripts/package_release.py \
             --version "${{ steps.version.outputs.version }}"
 
       - name: Publish to OSF
+        if: ${{ steps.credentials.outputs.available == 'true' }}
         env:
           OSF_TOKEN: ${{ secrets.OSF_TOKEN }}
           OSF_PROJECT_ID: ${{ secrets.OSF_PROJECT_ID }}

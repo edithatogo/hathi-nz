@@ -87,9 +87,13 @@ def _resolve_credentials(
     args: argparse.Namespace,
 ) -> tuple[str | None, str | None]:
     """Resolve the OSF token and project ID from args and environment settings."""
-    settings = get_settings()
+    import os
 
-    token: str | None = None
+    token = os.getenv(args.token_env)
+    if token:
+        return token, args.project_id or get_settings().OSF_PROJECT_ID
+
+    settings = get_settings()
     if args.token_env == DEFAULT_AUTH_ENV and settings.OSF_TOKEN:
         token = settings.OSF_TOKEN.get_secret_value()
 
@@ -123,7 +127,7 @@ def publish_release(
         remote_path = Path(remote_dir) / relative if remote_dir else relative
         logger.info("Uploading {} to OSF at {}", file_path, remote_path)
         with file_path.open("rb") as fp:
-            storage.create_file(remote_path.as_posix(), fp, update=True)
+            storage.create_file(remote_path.as_posix(), fp, force=True, update=False)
         uploaded_files.append(remote_path.as_posix())
 
     return {
