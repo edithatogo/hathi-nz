@@ -202,7 +202,7 @@ repository secret.
 }
 ```
 
-For live use, cite the Hugging Face repository with access date. For academic citation, use the Zenodo DOI once a public release is published and recorded here.
+For live use, cite the Hugging Face repository with access date. For academic citation, use the Zenodo DOI [10.5281/zenodo.21107389](https://doi.org/10.5281/zenodo.21107389).
 
 ## Licensing
 
