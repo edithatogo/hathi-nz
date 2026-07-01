@@ -1,8 +1,8 @@
 {
   "track_id": "ocr_processing_20260613",
   "type": "feature",
-  "status": "new",
+  "status": "complete",
   "created_at": "2026-06-13T19:10:00Z",
-  "updated_at": "2026-06-13T19:10:00Z",
+  "updated_at": "2026-07-01T19:05:31+10:00",
   "description": "Build the layout-aware text extraction and progressive OCR pipeline integrated with the shared nlp-policy-nz library."
 }
