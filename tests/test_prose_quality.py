@@ -9,7 +9,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+PROJECT_ROOT = _repo_root(Path(__file__).resolve())
 
 
 def test_typos_toml_exists() -> None:

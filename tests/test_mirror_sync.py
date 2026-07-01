@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-WORKFLOW_PATH = Path(".github/workflows/mirror_sync.yml")
+
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
+WORKFLOW_PATH = ROOT / ".github/workflows/mirror_sync.yml"
 
 
 def test_mirror_workflow_skips_when_either_secret_is_missing() -> None:
