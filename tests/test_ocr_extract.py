@@ -7,7 +7,15 @@ from pathlib import Path
 
 import pytest
 
-from scripts.ocr_extract import clean_text
+from scripts.ocr_extract import (
+    clean_text,
+    load_page_text,
+    merge_pages,
+    process_volume,
+    reconstruct_columns,
+    sort_pages,
+    write_processed,
+)
 
 
 @pytest.fixture
@@ -56,10 +64,10 @@ def sample_single_column_text() -> str:
 
 @pytest.fixture
 def temp_zip_with_text(tmp_path: Path) -> Path:
-    zip_path = tmp_path / "test_volume.zip"
+    zip_path = tmp_path / "uc1_b2889853.zip"
     with zipfile.ZipFile(zip_path, "w") as zf:
-        zf.writestr("0001.txt", "Page 1\n\nContent first page.\nDebate text.\n")
         zf.writestr("0002.txt", "Page 2\n\nContent second page.\nDiscussion.\n")
+        zf.writestr("0001.txt", "Page 1\n\nContent first page.\nDebate text.\n")
         zf.writestr("0003.txt", "3\n\nFinal page.\nClosing remarks.\n")
     return zip_path
 
@@ -134,3 +142,63 @@ class TestCleanText:
         text = "First hyphen-\nated word.\nSecond hyphen-\nated word."
         result = clean_text(text)
         assert "hyphenated" in result
+
+
+class TestLayoutReconstruction:
+    def test_sort_pages_orders_by_page_number(self) -> None:
+        pages = [
+            {"page_num": 3, "member_name": "0003.txt", "text": "third"},
+            {"page_num": 1, "member_name": "0001.txt", "text": "first"},
+            {"page_num": 2, "member_name": "0002.txt", "text": "second"},
+        ]
+
+        ordered = sort_pages(pages)
+        assert [page["page_num"] for page in ordered] == [1, 2, 3]
+
+    def test_reconstruct_columns_joins_column_fragments(self) -> None:
+        pages = [
+            {
+                "page_num": 1,
+                "member_name": "0001.txt",
+                "columns": ["Left column line 1\nLeft column line 2", "Right column line 1"],
+            }
+        ]
+
+        reconstructed = reconstruct_columns(pages)
+        assert (
+            reconstructed[0]["text"]
+            == "Left column line 1\nLeft column line 2\n\nRight column line 1"
+        )
+        assert reconstructed[0]["layout"]["column_estimate"] == 2
+        assert reconstructed[0]["layout"]["has_columns"] is True
+
+    def test_merge_pages_joins_clean_text_blocks(self) -> None:
+        pages = [{"text": "First page."}, {"text": "Second page."}]
+        assert merge_pages(pages) == "First page.\n\nSecond page."
+
+
+class TestProcessVolume:
+    def test_load_page_text_reads_zip_pages(self, tmp_path: Path, temp_zip_with_text: Path) -> None:
+        pages = load_page_text(tmp_path, "uc1.b2889853")
+        assert len(pages) == 3
+        assert [page["page_num"] for page in pages] == [1, 2, 3]
+
+    def test_process_volume_writes_combined_text(
+        self, tmp_path: Path, temp_zip_with_text: Path
+    ) -> None:
+        processed_dir = tmp_path / "processed"
+        result = process_volume("uc1.b2889853", tmp_path, processed_dir)
+
+        assert result["success"] is True
+        assert result["pages_extracted"] == 3
+        output_path = Path(result["output_path"])
+        assert output_path.exists()
+        content = output_path.read_text(encoding="utf-8")
+        assert "Content first page." in content
+        assert content.index("Content first page.") < content.index("Content second page.")
+        assert (processed_dir / "uc1_b2889853" / "pages" / "0001.txt").exists()
+
+    def test_write_processed_creates_volume_file(self, tmp_path: Path) -> None:
+        output = write_processed("uc1.b2889853", "hello", tmp_path)
+        assert output.exists()
+        assert output.read_text(encoding="utf-8") == "hello"
