@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-PYPROJECT_PATH = Path("pyproject.toml")
-PIXI_PATH = Path("pixi.toml")
-CI_PATH = Path(".github/workflows/ci.yml")
-PROFILE_PATH = Path("scripts/profile_pipelines.py")
+ROOT = Path(__file__).resolve().parents[1]
+PYPROJECT_PATH = ROOT / "pyproject.toml"
+PIXI_PATH = ROOT / "pixi.toml"
+CI_PATH = ROOT / ".github/workflows/ci.yml"
+PROFILE_PATH = ROOT / "scripts/profile_pipelines.py"
 
 
 def test_pyproject_declares_quality_tooling() -> None:
