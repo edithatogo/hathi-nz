@@ -21,8 +21,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: Code Quality & Tooling Enhancement
-*Link: [./conductor/tracks/code_quality_enhancement_20260626/](./conductor/tracks/code_quality_enhancement_20260626/)*
+## [x] Track: Code Quality & Tooling Enhancement
+*Link: [./conductor/archive/code_quality_enhancement_20260626/](./conductor/archive/code_quality_enhancement_20260626/)*
 - Pre-commit config, mutmut, scalene, pyright direct dep, coverage threshold 75%
 
 ## [ ] Track: CI Infrastructure & Resilience
