@@ -1,0 +1,30 @@
+name: Containerization Smoke Test
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build container image
+        run: docker build -t hathi-nz .
+
+      - name: Run validate_catalog help inside the image
+        run: docker run --rm hathi-nz python scripts/validate_catalog.py --help
+
+      - name: Verify docker compose file
+        run: docker compose -f docker-compose.yml config
+
+      - name: Run compose command
+        run: docker compose -f docker-compose.yml run --rm hathi-nz

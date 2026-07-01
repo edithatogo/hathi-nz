@@ -16,6 +16,7 @@ ROOT = _repo_root(Path(__file__).resolve())
 DOCKERFILE_PATH = ROOT / "Dockerfile"
 COMPOSE_PATH = ROOT / "docker-compose.yml"
 DOCKERIGNORE_PATH = ROOT / ".dockerignore"
+WORKFLOW_PATH = ROOT / ".github/workflows/containerization.yml"
 README_PATH = ROOT / "README.md"
 
 
@@ -23,6 +24,7 @@ def test_containerization_files_exist() -> None:
     assert DOCKERFILE_PATH.exists()
     assert COMPOSE_PATH.exists()
     assert DOCKERIGNORE_PATH.exists()
+    assert WORKFLOW_PATH.exists()
 
 
 def test_dockerfile_uses_pixi_multi_stage_runtime() -> None:
@@ -66,3 +68,12 @@ def test_readme_documents_container_usage() -> None:
     assert "docker build -t hathi-nz ." in readme
     assert "docker run --rm hathi-nz python scripts/validate_catalog.py --help" in readme
     assert "docker compose up --build" in readme
+
+
+def test_containerization_workflow_smokes_the_image() -> None:
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "Containerization Smoke Test" in workflow
+    assert "docker build -t hathi-nz ." in workflow
+    assert "docker run --rm hathi-nz python scripts/validate_catalog.py --help" in workflow
+    assert "docker compose -f docker-compose.yml config" in workflow

@@ -9,6 +9,7 @@
 ## Phase 2: Docker Compose & Local Dev
 - [ ] Task: Create docker-compose.yml with volume mounts
 - [ ] Task: Test local development workflow
+- [ ] Task: Add CI smoke test for Docker build and runtime help command
 - [ ] Task: Conductor - User Manual Verification Phase 2
 
 ## Phase 3: CI & Documentation
