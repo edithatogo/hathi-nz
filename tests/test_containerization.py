@@ -42,6 +42,7 @@ def test_compose_mounts_data_and_manifests() -> None:
     compose = COMPOSE_PATH.read_text(encoding="utf-8")
 
     assert "env_file:" in compose
+    assert "required: false" in compose
     assert "./data:/workspace/data" in compose
     assert "./manifests:/workspace/manifests" in compose
     assert "./generated:/workspace/generated" in compose

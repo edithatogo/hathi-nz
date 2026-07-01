@@ -6,7 +6,8 @@ services:
     image: hathi-nz
     working_dir: /workspace
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       HF_TOKEN: ${HF_TOKEN:-}
       ZENODO_TOKEN: ${ZENODO_TOKEN:-}
