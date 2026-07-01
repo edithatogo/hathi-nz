@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 PIXI_PATH = ROOT / "pixi.toml"
 CI_PATH = ROOT / ".github/workflows/ci.yml"

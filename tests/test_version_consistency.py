@@ -7,7 +7,15 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
+
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import check_version_consistency as check_version_consistency_module  # noqa: E402
