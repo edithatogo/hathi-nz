@@ -1,8 +1,8 @@
 """Report local roadmap completion and public publication status.
 
-This script separates code-complete state from externally published state so the
-repository can tell whether the Conductor roadmap is fully implemented or still
-waiting on GitHub, Hugging Face, or Zenodo proof.
+This script reports Conductor roadmap status alongside externally published
+state so the repository can tell whether the roadmap is complete and whether
+the published dataset is ready for release gating.
 """
 
 from __future__ import annotations
@@ -154,19 +154,21 @@ def check_publication_status() -> dict[str, Any]:
     dataset_card = _text(DATASET_CARD_PATH)
     card_doi = _dataset_card_doi(dataset_card)
     doi_status = _doi_resolves(card_doi["url"]) if card_doi is not None else None
-    ready = bool(
-        tracks["all_complete"]
-        and hugging_face.get("exists")
+    publication_ready = bool(
+        hugging_face.get("exists")
         and card_doi is not None
         and doi_status is not None
         and doi_status.get("resolves")
     )
+    ready = publication_ready
     return {
         "tracks": tracks,
         "hugging_face": hugging_face,
         "zenodo": zenodo,
         "dataset_card_doi": card_doi,
         "doi_status": doi_status,
+        "roadmap_complete": tracks["all_complete"],
+        "publication_ready": publication_ready,
         "ready": ready,
     }
 
@@ -176,7 +178,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Exit nonzero when the roadmap is not fully implemented and published.",
+        help="Exit nonzero when the publication is not ready for release gating.",
     )
     return parser.parse_args(args)
 

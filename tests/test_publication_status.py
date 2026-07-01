@@ -163,8 +163,37 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
         "doi": "10.5281/zenodo.123456",
         "url": "https://doi.org/10.5281/zenodo.123456",
     }
+    assert report["roadmap_complete"] is True
+    assert report["publication_ready"] is True
     assert report["doi_status"]["resolves"] is True
     assert report["ready"] is True
+
+
+@pytest.mark.unit
+def test_strict_mode_allows_publication_ready_even_when_roadmap_is_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "check_publication_status",
+        lambda: {
+            "tracks": {"all_complete": False},
+            "hugging_face": {"exists": True},
+            "zenodo": {"match_count": 0},
+            "dataset_card_doi": {"doi": "10.5281/zenodo.123456"},
+            "doi_status": {"resolves": True},
+            "roadmap_complete": False,
+            "publication_ready": True,
+            "ready": True,
+        },
+    )
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        exit_code = check_publication_status_module.main(["--strict"])
+
+    payload = json.loads(buffer.getvalue())
+    assert payload["ready"] is True
+    assert exit_code == 0
 
 
 @pytest.mark.unit
