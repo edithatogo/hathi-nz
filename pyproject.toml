@@ -134,8 +134,7 @@ venv = ".pixi/envs/dev"
 
 [tool.mutmut]
 source_paths = ["scripts/"]
-pytest_add_cli_args_test_selection = ["tests/"]
-runner = "python -m pytest tests/"
+pytest_add_cli_args_test_selection = ["tests"]
 backup = false
 
 [tool.pytest.ini_options]
