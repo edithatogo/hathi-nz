@@ -1,0 +1,1 @@
+{"track_id":"containerization_20260626","type":"infrastructure","status":"complete","created_at":"2026-06-26T23:30:00Z","updated_at":"2026-07-01T12:12:34.3666773Z","description":"Create Dockerfile for pixi-based reproducible pipeline execution, enabling containerised deployment and local dev consistency."}

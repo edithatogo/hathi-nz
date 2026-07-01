@@ -41,8 +41,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/zenodo_release_workflow_20260626/](./conductor/archive/zenodo_release_workflow_20260626/)*
 - GHA workflow for automated Zenodo depositions with DOI minting
 
-## [ ] Track: Containerization
-*Link: [./conductor/tracks/containerization_20260626/](./conductor/tracks/containerization_20260626/)*
+## [x] Track: Containerization
+*Link: [./conductor/archive/containerization_20260626/](./conductor/archive/containerization_20260626/)*
 - Dockerfile for pixi-based reproducible pipeline execution
 
 ## [x] Track: Loguru Migration
@@ -59,4 +59,4 @@ This file tracks all major tracks for the project. Each track has its own detail
 - **loguru_migration**: ✅ Complete - Align logging implementation with declared dependency
 - **osf_integration**: ✅ Complete - Third publication target
 - **zenodo_release_workflow**: ✅ Complete - GHA workflow for existing Zenodo scripts
-- **containerization**: [ ] New - Docker deployment support
+- **containerization**: ✅ Complete - Docker deployment support
