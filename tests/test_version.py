@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import _version as version_module  # noqa: E402
 from _version import get_version  # noqa: E402
 
 
@@ -61,3 +63,48 @@ def test_get_version_fallback_on_git_error() -> None:
         version = get_version()
         assert isinstance(version, str)
         assert len(version) > 0
+
+
+@pytest.mark.unit
+def test_read_version_file_reads_from_repo_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    version_file = tmp_path / "VERSION"
+    version_file.write_text("1.2.3\n", encoding="utf-8")
+    monkeypatch.setattr(version_module, "ROOT", tmp_path)
+
+    assert version_module._read_version_file() == "1.2.3"
+
+
+@pytest.mark.unit
+def test_from_metadata_returns_installed_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(version_module, "_md_version", lambda _: "4.5.6")
+
+    assert version_module._from_metadata() == "4.5.6"
+
+
+@pytest.mark.unit
+def test_from_metadata_returns_none_when_package_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def raise_not_found(_: str) -> str:
+        raise PackageNotFoundError
+
+    monkeypatch.setattr(version_module, "_md_version", raise_not_found)
+
+    assert version_module._from_metadata() is None
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("candidate", "expected"),
+    [
+        ("1.2.3", True),
+        ("v1.2.3", True),
+        ("abc1234", False),
+        ("vabc1234", False),
+        ("", False),
+    ],
+)
+def test_looks_like_version(candidate: str, expected: bool) -> None:
+    assert version_module._looks_like_version(candidate) is expected

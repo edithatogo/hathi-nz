@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import zipfile
 from pathlib import Path
 
 import pytest
 
+import scripts.ocr_extract as ocr_extract_module
 from scripts.ocr_extract import (
+    _parse_page_number,
     clean_text,
+    detect_layout,
+    extract_text_from_zip,
     load_page_text,
     merge_pages,
     process_volume,
@@ -177,6 +183,42 @@ class TestLayoutReconstruction:
         assert merge_pages(pages) == "First page.\n\nSecond page."
 
 
+class TestLowLevelHelpers:
+    def test_parse_page_number_handles_numeric_and_non_numeric(self) -> None:
+        assert _parse_page_number("0007.txt") == 7
+        assert _parse_page_number("frontmatter.txt") is None
+
+    def test_detect_layout_handles_empty_and_multi_column_text(self) -> None:
+        assert detect_layout("") == {
+            "column_estimate": 1,
+            "line_count": 0,
+            "avg_line_length": 0.0,
+            "max_line_length": 0,
+            "has_columns": False,
+        }
+
+        multi_column_text = "\n".join(
+            ["short line"] * 6 + ["this is a deliberately long line to trigger the heuristic"]
+        )
+        layout = detect_layout(multi_column_text)
+        assert layout["column_estimate"] == 2
+        assert layout["has_columns"] is True
+
+    def test_extract_text_from_zip_handles_bad_zip(
+        self, temp_bad_zip: Path, tmp_path: Path
+    ) -> None:
+        result = extract_text_from_zip(temp_bad_zip, tmp_path)
+        assert result["pages_extracted"] == 0
+        assert result["layout_stats"]["error"]
+
+    def test_extract_text_from_zip_processes_valid_zip(
+        self, temp_zip_with_text: Path, tmp_path: Path
+    ) -> None:
+        result = extract_text_from_zip(temp_zip_with_text, tmp_path / "processed")
+        assert result["success"] is True
+        assert result["pages_extracted"] == 3
+
+
 class TestProcessVolume:
     def test_load_page_text_reads_zip_pages(self, tmp_path: Path, temp_zip_with_text: Path) -> None:
         pages = load_page_text(tmp_path, "uc1.b2889853")
@@ -202,3 +244,55 @@ class TestProcessVolume:
         output = write_processed("uc1.b2889853", "hello", tmp_path)
         assert output.exists()
         assert output.read_text(encoding="utf-8") == "hello"
+
+
+class TestMain:
+    def test_main_writes_output_and_returns_zero(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        output_file = tmp_path / "result.json"
+        monkeypatch.setattr(
+            ocr_extract_module,
+            "parse_args",
+            lambda args=None: argparse.Namespace(
+                htid="uc1.b2889853",
+                raw_dir=tmp_path,
+                processed_dir=tmp_path / "processed",
+                output=output_file,
+            ),
+        )
+        monkeypatch.setattr(
+            ocr_extract_module,
+            "process_volume",
+            lambda **_: {
+                "success": True,
+                "htid": "uc1.b2889853",
+                "pages_extracted": 1,
+            },
+        )
+
+        assert ocr_extract_module.main() == 0
+        written = json.loads(output_file.read_text(encoding="utf-8"))
+        assert written["success"] is True
+        assert written["htid"] == "uc1.b2889853"
+
+    def test_main_returns_one_for_failed_processing(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        monkeypatch.setattr(
+            ocr_extract_module,
+            "parse_args",
+            lambda args=None: argparse.Namespace(
+                htid="uc1.b2889853",
+                raw_dir=tmp_path,
+                processed_dir=tmp_path / "processed",
+                output=None,
+            ),
+        )
+        monkeypatch.setattr(
+            ocr_extract_module,
+            "process_volume",
+            lambda **_: {"success": False, "error": "missing zip"},
+        )
+
+        assert ocr_extract_module.main() == 1

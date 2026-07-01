@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import io
 import sys
+from contextlib import redirect_stdout
 from pathlib import Path
 
 import pytest
@@ -8,6 +10,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import check_version_consistency as check_version_consistency_module  # noqa: E402
 from check_version_consistency import SEMVER_RE, check_version_consistency  # noqa: E402
 
 
@@ -43,3 +46,39 @@ def test_pyproject_uses_dynamic_versioning() -> None:
     assert "version" in pyproject["project"]["dynamic"]
     build_sys = pyproject.get("build-system", {})
     assert "hatch-vcs" in build_sys.get("requires", [])
+
+
+@pytest.mark.unit
+def test_check_version_consistency_reports_all_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        check_version_consistency_module,
+        "_text",
+        lambda path: {
+            "VERSION": "1.2.3",
+            "pyproject.toml": '[build-system]\nrequires = ["hatchling"]\n',
+            "pixi.toml": '[project]\nversion = "1.2.4"\n',
+        }[path],
+    )
+    monkeypatch.setattr(check_version_consistency_module, "_git_tag", lambda: "v9.9.9")
+
+    failures = check_version_consistency()
+
+    assert "pyproject.toml build-system missing hatch-vcs dependency" in failures
+    assert "Version mismatch: pixi.toml 1.2.4 != VERSION 1.2.3" in failures
+    assert "Version mismatch: git tag v9.9.9 (→9.9.9) != VERSION 1.2.3" in failures
+
+
+@pytest.mark.unit
+def test_main_prints_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        check_version_consistency_module,
+        "check_version_consistency",
+        lambda: ["version mismatch"],
+    )
+
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        exit_code = check_version_consistency_module.main()
+
+    assert exit_code == 1
+    assert buffer.getvalue().strip() == "ERROR: version mismatch"
