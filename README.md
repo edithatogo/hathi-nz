@@ -301,3 +301,19 @@ In GitHub Actions, the workflow is triggered by a published release or by
 manual `workflow_dispatch` with a version input. Set `ZENODO_TOKEN` in
 repository secrets and use the `production` input only when you are ready to
 publish to the production Zenodo API.
+
+## Containerization
+
+The repository includes a Pixi-backed Docker image and a compose file for
+reproducible local execution.
+
+```bash
+docker build -t hathi-nz .
+docker run --rm hathi-nz python scripts/validate_catalog.py --help
+docker compose up --build
+```
+
+The compose service mounts `data/`, `manifests/`, and `generated/` from the
+host and reads environment variables from `.env` when present. Use `docker
+compose run --rm hathi-nz python scripts/validate_catalog.py --help` if you want
+to override the default compose command.

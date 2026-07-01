@@ -1,0 +1,20 @@
+services:
+  hathi-nz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hathi-nz
+    working_dir: /workspace
+    env_file:
+      - .env
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      ZENODO_TOKEN: ${ZENODO_TOKEN:-}
+      ZENODO_SANDBOX: ${ZENODO_SANDBOX:-false}
+      OSF_TOKEN: ${OSF_TOKEN:-}
+      OSF_PROJECT_ID: ${OSF_PROJECT_ID:-}
+    volumes:
+      - ./data:/workspace/data
+      - ./manifests:/workspace/manifests
+      - ./generated:/workspace/generated
+    command: ["python", "scripts/validate_catalog.py", "--help"]
