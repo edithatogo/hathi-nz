@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import os
 import shutil
 import tempfile
 from collections.abc import Callable
@@ -112,9 +111,6 @@ def get_hf_api(token: str | None = None) -> HfApi:
         settings = get_settings()
         if settings.HF_TOKEN:
             return HfApi(token=settings.HF_TOKEN.get_secret_value())
-    env_token = os.environ.get("HF_TOKEN")
-    if env_token:
-        return HfApi(token=env_token)
     return HfApi()
 
 

@@ -3,8 +3,7 @@
 Resolves the package version at runtime from (in priority order):
   1. ``git describe --tags`` (development / pixi environment)
   2. ``importlib.metadata.version("hathi-nz")`` (pip-installed package)
-  3. The ``VERSION`` file at the repo root (CI fallback)
-  4. ``"0.0.0"`` (ultimate fallback)
+  3. ``"0.0.0"`` (ultimate fallback)
 
 This eliminates hardcoded version strings scattered across scripts.
 """
@@ -34,14 +33,6 @@ def _git_describe() -> str | None:
         return None
 
 
-def _read_version_file() -> str | None:
-    """Read the ``VERSION`` file if it exists."""
-    version_file = ROOT / "VERSION"
-    if version_file.exists():
-        return version_file.read_text(encoding="utf-8").strip()
-    return None
-
-
 def _from_metadata() -> str | None:
     """Try ``importlib.metadata`` for installed packages."""
     try:
@@ -67,22 +58,18 @@ def get_version() -> str:
 
     Returns:
         A version string derived from git tags, package metadata,
-        the VERSION file, or ``"0.0.0"`` as a last resort.
+        or ``"0.0.0"`` as a last resort.
 
     """
     # 1. Git describe (preferred in development)
     if (git_version := _git_describe()) and _looks_like_version(git_version):
         return git_version
 
-    # 2. VERSION file (CI fallback, also used by pixi)
-    if file_version := _read_version_file():
-        return file_version
-
-    # 3. importlib.metadata (pip-installed)
+    # 2. importlib.metadata (pip-installed)
     if md_version := _from_metadata():
         return md_version
 
-    # 4. Ultimate fallback
+    # 3. Ultimate fallback
     return "0.0.0"
 
 

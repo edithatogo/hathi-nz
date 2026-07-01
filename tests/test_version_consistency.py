@@ -29,18 +29,22 @@ def test_version_consistency_check_passes() -> None:
 
 @pytest.mark.unit
 def test_version_is_well_formed() -> None:
-    version = (ROOT / "VERSION").read_text("utf-8").strip()
+    import tomllib
+
+    pixi = tomllib.loads((ROOT / "pixi.toml").read_text("utf-8"))
+    version = pixi["project"]["version"]
     assert SEMVER_RE.fullmatch(version)
 
 
 @pytest.mark.unit
-def test_pixi_version_matches_version_file() -> None:
-    """pixi.toml version must match VERSION file."""
+def test_pixi_version_matches_git_tag() -> None:
+    """pixi.toml version must match the repository git tag."""
     import tomllib
 
-    version_file = (ROOT / "VERSION").read_text("utf-8").strip()
     pixi = tomllib.loads((ROOT / "pixi.toml").read_text("utf-8"))
-    assert pixi["project"]["version"] == version_file
+    git_tag = check_version_consistency_module._git_tag()
+    assert git_tag is not None
+    assert pixi["project"]["version"] == git_tag.removeprefix("v")
 
 
 @pytest.mark.unit
@@ -62,7 +66,6 @@ def test_check_version_consistency_reports_all_failures(monkeypatch: pytest.Monk
         check_version_consistency_module,
         "_text",
         lambda path: {
-            "VERSION": "1.2.3",
             "pyproject.toml": '[build-system]\nrequires = ["hatchling"]\n',
             "pixi.toml": '[project]\nversion = "1.2.4"\n',
         }[path],
@@ -72,8 +75,7 @@ def test_check_version_consistency_reports_all_failures(monkeypatch: pytest.Monk
     failures = check_version_consistency()
 
     assert "pyproject.toml build-system missing hatch-vcs dependency" in failures
-    assert "Version mismatch: pixi.toml 1.2.4 != VERSION 1.2.3" in failures
-    assert "Version mismatch: git tag v9.9.9 (→9.9.9) != VERSION 1.2.3" in failures
+    assert "Version mismatch: git tag v9.9.9 (→9.9.9) != pixi.toml 1.2.4" in failures
 
 
 @pytest.mark.unit

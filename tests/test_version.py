@@ -53,35 +53,27 @@ def test_get_version_strips_whitespace() -> None:
 
 
 @pytest.mark.unit
-def test_get_version_fallback_on_no_tags() -> None:
-    """When git describe returns a commit SHA (no tags), fall back."""
+def test_get_version_uses_metadata_when_git_has_no_tag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When git describe is not tag-like, use installed package metadata."""
+    monkeypatch.setattr(version_module, "_md_version", lambda _: "4.5.6")
     with patch("subprocess.run") as mock_run:
-        # Returns commit SHA when no tags exist
         mock_run.return_value.stdout = "abc1234\n"
         mock_run.return_value.returncode = 0
         version = get_version()
-        assert isinstance(version, str)
-        assert len(version) > 0
+        assert version == "4.5.6"
 
 
 @pytest.mark.unit
-def test_get_version_fallback_on_git_error() -> None:
+def test_get_version_fallback_on_git_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """When git is not available, fall back gracefully."""
+    monkeypatch.setattr(version_module, "_md_version", lambda _: "4.5.6")
     with patch("subprocess.run", side_effect=FileNotFoundError):
         version = get_version()
-        assert isinstance(version, str)
-        assert len(version) > 0
-
-
-@pytest.mark.unit
-def test_read_version_file_reads_from_repo_root(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    version_file = tmp_path / "VERSION"
-    version_file.write_text("1.2.3\n", encoding="utf-8")
-    monkeypatch.setattr(version_module, "ROOT", tmp_path)
-
-    assert version_module._read_version_file() == "1.2.3"
+        assert version == "4.5.6"
 
 
 @pytest.mark.unit

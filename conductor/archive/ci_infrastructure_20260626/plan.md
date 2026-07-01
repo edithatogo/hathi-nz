@@ -29,5 +29,7 @@
 
 ## Local Evidence
 - [2026-07-01] `pixi run -e dev pytest tests/test_code_quality_tooling.py` passed.
+- [2026-07-01] `pixi run -e dev pytest tests/test_version.py tests/test_version_consistency.py tests/test_code_quality_tooling.py` passed.
 - [2026-07-01] `pixi run -e dev test -- --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=75` passed with 273 tests and 75.63% coverage.
 - [2026-07-01] GitHub Actions run `28512319300` passed `lint`, `typecheck`, `test` (including Codecov OIDC upload), and `mutmut`.
+- [2026-07-01] `pixi run -e dev pyright-check` and `pixi run -e dev pre-commit run --all-files` passed.

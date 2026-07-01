@@ -37,11 +37,6 @@ def _strip_v_prefix(tag: str) -> str:
 def check_version_consistency() -> list[str]:
     failures: list[str] = []
 
-    # VERSION file is the source of truth for pixi/CI environments
-    version_file = _text("VERSION").strip()
-    if not SEMVER_RE.fullmatch(version_file):
-        failures.append(f"VERSION is not SemVer-compatible: {version_file}")
-
     # pyproject.toml uses dynamic versioning (hatch-vcs); skip static check
     # but verify the build-system is configured
     pyproject = tomllib.loads(_text("pyproject.toml"))
@@ -49,19 +44,19 @@ def check_version_consistency() -> list[str]:
     if "hatch-vcs" not in build_sys.get("requires", []):
         failures.append("pyproject.toml build-system missing hatch-vcs dependency")
 
-    # pixi.toml must match VERSION file (pixi doesn't support dynamic versioning)
+    # pixi.toml must match the repository git tag for release consistency.
     pixi = tomllib.loads(_text("pixi.toml"))
     pixi_version = str(pixi["project"]["version"])
-    if pixi_version != version_file:
-        failures.append(f"Version mismatch: pixi.toml {pixi_version} != VERSION {version_file}")
+    if not SEMVER_RE.fullmatch(pixi_version):
+        failures.append(f"pixi.toml version is not SemVer-compatible: {pixi_version}")
 
-    # Git tag should match VERSION (with optional 'v' prefix)
+    # Git tag should match the pinned pixi version (with optional 'v' prefix)
     git_tag = _git_tag()
     if git_tag:
         tag_version = _strip_v_prefix(git_tag)
-        if tag_version != version_file:
+        if tag_version != pixi_version:
             failures.append(
-                f"Version mismatch: git tag {git_tag} (→{tag_version}) != VERSION {version_file}"
+                f"Version mismatch: git tag {git_tag} (→{tag_version}) != pixi.toml {pixi_version}"
             )
 
     return failures
