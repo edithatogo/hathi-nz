@@ -37,8 +37,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/osf_integration_20260626/](./conductor/archive/osf_integration_20260626/)*
 - OSF publication workflow for dataset mirroring
 
-## [ ] Track: Zenodo Release Workflow
-*Link: [./conductor/tracks/zenodo_release_workflow_20260626/](./conductor/tracks/zenodo_release_workflow_20260626/)*
+## [x] Track: Zenodo Release Workflow
+*Link: [./conductor/archive/zenodo_release_workflow_20260626/](./conductor/archive/zenodo_release_workflow_20260626/)*
 - GHA workflow for automated Zenodo depositions with DOI minting
 
 ## [ ] Track: Containerization
@@ -58,5 +58,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 - **versioning_config**: [ ] New - Dynamic versioning and config management
 - **loguru_migration**: ✅ Complete - Align logging implementation with declared dependency
 - **osf_integration**: ✅ Complete - Third publication target
-- **zenodo_release_workflow**: [ ] New - GHA workflow for existing Zenodo scripts
+- **zenodo_release_workflow**: ✅ Complete - GHA workflow for existing Zenodo scripts
 - **containerization**: [ ] New - Docker deployment support
