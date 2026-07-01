@@ -10,9 +10,9 @@
 
 ### hathi-nz
 - **3 commits** total:
-  1. `66ab7a3` — chore: update hugging face repository name to corpus-nz-hathi
-  2. `0ba725c` — conductor(setup): add comprehensive granular tracks and styleguide alignment
-  3. `34c605a` — conductor(setup): Add conductor setup files
+  1. initial corpus rename commit — chore: update hugging face repository name to corpus-nz-hathi
+  2. setup commit A — conductor(setup): add comprehensive granular tracks and styleguide alignment
+  3. setup commit B — conductor(setup): Add conductor setup files
 - **Current files**: `hello.py`, conductor setup, track specs, swarm config, shared state files
 - **No code scripts yet** (scripts/, tests/, data/, manifests/, .github/workflows/ all absent)
 - **Target HF repo**: `edithatogo/corpus-nz-hathi`
@@ -82,7 +82,7 @@ Use this file to store shared knowledge, research notes, and intermediate output
 ### 1. Data Flow Diagram
 
 ```
-HATHITRUST SOURCES
+HathiTrust SOURCES
   HathiFile Dumps → Collections API → Volume Data API
        ↓               ↓                    ↓
 scripts/fetch_hathitrust.py: Volume enumeration & catalog manifest generation
@@ -252,7 +252,7 @@ Follows Hugging Face dataset card YAML convention:
 | Track | Status | Key Deliverables |
 |-------|--------|-----------------|
 | **core_pipeline_20260613** | ✅ COMPLETE | 4 scripts, 143 tests, 0 lint/type errors, 76% coverage |
-| **prose_quality_20260613** | [~] Phase 1 done, Phase 2 outstanding | typos.toml ✅, .vale.ini ✅ |
+| **prose_quality_20260613** | ✅ COMPLETE | typos.toml ✅, .vale.ini ✅, pixi quality tasks ✅ |
 | **config_mapping_20260613** | [~] Phase 1 partial, Phase 2 outstanding | schema.json ✅, DATASET_CARD.md ✅ |
 | **ocr_processing_20260613** | [~] Phase 1 partial, no code yet | Nothing implemented |
 | **release_archival_20260613** | [~] Phase 1 partial, no code yet | .zenodo.json ✅ |

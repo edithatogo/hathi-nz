@@ -7,7 +7,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 ## [x] Track: Build the core data acquisition and sync pipeline for hathi-nz
 *Link: [./conductor/tracks/core_pipeline_20260613/](./conductor/tracks/core_pipeline_20260613/)*
 
-## [~] Track: Prose Linting & Documentation Quality
+## [x] Track: Prose Linting & Documentation Quality
 *Link: [./conductor/tracks/prose_quality_20260613/](./conductor/tracks/prose_quality_20260613/)*
 
 ## [~] Track: Dataset Mapping & Hugging Face Config Planning
