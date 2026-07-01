@@ -33,8 +33,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/versioning_config_20260626/](./conductor/archive/versioning_config_20260626/)*
 - hatch-vcs dynamic versioning, pydantic-settings config loading
 
-## [ ] Track: OSF Integration
-*Link: [./conductor/tracks/osf_integration_20260626/](./conductor/tracks/osf_integration_20260626/)*
+## [x] Track: OSF Integration
+*Link: [./conductor/archive/osf_integration_20260626/](./conductor/archive/osf_integration_20260626/)*
 - OSF publication workflow for dataset mirroring
 
 ## [ ] Track: Zenodo Release Workflow
@@ -57,6 +57,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 - **ci_infrastructure**: [ ] New - Resilience and CI/CD enhancements
 - **versioning_config**: [ ] New - Dynamic versioning and config management
 - **loguru_migration**: ✅ Complete - Align logging implementation with declared dependency
-- **osf_integration**: [ ] New - Third publication target
+- **osf_integration**: ✅ Complete - Third publication target
 - **zenodo_release_workflow**: [ ] New - GHA workflow for existing Zenodo scripts
 - **containerization**: [ ] New - Docker deployment support
