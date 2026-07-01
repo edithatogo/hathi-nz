@@ -25,8 +25,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/code_quality_enhancement_20260626/](./conductor/archive/code_quality_enhancement_20260626/)*
 - Pre-commit config, mutmut, scalene, pyright direct dep, coverage threshold 75%
 
-## [ ] Track: CI Infrastructure & Resilience
-*Link: [./conductor/tracks/ci_infrastructure_20260626/](./conductor/tracks/ci_infrastructure_20260626/)*
+## [x] Track: CI Infrastructure & Resilience
+*Link: [./conductor/archive/ci_infrastructure_20260626/](./conductor/archive/ci_infrastructure_20260626/)*
 - Codecov, tenacity retry/backoff, CI dead config cleanup
 
 ## [ ] Track: Dynamic Versioning & Configuration
