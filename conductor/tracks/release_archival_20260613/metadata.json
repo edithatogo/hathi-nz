@@ -1,8 +1,0 @@
-{
-  "track_id": "release_archival_20260613",
-  "type": "feature",
-  "status": "complete",
-  "created_at": "2026-06-13T19:10:00Z",
-  "updated_at": "2026-07-01T19:12:37.3791106+10:00",
-  "description": "Automate Zenodo depositions, package releases, and manage persistent DOI minting for citation."
-}
