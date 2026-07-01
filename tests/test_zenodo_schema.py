@@ -10,8 +10,17 @@ from typing import Any, ClassVar
 import jsonschema
 import pytest
 
-ZENODO_JSON_PATH = Path(".zenodo.json")
-SCHEMA_PATH = Path("manifests/schema.json")
+
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
+ZENODO_JSON_PATH = ROOT / ".zenodo.json"
+SCHEMA_PATH = ROOT / "manifests/schema.json"
 
 ZENODO_REQUIRED_FIELDS = [
     "title",

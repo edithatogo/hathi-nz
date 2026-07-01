@@ -18,8 +18,18 @@ from scripts.package_release import (
 from scripts.publish_zenodo import deposit, update_dataset_card_doi
 
 
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
+
+
 def test_validate_zenodo_json_accepts_repo_metadata() -> None:
-    assert validate_zenodo_json(Path(".zenodo.json")) == []
+    assert validate_zenodo_json(ROOT / ".zenodo.json") == []
 
 
 def test_collect_assets_excludes_state_files(tmp_path: Path) -> None:

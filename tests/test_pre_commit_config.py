@@ -4,8 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-CONFIG_PATH = Path(".pre-commit-config.yaml")
-README_PATH = Path("README.md")
+
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
+CONFIG_PATH = ROOT / ".pre-commit-config.yaml"
+README_PATH = ROOT / "README.md"
 
 
 def test_pre_commit_config_exists_with_core_hooks() -> None:

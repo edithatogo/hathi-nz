@@ -22,6 +22,17 @@ from scripts.validate_catalog import (
 )
 
 
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
+SCHEMA_PATH = ROOT / "manifests/schema.json"
+
+
 @pytest.fixture
 def valid_volume() -> dict[str, Any]:
     return {
@@ -46,7 +57,7 @@ def valid_manifest(valid_volume: dict[str, Any]) -> dict[str, Any]:
             "source": "HathiTrust Collection ID 71329709",
             "version": "0.1.0",
             "record_count": 1,
-            "schema": "manifests/schema.json",
+            "schema": str(SCHEMA_PATH.relative_to(ROOT)),
         },
         "volumes": [valid_volume],
     }
@@ -60,7 +71,7 @@ def empty_manifest() -> dict[str, Any]:
             "source": "test",
             "version": "0.1.0",
             "record_count": 0,
-            "schema": "manifests/schema.json",
+            "schema": str(SCHEMA_PATH.relative_to(ROOT)),
         },
         "volumes": [],
     }
@@ -73,7 +84,7 @@ def _full_meta() -> dict[str, Any]:
         "source": "test",
         "version": "0.1.0",
         "record_count": 1,
-        "schema": "manifests/schema.json",
+        "schema": str(SCHEMA_PATH.relative_to(ROOT)),
     }
 
 
@@ -368,7 +379,7 @@ class TestValidate:
         missing = tmp_path / "missing.json"
         report, exit_code = validate(
             manifest_path=missing,
-            schema_path=Path("manifests/schema.json"),
+            schema_path=SCHEMA_PATH,
         )
         assert exit_code == 1
         assert report["results"]["passed"] is False
@@ -381,14 +392,14 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 0,
-                "schema": "manifests/schema.json",
+                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
             },
             "volumes": [],
         }
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         report, exit_code = validate(
             manifest_path=manifest_path,
-            schema_path=Path("manifests/schema.json"),
+            schema_path=SCHEMA_PATH,
         )
         assert exit_code == 0
         assert report["results"]["passed"] is True
@@ -401,7 +412,7 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 2,
-                "schema": "manifests/schema.json",
+                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
             },
             "volumes": [
                 {"htid": "test.1", "category": "debates", "year": 1886, "rights": "pd"},
@@ -411,7 +422,7 @@ class TestValidate:
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         report, exit_code = validate(
             manifest_path=manifest_path,
-            schema_path=Path("manifests/schema.json"),
+            schema_path=SCHEMA_PATH,
         )
         assert exit_code == 1
         assert report["results"]["passed"] is False
@@ -428,7 +439,7 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 1,
-                "schema": "manifests/schema.json",
+                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
             },
             "volumes": [
                 {
@@ -452,7 +463,7 @@ class TestValidate:
         (src_dir / "uc1.test001.zip").write_bytes(content)
         report, exit_code = validate(
             manifest_path=manifest_path,
-            schema_path=Path("manifests/schema.json"),
+            schema_path=SCHEMA_PATH,
             stage_dir=stage_dir,
         )
         assert exit_code == 0
@@ -468,7 +479,7 @@ class TestValidate:
                 "source": "test",
                 "version": "0.1.0",
                 "record_count": 1,
-                "schema": "manifests/schema.json",
+                "schema": str(SCHEMA_PATH.relative_to(ROOT)),
             },
             "volumes": [
                 {
@@ -490,7 +501,7 @@ class TestValidate:
         (src_dir / "test.001.zip").write_bytes(content)
         report, exit_code = validate(
             manifest_path=manifest_path,
-            schema_path=Path("manifests/schema.json"),
+            schema_path=SCHEMA_PATH,
             stage_dir=stage_dir,
             fail_on_warning=True,
         )

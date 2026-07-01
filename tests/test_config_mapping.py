@@ -10,7 +10,16 @@ from typing import Any
 import jsonschema
 import pytest
 
-SCHEMA_PATH = Path("manifests/schema.json")
+
+def _repo_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if (candidate / "pixi.toml").exists():
+            return candidate
+    return start.parents[1]
+
+
+ROOT = _repo_root(Path(__file__).resolve())
+SCHEMA_PATH = ROOT / "manifests/schema.json"
 
 VALID_CATEGORIES = [
     "debates",
@@ -201,7 +210,7 @@ class TestDatasetCardConfigs:
     """Test the exposed Hugging Face dataset configs in the card frontmatter."""
 
     def test_dataset_card_exposes_planned_configs(self) -> None:
-        content = Path("DATASET_CARD.md").read_text(encoding="utf-8")
+        content = (ROOT / "DATASET_CARD.md").read_text(encoding="utf-8")
         assert "config_name: debates" in content
         assert "config_name: legislation" in content
         assert "data_dir: data/raw/debates" in content
