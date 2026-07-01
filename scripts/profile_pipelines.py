@@ -52,7 +52,7 @@ def _write_profile_wrapper(module_name: str) -> Path:
     return wrapper_path
 
 
-def profile_with_scalene(module_name: str, script_file: str) -> Path:
+def profile_with_scalene(module_name: str) -> Path:
     """Run Scalene against a lightweight wrapper for a script module."""
     console.print(f"[bold cyan]Profiling {module_name} with Scalene...[/bold cyan]")
     output_path = LOGS_DIR / f"profile_{module_name}.txt"
@@ -99,8 +99,8 @@ def main(args: list[str] | None = None) -> int:
     if parsed.target != "all":
         targets = tuple(target for target in PROFILE_TARGETS if target[0] == parsed.target)
 
-    for module_name, script_file in targets:
-        profile_with_scalene(module_name, script_file)
+    for module_name, _script_file in targets:
+        profile_with_scalene(module_name)
 
     console.print("[bold green]Profiling complete![/bold green]")
     return 0
