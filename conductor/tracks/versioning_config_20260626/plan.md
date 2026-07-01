@@ -21,3 +21,11 @@
 - Updated pyproject.toml (hatch-vcs, dynamic version)
 - Updated scripts (version from importlib.metadata)
 - Tests for config loading
+
+## Phase: Review Fixes
+- [x] Task: Apply review suggestions c6b2d48
+
+## Local Evidence
+- [2026-07-01] `pixi run -e dev pytest tests/test_version.py tests/test_version_consistency.py` passed.
+- [2026-07-01] `pixi run -e dev pyright-check` and `pixi run -e dev pre-commit run --all-files` passed.
+- [2026-07-01] `pixi run -e dev test -- --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=75` passed with 272 tests and 75.96% coverage.
