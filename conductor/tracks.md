@@ -10,7 +10,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 ## [x] Track: Prose Linting & Documentation Quality
 *Link: [./conductor/tracks/prose_quality_20260613/](./conductor/tracks/prose_quality_20260613/)*
 
-## [~] Track: Dataset Mapping & Hugging Face Config Planning
+## [x] Track: Dataset Mapping & Hugging Face Config Planning
 *Link: [./conductor/tracks/config_mapping_20260613/](./conductor/tracks/config_mapping_20260613/)*
 
 ## [~] Track: Layout-Aware OCR & Progressive Text Extraction
