@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,6 +26,7 @@ STATE_FILE_NAMES = {
     "upload_state.json",
     "validation_report.json",
 }
+ORCID_PATTERN = re.compile(r"^\d{4}-\d{4}-\d{4}-[\dX]{4}$")
 
 
 def compute_checksum(archive_path: Path) -> str:
@@ -63,10 +65,30 @@ def validate_zenodo_json(path: Path) -> list[str]:
     creators = metadata.get("creators")
     if not isinstance(creators, list) or not creators:
         errors.append("Zenodo field 'creators' must be a non-empty list")
-    elif any(not isinstance(item, dict) or not item.get("name") for item in creators):
-        errors.append("each Zenodo creator must include a name")
+    else:
+        for creator in creators:
+            if not isinstance(creator, dict) or not creator.get("name"):
+                errors.append("each Zenodo creator must include a name")
+                continue
+            orcid = creator.get("orcid")
+            if orcid and (not isinstance(orcid, str) or not _is_valid_orcid(orcid)):
+                errors.append(f"invalid Zenodo creator ORCID for {creator['name']!r}: {orcid!r}")
 
     return errors
+
+
+def _is_valid_orcid(orcid: str) -> bool:
+    if not ORCID_PATTERN.fullmatch(orcid):
+        return False
+
+    digits = orcid.replace("-", "")
+    total = 0
+    for char in digits[:-1]:
+        total = (total + int(char)) * 2
+    remainder = total % 11
+    result = (12 - remainder) % 11
+    check_digit = "X" if result == 10 else str(result)
+    return digits[-1] == check_digit
 
 
 def _iter_files(root: Path) -> list[Path]:

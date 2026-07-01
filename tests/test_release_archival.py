@@ -33,6 +33,26 @@ def test_validate_zenodo_json_accepts_repo_metadata() -> None:
     assert validate_zenodo_json(ROOT / ".zenodo.json") == []
 
 
+def test_validate_zenodo_json_rejects_invalid_orcid(tmp_path: Path) -> None:
+    metadata = tmp_path / ".zenodo.json"
+    metadata.write_text(
+        """{
+  "title": "Example",
+  "description": "Example",
+  "creators": [{"name": "Example, Person", "orcid": "0000-0000-0000-0000"}],
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "upload_type": "dataset",
+  "version": "1.0.0"
+}""",
+        encoding="utf-8",
+    )
+
+    errors = validate_zenodo_json(metadata)
+
+    assert any("invalid Zenodo creator ORCID" in error for error in errors)
+
+
 def test_collect_assets_excludes_state_files(tmp_path: Path) -> None:
     project_root = tmp_path / "repo"
     stage_dir = project_root / "processed"
