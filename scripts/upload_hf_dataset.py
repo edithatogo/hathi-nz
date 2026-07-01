@@ -19,10 +19,14 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from huggingface_hub import HfApi
 from huggingface_hub.errors import HfHubHTTPError

@@ -17,7 +17,7 @@ on:
         type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish:
@@ -104,3 +104,23 @@ jobs:
               echo "Zenodo DOI line not found in DATASET_CARD.md."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit DOI writeback
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- DATASET_CARD.md; then
+            echo "No dataset card DOI update to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add DATASET_CARD.md
+          git commit -m "docs(zenodo): record DOI for corpus-nz-hathi [skip ci]"
+          git push origin "HEAD:${DEFAULT_BRANCH}"
+
+      - name: Verify publication status
+        run: pixi run -e dev publication-status --strict

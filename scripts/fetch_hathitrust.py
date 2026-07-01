@@ -12,10 +12,14 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from collections.abc import Callable
 from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import requests
 from loguru import logger

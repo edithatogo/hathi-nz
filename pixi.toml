@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "hathi-nz"
 description = "New Zealand parliamentary debates volume corpus from HathiTrust, with incremental Hugging Face sync."
 channels = ["conda-forge"]
@@ -15,7 +15,8 @@ toml-check = "taplo check pixi.toml pyproject.toml"
 workflow-syntax = "actionlint .github/workflows/*.yml"
 mutmut-run = "mutmut run"
 profile-pipelines-scalene = "python scripts/profile_pipelines.py"
-quality = { depends_on = ["lint", "format-check", "spell", "toml-check", "workflow-syntax"] }
+publication-status = "python scripts/check_publication_status.py"
+quality = { depends-on = ["lint", "format-check", "spell", "toml-check", "workflow-syntax"] }
 
 [dependencies]
 python = ">=3.11"

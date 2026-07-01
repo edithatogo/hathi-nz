@@ -14,6 +14,7 @@
 - [2026-06-14] Added `scripts/package_release.py`, `scripts/publish_zenodo.py`, and `tests/test_release_archival.py`.
 - [2026-06-14] `tests/test_release_archival.py` passes and the full local suite passes.
 - [2026-06-14] Actual Zenodo deposition creation, file upload, and publication remain gated external-account actions.
+- [2026-07-01] Public Zenodo search did not return a `corpus-nz-hathi` record, so the archive path is still unconfirmed outside the repo.
 - [2026-07-01] `pixi run -e dev pytest tests/test_release_archival.py -q` passed.
 - [2026-07-01] `pixi run -e dev quality` passed.
 - [2026-07-01] Added DOI writeback to `DATASET_CARD.md` after publication and regression coverage for the update path.

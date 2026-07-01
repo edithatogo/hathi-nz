@@ -47,6 +47,9 @@ def test_zenodo_release_workflow_invokes_release_pipeline() -> None:
     assert "ZENODO_TOKEN" in workflow
     assert "GITHUB_STEP_SUMMARY" in workflow
     assert "id: publish" in workflow
+    assert "contents: write" in workflow
+    assert "Commit DOI writeback" in workflow
+    assert "publication-status --strict" in workflow
 
 
 def test_release_docs_point_to_zenodo_workflow() -> None:

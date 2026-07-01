@@ -41,7 +41,9 @@ def test_pixi_omits_version_field() -> None:
     import tomllib
 
     pixi = tomllib.loads((ROOT / "pixi.toml").read_text("utf-8"))
-    assert "version" not in pixi["project"]
+    workspace = pixi.get("workspace") or pixi.get("project")
+    assert workspace is not None
+    assert "version" not in workspace
 
 
 @pytest.mark.unit

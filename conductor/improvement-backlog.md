@@ -17,7 +17,7 @@
 - [ ] Raise coverage fail_under threshold from 60 to 75
 - [ ] Implement dynamic versioning with hatch-vcs to eliminate version drift
 - [ ] Add pydantic-settings for structured .env configuration loading
-- [ ] Create Zenodo release GHA workflow (scripts exist, workflow missing)
+- [ ] Verify and record a public Zenodo publication for `corpus-nz-hathi`, including DOI writeback into `DATASET_CARD.md`
 - [ ] Create OSF publication workflow for third publication target
 - [ ] Create Dockerfile for pixi-based reproducible pipeline execution
 - [ ] Verify and commit pixi.lock for dependency reproducibility
@@ -37,7 +37,7 @@
 
 ## Comprehensive Audit Findings (2026-06-26)
 - **OSF integration**: Missing entirely - no code, workflow, or metadata for OSF
-- **Zenodo release workflow**: Missing - scripts exist but no GHA workflow
+- **Zenodo release workflow**: Implemented - the workflow exists, but public publication proof for `corpus-nz-hathi` still needs confirmation
 - **Pre-commit config**: Missing - dep declared but no .pre-commit-config.yaml
 - **Loguru usage**: Not actually used - all scripts use stdlib logging
 - **Versioning drift**: Hardcoded in 4 places with no single source of truth
