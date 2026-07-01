@@ -33,15 +33,27 @@ def test_validate_zenodo_json_accepts_repo_metadata() -> None:
 
 
 def test_collect_assets_excludes_state_files(tmp_path: Path) -> None:
-    stage_dir = tmp_path / "processed"
-    metadata_dir = tmp_path / "metadata"
+    project_root = tmp_path / "repo"
+    stage_dir = project_root / "processed"
+    metadata_dir = project_root / "metadata"
+    manifests_dir = project_root / "manifests"
+    project_root.mkdir()
     stage_dir.mkdir()
     metadata_dir.mkdir()
+    manifests_dir.mkdir()
+    (project_root / ".zenodo.json").write_text("{}", encoding="utf-8")
+    (project_root / "DATASET_CARD.md").write_text("# Dataset", encoding="utf-8")
+    (manifests_dir / "schema.json").write_text("{}", encoding="utf-8")
+    (manifests_dir / "latest_manifest.json").write_text("{}", encoding="utf-8")
     (stage_dir / "metadata.parquet").write_bytes(b"parquet")
     (stage_dir / "stage_state.json").write_text("{}", encoding="utf-8")
     (metadata_dir / "uc1.test.json").write_text("{}", encoding="utf-8")
 
-    assets = collect_assets(stage_dir=stage_dir, metadata_dir=metadata_dir)
+    assets = collect_assets(
+        stage_dir=stage_dir,
+        metadata_dir=metadata_dir,
+        project_root=project_root,
+    )
     names = {Path(path).name for path in assets["files"]}
 
     assert "metadata.parquet" in names

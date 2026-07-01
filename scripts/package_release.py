@@ -77,15 +77,21 @@ def _iter_files(root: Path) -> list[Path]:
     return sorted(path for path in root.rglob("*") if path.is_file())
 
 
-def collect_assets(stage_dir: Path, metadata_dir: Path) -> dict[str, Any]:
+def collect_assets(
+    stage_dir: Path,
+    metadata_dir: Path,
+    project_root: Path | None = None,
+) -> dict[str, Any]:
     """Collect local files eligible for a release archive."""
+    root = Path.cwd() if project_root is None else project_root
     files: list[Path] = []
 
     for required in DEFAULT_REQUIRED_FILES:
-        if required.exists():
-            files.append(required)
+        required_path = root / required
+        if required_path.exists():
+            files.append(required_path)
 
-    license_path = Path("LICENSE")
+    license_path = root / "LICENSE"
     if license_path.exists():
         files.append(license_path)
 
@@ -153,7 +159,11 @@ def package(
         msg = "; ".join(errors)
         raise ValueError(msg)
 
-    assets = collect_assets(stage_dir=stage_dir, metadata_dir=metadata_dir)
+    assets = collect_assets(
+        stage_dir=stage_dir,
+        metadata_dir=metadata_dir,
+        project_root=Path.cwd(),
+    )
     archive_path = output_dir / f"corpus-nz-hathi-{version}.zip"
     create_archive(assets, archive_path)
     manifest = build_manifest(assets)
