@@ -33,10 +33,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/versioning_config_20260626/](./conductor/archive/versioning_config_20260626/)*
 - hatch-vcs dynamic versioning, pydantic-settings config loading
 
-## [ ] Track: Loguru Migration
-*Link: [./conductor/tracks/loguru_migration_20260626/](./conductor/tracks/loguru_migration_20260626/)*
-- Migrate from stdlib logging to loguru across all scripts
-
 ## [ ] Track: OSF Integration
 *Link: [./conductor/tracks/osf_integration_20260626/](./conductor/tracks/osf_integration_20260626/)*
 - OSF publication workflow for dataset mirroring
@@ -49,6 +45,10 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/tracks/containerization_20260626/](./conductor/tracks/containerization_20260626/)*
 - Dockerfile for pixi-based reproducible pipeline execution
 
+## [x] Track: Loguru Migration
+*Link: [./conductor/archive/loguru_migration_20260626/](./conductor/archive/loguru_migration_20260626/)*
+- Migrate from stdlib logging to loguru across all scripts
+
 ---
 
 ### Architecture Status (oracle, 2026-06-26)
@@ -56,7 +56,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 - **code_quality_enhancement**: [ ] New - Tooling improvements identified in comprehensive audit
 - **ci_infrastructure**: [ ] New - Resilience and CI/CD enhancements
 - **versioning_config**: [ ] New - Dynamic versioning and config management
-- **loguru_migration**: [ ] New - Align logging implementation with declared dependency
+- **loguru_migration**: ✅ Complete - Align logging implementation with declared dependency
 - **osf_integration**: [ ] New - Third publication target
 - **zenodo_release_workflow**: [ ] New - GHA workflow for existing Zenodo scripts
 - **containerization**: [ ] New - Docker deployment support
