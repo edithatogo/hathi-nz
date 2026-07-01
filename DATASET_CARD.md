@@ -19,10 +19,32 @@ task_categories:
 - question-answering
 configs:
 - config_name: debates
-  data_dir: data/processed
+  data_dir: data/raw/debates
   data_files:
-  - metadata.parquet
+  - "**/*.txt"
   default: true
+  features:
+  - name: htid
+    dtype: string
+  - name: category
+    dtype: string
+  - name: year
+    dtype: int64
+  - name: volume
+    dtype: string
+  - name: title
+    dtype: string
+  - name: rights
+    dtype: string
+  - name: collection_id
+    dtype: string
+  - name: source
+    dtype: string
+- config_name: legislation
+  data_dir: data/raw/legislation
+  data_files:
+  - "**/*.txt"
+  default: false
   features:
   - name: htid
     dtype: string
@@ -69,6 +91,7 @@ It is part of the NZ corpus-family under the `edithatogo` organization, designed
 | Config | Description |
 |--------|-------------|
 | `debates` | **Default.** Full corpus of 510 NZ Parliamentary Debates volumes (1854–1990). |
+| `legislation` | Planned legislation subset for future HathiTrust-backed uploads under the same corpus namespace. |
 
 ### Data Fields
 

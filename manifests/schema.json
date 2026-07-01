@@ -1,5 +1,6 @@
 {
-  "": "https://corpus-nz-hathi.schemas/volume-record.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://corpus-nz-hathi.schemas/volume-record.schema.json",
   "title": "HathiTrust Volume Record",
   "description": "Schema for a single HathiTrust volume record in the corpus-nz-hathi manifest. Compatible with shared-nz-corpus-core schema. Includes HF multi-config subset routing.",
   "type": "object",
@@ -14,7 +15,7 @@
     "source"
   ],
   "properties": {
-    "": {
+    "$schema": {
       "type": "string",
       "description": "URI of the JSON Schema that this record conforms to (self-identifying)"
     },

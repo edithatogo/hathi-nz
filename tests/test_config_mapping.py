@@ -52,6 +52,11 @@ def base_volume() -> dict[str, Any]:
 class TestSchemaValidationByCategory:
     """Test valid volume records for all categories."""
 
+    def test_schema_has_standard_metadata_keys(self, schema):
+        assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+        assert schema["$id"] == "https://corpus-nz-hathi.schemas/volume-record.schema.json"
+        assert "$schema" in schema["properties"]
+
     def test_debates_volume(self, validator, base_volume):
         assert list(validator.iter_errors(base_volume)) == []
 
@@ -190,3 +195,16 @@ class TestSubsetResolution:
     )
     def test_resolve_subset(self, volume, expected):
         assert self.resolve_subset(volume) == expected
+
+
+class TestDatasetCardConfigs:
+    """Test the exposed Hugging Face dataset configs in the card frontmatter."""
+
+    def test_dataset_card_exposes_planned_configs(self) -> None:
+        content = Path("DATASET_CARD.md").read_text(encoding="utf-8")
+        assert "config_name: debates" in content
+        assert "config_name: legislation" in content
+        assert "data_dir: data/raw/debates" in content
+        assert "data_dir: data/raw/legislation" in content
+        assert "default: true" in content
+        assert "default: false" in content

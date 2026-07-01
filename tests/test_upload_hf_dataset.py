@@ -53,6 +53,9 @@ def mock_hf_api() -> Any:
             self.called_create_repo = False
             self.called_upload_folder = False
             self.last_upload_path = ""
+            self.last_folder_path = ""
+            self.last_path_in_repo = ""
+            self.last_uploaded_files: list[str] = []
 
         def repo_info(self, repo_id: str, repo_type: str = "dataset") -> dict[str, Any]:  # noqa: ARG002
             self.called_repo_info = True
@@ -77,6 +80,14 @@ def mock_hf_api() -> Any:
             commit_message: str = "",
         ) -> str:  # noqa: ARG002
             self.called_upload_folder = True
+            self.last_folder_path = folder_path
+            self.last_path_in_repo = path_in_repo
+            root = Path(folder_path)
+            self.last_uploaded_files = sorted(
+                str(path.relative_to(root)).replace("\\", "/")
+                for path in root.rglob("*")
+                if path.is_file()
+            )
             self.last_upload_path = f"https://huggingface.co/datasets/{repo_id}/commit/abc123"
             return self.last_upload_path
 
@@ -191,9 +202,16 @@ class TestUploadMetadataFiles:
         manifests_dir.mkdir()
         schema = manifests_dir / "schema.json"
         schema.write_text("{}", encoding="utf-8")
+        manifest = manifests_dir / "latest_manifest.json"
+        manifest.write_text('{"volumes": []}', encoding="utf-8")
 
         result = upload_metadata_files(mock_hf_api, "test/repo", stage_dir, manifests_dir)
         assert result is not None
+        assert mock_hf_api.last_path_in_repo == "."
+        assert "metadata.parquet" in mock_hf_api.last_uploaded_files
+        assert "DATASET_CARD.md" not in mock_hf_api.last_uploaded_files
+        assert "manifests/schema.json" in mock_hf_api.last_uploaded_files
+        assert "manifests/latest_manifest.json" in mock_hf_api.last_uploaded_files
 
     def test_upload_failure(self, tmp_path: Path) -> None:
         class MockApiFailUpload:
@@ -257,6 +275,9 @@ class TestUploadVolumeFiles:
             previous_state=prev_state,
         )
         assert result is not None
+        assert mock_hf_api.last_path_in_repo == "volumes"
+        assert "uc1_b2889853.zip" not in mock_hf_api.last_uploaded_files
+        assert "uc1_b2889854.zip" in mock_hf_api.last_uploaded_files
 
     def test_no_new_volumes(
         self, tmp_path: Path, mock_hf_api: Any, sample_volumes: list[dict[str, Any]]

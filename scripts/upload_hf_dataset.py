@@ -20,6 +20,8 @@ import argparse
 import json
 import logging
 import os
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +33,19 @@ except ImportError:  # pragma: no cover
     get_settings = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+
+
+def _copy_upload_tree(
+    file_pairs: list[tuple[Path, str]],
+) -> tempfile.TemporaryDirectory[str]:
+    """Create a temporary tree containing only the selected upload files."""
+    temp_dir = tempfile.TemporaryDirectory()
+    root = Path(temp_dir.name)
+    for source_path, repo_path in file_pairs:
+        target_path = root / repo_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+    return temp_dir
 
 
 def _default_repo() -> str:
@@ -151,11 +166,14 @@ def upload_metadata_files(
         logger.info("No metadata files to upload")
         return None
 
+    upload_tree = _copy_upload_tree(
+        list(zip(map(Path, paths_to_upload), path_in_repo, strict=False))
+    )
     try:
         result = api.upload_folder(
             repo_id=repo_id,
             repo_type="dataset",
-            folder_path=str(stage_dir),
+            folder_path=upload_tree.name,
             path_in_repo=".",
             commit_message=commit_message,
         )
@@ -164,6 +182,8 @@ def upload_metadata_files(
     except Exception as exc:
         logger.warning("Metadata upload failed: %s", exc)
         return None
+    finally:
+        upload_tree.cleanup()
 
 
 def upload_volume_files(
@@ -222,11 +242,14 @@ def upload_volume_files(
         logger.info("No new volume files to upload")
         return None
 
+    upload_tree = _copy_upload_tree(
+        [(Path(file_path), Path(file_path).name) for file_path in files_to_upload]
+    )
     try:
         result = api.upload_folder(
             repo_id=repo_id,
             repo_type="dataset",
-            folder_path=str(data_dir),
+            folder_path=upload_tree.name,
             path_in_repo="volumes",
             commit_message=commit_message,
         )
@@ -235,6 +258,8 @@ def upload_volume_files(
     except Exception as exc:
         logger.warning("Volume upload failed: %s", exc)
         return None
+    finally:
+        upload_tree.cleanup()
 
 
 def load_upload_state(state_dir: Path) -> dict[str, Any]:
