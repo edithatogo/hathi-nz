@@ -29,8 +29,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/ci_infrastructure_20260626/](./conductor/archive/ci_infrastructure_20260626/)*
 - Codecov, tenacity retry/backoff, CI dead config cleanup
 
-## [ ] Track: Dynamic Versioning & Configuration
-*Link: [./conductor/tracks/versioning_config_20260626/](./conductor/tracks/versioning_config_20260626/)*
+## [x] Track: Dynamic Versioning & Configuration
+*Link: [./conductor/archive/versioning_config_20260626/](./conductor/archive/versioning_config_20260626/)*
 - hatch-vcs dynamic versioning, pydantic-settings config loading
 
 ## [ ] Track: Loguru Migration
