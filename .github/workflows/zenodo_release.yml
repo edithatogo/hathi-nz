@@ -1,0 +1,104 @@
+name: Zenodo Release Workflow
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version to package, without a leading v.
+        required: false
+        type: string
+      production:
+        description: Publish to production Zenodo instead of the sandbox.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          VERSION="$VERSION_INPUT"
+          if [ -z "$VERSION" ]; then
+            VERSION="$RELEASE_TAG"
+          fi
+          VERSION="${VERSION#v}"
+          if [ -z "$VERSION" ]; then
+            echo "No release version was supplied."
+            exit 1
+          fi
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -z "$VERSION_INPUT" ]; then
+            echo "workflow_dispatch requires a version input."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check version consistency
+        run: pixi run -e dev python scripts/check_version_consistency.py
+
+      - name: Package release archive
+        run: |
+          pixi run -e dev python scripts/package_release.py \
+            --version "${{ steps.version.outputs.version }}"
+
+      - name: Publish to Zenodo
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+          ZENODO_PRODUCTION: ${{ github.event.inputs.production }}
+        shell: bash
+        run: |
+          if [ -z "$ZENODO_TOKEN" ]; then
+            echo "Missing Zenodo token."
+            exit 1
+          fi
+
+          PUBLISH_ARGS=(--archive "dist/corpus-nz-hathi-${{ steps.version.outputs.version }}.zip")
+          if [ "$ZENODO_PRODUCTION" = "true" ]; then
+            PUBLISH_ARGS+=(--production)
+          fi
+
+          pixi run -e dev python scripts/publish_zenodo.py \
+            "${PUBLISH_ARGS[@]}" \
+            --publish \
+            --dataset-card DATASET_CARD.md \
+            --execute \
+            | tee dist/zenodo-release.json
+
+      - name: Record DOI
+        shell: bash
+        run: |
+          DOI_LINE=$(grep -m1 "Zenodo DOI" DATASET_CARD.md || true)
+          {
+            echo "## Zenodo release"
+            echo ""
+            if [ -n "$DOI_LINE" ]; then
+              echo "$DOI_LINE"
+            else
+              echo "Zenodo DOI line not found in DATASET_CARD.md."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

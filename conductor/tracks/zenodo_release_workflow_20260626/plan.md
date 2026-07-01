@@ -1,7 +1,7 @@
 # Plan: Zenodo Release Workflow
 
 ## Phase 1: Workflow Creation
-- [ ] Task: Create .github/workflows/zenodo_release.yml
+- [~] Task: Create .github/workflows/zenodo_release.yml
 - [ ] Task: Wire package_release.py to build archive from git tag
 - [ ] Task: Wire publish_zenodo.py to upload and publish
 - [ ] Task: Add DOI capture and DATASET_CARD.md update step

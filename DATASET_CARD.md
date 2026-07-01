@@ -178,6 +178,18 @@ print(df.head())
 
 The OSF mirror reuses the same prepared release archives and manifest files as Zenodo. Publish steps read `.osf.json` for mirror-specific metadata and use `OSF_TOKEN` plus `OSF_PROJECT_ID` to upload into the configured OSF project.
 
+### Zenodo Release Workflow
+
+GitHub Actions publishes Zenodo releases from the same packaged archive that is
+used for the OSF mirror. The `zenodo_release.yml` workflow runs on published
+GitHub releases or manual `workflow_dispatch` events with a version input,
+packages the archive, validates version consistency, uploads to Zenodo, and
+updates the citation line in this dataset card with the DOI.
+
+Use the `production` input only when you want the workflow to switch away from
+the sandbox Zenodo API. The workflow expects `ZENODO_TOKEN` to be available as a
+repository secret.
+
 ## Citation
 
 ```bibtex

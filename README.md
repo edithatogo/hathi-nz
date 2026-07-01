@@ -280,3 +280,23 @@ Set `OSF_TOKEN` and `OSF_PROJECT_ID` in the environment or GitHub Actions secret
 ```
 
 Remove `--dry-run` for actual upload. Requires `HF_TOKEN` environment variable.
+
+### 6. Zenodo Release Workflow
+
+The Zenodo release workflow packages the repository snapshot, validates the
+release version, publishes the archive, and writes the DOI back into
+`DATASET_CARD.md`.
+
+```bash
+pixi run python scripts/package_release.py --version 0.1.0
+pixi run python scripts/publish_zenodo.py \
+    --archive dist/corpus-nz-hathi-0.1.0.zip \
+    --dataset-card DATASET_CARD.md \
+    --publish \
+    --execute
+```
+
+In GitHub Actions, the workflow is triggered by a published release or by
+manual `workflow_dispatch` with a version input. Set `ZENODO_TOKEN` in
+repository secrets and use the `production` input only when you are ready to
+publish to the production Zenodo API.
