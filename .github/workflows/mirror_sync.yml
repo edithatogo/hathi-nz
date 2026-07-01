@@ -17,8 +17,8 @@ jobs:
           GIT_MIRROR_URL: ${{ secrets.GIT_MIRROR_URL }}
           GIT_MIRROR_SSH_PRIVATE_KEY: ${{ secrets.GIT_MIRROR_SSH_PRIVATE_KEY }}
         run: |
-          if [ -z "$GIT_MIRROR_URL" ]; then
-            echo "GIT_MIRROR_URL is not set, skipping mirror."
+          if [ -z "$GIT_MIRROR_URL" ] || [ -z "$GIT_MIRROR_SSH_PRIVATE_KEY" ]; then
+            echo "Mirror credentials are not fully set, skipping mirror."
             exit 0
           fi
           

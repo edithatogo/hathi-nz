@@ -13,3 +13,5 @@
 ## Local Evidence
 - [2026-06-14] Added `archive_strategy.md` with target matrix, Zenodo package requirements, OSF optional mirror policy, and explicit gate boundaries.
 - [2026-06-14] Verified local source surfaces: `.github/workflows/mirror_sync.yml`, `.zenodo.json`, and `DATASET_CARD.md`.
+- [2026-07-01] Updated `.github/workflows/mirror_sync.yml` to skip mirror sync when either `GIT_MIRROR_URL` or `GIT_MIRROR_SSH_PRIVATE_KEY` is missing.
+- [2026-07-01] Added regression coverage in `tests/test_mirror_sync.py`; `pixi run -e dev pytest tests/test_mirror_sync.py -q` and `pixi run -e dev quality` passed.
