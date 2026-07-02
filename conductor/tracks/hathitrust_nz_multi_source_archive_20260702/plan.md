@@ -54,6 +54,7 @@
 - [x] Task: Add unit tests for archive routing and publication decisions.
 - [x] Task: Add generated archive completeness report.
 - [x] Task: Run workflow syntax validation after all workflow files are present.
+- [x] Task: Run GitHub Actions dry-run validation for inventory, Research Dataset, HTRC EF, and collection publication workflows.
 - [x] Task: Create GitHub issue `Track Task: Validate Actions, status reports, and archive completeness` (#20).
 - [ ] Task: Conductor - User Manual Verification 'Phase 7: Validation And Archive Completeness' (Protocol in workflow.md)
 
@@ -68,6 +69,18 @@
 
 - [ ] No restricted full text is uploaded to Hugging Face or Zenodo.
 - [ ] Each child dataset has a manifest, dataset card, DOI status, source citation, and completeness report.
-- [ ] GitHub Actions dry-run paths pass without publication secrets.
+- [x] GitHub Actions dry-run paths pass without publication secrets.
 - [ ] HF publication requires `HF_TOKEN` and Zenodo publication requires `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`.
 - [ ] Research Dataset full text is acquired only through the configured static host.
+
+## Validation Evidence
+
+- [2026-07-02] `pixi run -e dev ruff check .` passed.
+- [2026-07-02] `pixi run -e dev pytest tests/ -q` passed: 342 tests.
+- [2026-07-02] `pixi run -e dev actionlint <explicit workflow files>` passed for all workflows.
+- [2026-07-02] `pixi run -e dev pyright scripts/` passed.
+- [2026-07-02] `pixi run -e dev ty check scripts/ --exclude scripts/config.py` has one unrelated baseline diagnostic in `scripts/publish_osf.py`.
+- [2026-07-02] GitHub Actions dry-run inventory sync passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592206845
+- [2026-07-02] GitHub Actions dry-run Research Dataset sync passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592209485
+- [2026-07-02] GitHub Actions dry-run HTRC EF sync passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592211892
+- [2026-07-02] GitHub Actions dry-run collection publish passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592215328
