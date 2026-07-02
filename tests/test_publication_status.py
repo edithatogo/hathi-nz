@@ -154,21 +154,35 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
         }[path],
     )
 
-    def fake_get(
-        url: str,
-        timeout: int,
-        params: dict[str, object] | None = None,
-        allow_redirects: bool | None = None,
-    ):  # type: ignore[no-untyped-def]
-        if "huggingface.co/api/datasets" in url:
-            return _hf_response()
-        if "doi.org/10.5281/zenodo.123456" in url:
-            return _doi_response()
-        if "zenodo.org/api/records" in url:
-            return _zenodo_response([])
-        raise AssertionError(f"Unexpected URL: {url}")
-
-    monkeypatch.setattr(check_publication_status_module.requests, "get", fake_get)
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_hugging_face",
+        lambda repo_id: {
+            "repo_id": repo_id,
+            "exists": True,
+            "status_code": 200,
+            "data_file_count": 2,
+        },
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_zenodo",
+        lambda query="corpus-nz-hathi": {
+            "query": query,
+            "match_count": 0,
+            "matches": [],
+        },
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_doi_resolves",
+        lambda doi_url: {
+            "resolves": True,
+            "status_code": 200,
+            "final_url": doi_url,
+            "redirects": 1,
+        },
+    )
 
     report = check_publication_status()
 
