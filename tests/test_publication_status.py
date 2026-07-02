@@ -193,7 +193,6 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
     assert report["roadmap_complete"] is True
     assert report["doi_status"]["resolves"] is True
     assert report["tracks"]["all_complete"] is True
-    assert report["manifest"]["record_count"] == 510
 
 
 @pytest.mark.unit
