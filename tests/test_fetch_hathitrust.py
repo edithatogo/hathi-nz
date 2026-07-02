@@ -967,6 +967,7 @@ class TestRemoteHathifile:
                 output=output,
                 htid_allowlist=None,
                 category="debates",
+                export_file=None,
                 enrich_api=True,
             ),
         )

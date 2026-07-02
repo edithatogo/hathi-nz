@@ -297,6 +297,22 @@ def _download_collection_export_rows(collection_id: str) -> list[dict[str, str]]
     return export_rows
 
 
+def _load_collection_export_rows(export_file: Path) -> list[dict[str, str]]:
+    """Load collection export rows from a checked-in TSV snapshot."""
+    logger.info("Loading collection metadata snapshot from {}", export_file)
+    rows: list[dict[str, str]] = []
+    with export_file.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh, delimiter="\t")
+        for row in reader:
+            normalized = {key: (value or "").strip() for key, value in row.items()}
+            htid = normalized.get("htitem_id") or normalized.get("htid") or normalized.get("id") or ""
+            if htid:
+                rows.append(normalized)
+    if not rows:
+        raise ValueError(f"No HTIDs returned from {export_file}")
+    return rows
+
+
 def _iter_remote_hathifile_lines(url: str):
     with requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS) as resp:
         resp.raise_for_status()
@@ -412,9 +428,10 @@ def build_manifest_from_collection_export(
     htid_allowlist: set[str] | None = None,
     enrich_api: bool = False,
     category: str = "debates",
+    export_file: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Build a volume manifest from a HathiTrust collection export TSV."""
-    rows = _download_collection_export_rows(collection_id)
+    rows = _load_collection_export_rows(export_file) if export_file else _download_collection_export_rows(collection_id)
     allowlist = htid_allowlist if htid_allowlist is not None else None
     volumes: list[dict[str, Any]] = []
     for row in rows:
@@ -688,6 +705,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Default content category for records",
     )
     collection.add_argument(
+        "--export-file",
+        type=Path,
+        default=None,
+        help="Optional TSV snapshot exported from the HathiTrust collection page.",
+    )
+    collection.add_argument(
         "--enrich-api",
         action="store_true",
         default=False,
@@ -775,6 +798,7 @@ def main() -> int:
             htid_allowlist=allowlist,
             enrich_api=args.enrich_api,
             category=args.category,
+            export_file=args.export_file,
         )
         manifest = write_manifest(volumes, args.output)
         print(json.dumps(manifest["meta"], indent=2))
