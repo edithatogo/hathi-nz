@@ -201,6 +201,12 @@ jobs:
             exit 1
           fi
           VERSION="${{ steps.version.outputs.version }}"
+          CARD_DIR="dataset_cards"
+          if [ "${{ inputs.production }}" != "true" ]; then
+            CARD_DIR="$RUNNER_TEMP/zenodo-dataset-cards"
+            mkdir -p "$CARD_DIR"
+            cp dataset_cards/*.md "$CARD_DIR/"
+          fi
           for DATASET in \
             hathitrust-nz-inventory \
             hathitrust-nz-research-fulltext \
@@ -210,7 +216,7 @@ jobs:
             pixi run -e dev python scripts/publish_zenodo.py \
               --archive "dist/$DATASET-$VERSION.zip" \
               --metadata ".zenodo/$DATASET.json" \
-              --dataset-card "dataset_cards/$DATASET.md" \
+              --dataset-card "$CARD_DIR/$DATASET.md" \
               --token-env "$TOKEN_ENV" \
               "${PRODUCTION_ARGS[@]}" \
               --publish \
@@ -219,7 +225,7 @@ jobs:
           done
 
       - name: Commit Zenodo DOI writebacks
-        if: ${{ inputs.publish_zenodo }}
+        if: ${{ inputs.publish_zenodo && inputs.production }}
         shell: bash
         env:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
