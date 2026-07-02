@@ -63,7 +63,7 @@ def test_pixi_toml_has_quality_tasks() -> None:
     assert 'toml-check = "taplo' in content
     assert 'workflow-syntax = "actionlint' in content
     assert "quality" in content
-    assert "depends_on" in content
+    assert "depends_on" in content or "depends-on" in content
 
 
 def test_pixi_toml_has_lint_and_format_check() -> None:

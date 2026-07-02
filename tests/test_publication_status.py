@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import ClassVar
 
 import pytest
+import requests
 
 
 def _repo_root(start: Path) -> Path:
@@ -231,3 +232,53 @@ def test_main_strict_exits_nonzero_when_not_ready(monkeypatch: pytest.MonkeyPatc
     payload = json.loads(buffer.getvalue())
     assert payload["ready"] is False
     assert exit_code == 1
+
+
+@pytest.mark.unit
+def test_publication_status_helper_parses_fallback_fields() -> None:
+    card_text = """\
+For academic citation, use the Zenodo DOI 10.5281/zenodo.987654.
+
+**Expected volumes** | 510
+"""
+
+    assert check_publication_status_module._dataset_card_doi(card_text) == {
+        "doi": "10.5281/zenodo.987654",
+        "url": "https://doi.org/10.5281/zenodo.987654",
+    }
+    assert check_publication_status_module._dataset_card_expected_volumes(card_text) == 510
+
+    manifest = check_publication_status_module._manifest_summary("{not-json")
+    assert manifest["exists"] is False
+    assert manifest["record_count"] == 0
+
+
+@pytest.mark.unit
+def test_check_hugging_face_and_zenodo_error_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_get(url: str, timeout: int, params: dict[str, object] | None = None):  # type: ignore[no-untyped-def]
+        if "huggingface.co/api/datasets" in url:
+            msg = "connection reset"
+            raise requests.RequestException(msg)
+        if "zenodo.org/api/records" in url:
+            return _zenodo_response(
+                [
+                    {
+                        "title": "corpus-nz-hathi release",
+                        "doi": "10.5281/zenodo.123456",
+                        "status": "done",
+                        "created": "2026-07-02T00:00:00",
+                        "updated": "2026-07-02T00:00:00",
+                    }
+                ]
+            )
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr(check_publication_status_module.requests, "get", fake_get)
+
+    hf = check_publication_status_module._check_hugging_face("edithatogo/corpus-nz-hathi")
+    assert hf["exists"] is False
+    assert "connection reset" in hf["error"]
+
+    zenodo = check_publication_status_module._check_zenodo("corpus-nz-hathi")
+    assert zenodo["match_count"] == 1
+    assert zenodo["matches"][0]["doi"] == "10.5281/zenodo.123456"

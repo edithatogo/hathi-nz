@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gzip
+import argparse
 import hashlib
 import io
 import json
@@ -23,6 +24,7 @@ from scripts.fetch_hathitrust import (
     compute_sha256,
     enrich_volume_metadata,
     lookup_volume_metadata,
+    main,
     parse_args,
     parse_hathifile_line,
     write_manifest,
@@ -802,3 +804,87 @@ class TestRemoteHathifile:
         assert enriched["title"] == "Parliamentary debates (Hansard)"
         assert enriched["year"] == 1855
         assert enriched["source"] == "UC"
+
+    def test_main_hathifile_branch(self, monkeypatch: pytest.MonkeyPatch, temp_hathifile_txt: Path, tmp_path: Path) -> None:
+        output = tmp_path / "manifest.json"
+
+        monkeypatch.setattr(
+            "scripts.fetch_hathitrust.parse_args",
+            lambda args=None: argparse.Namespace(
+                command="hathifile",
+                hathifile=temp_hathifile_txt,
+                output=output,
+                collection_id="71329709",
+                collection_code="NJP",
+                htid_allowlist=None,
+                category="debates",
+            ),
+        )
+
+        exit_code = main()
+
+        assert exit_code == 0
+        assert output.exists()
+        manifest = json.loads(output.read_text(encoding="utf-8"))
+        assert manifest["meta"]["record_count"] == 2
+
+    def test_main_remote_hathifile_without_download_path(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "manifest.json"
+        rows = [T.join([
+            "uc1.b2889853",
+            "pd",
+            "pd",
+            "uc1.31175035194995",
+            "Parliamentary debates.",
+            "uc1",
+            "",
+            "01149942",
+            "",
+            "",
+            "",
+            "Parliamentary debates (Hansard) v.1",
+            "Wellington, 1886",
+            "",
+            "n",
+            "",
+            "",
+            "Wellington",
+            "eng",
+            "txt",
+            "NJP",
+            "UC1",
+            "UC1",
+            "Google",
+            "pd",
+            "New Zealand. Parliament.",
+        ])]
+
+        monkeypatch.setattr(
+            "scripts.fetch_hathitrust.parse_args",
+            lambda args=None: argparse.Namespace(
+                command="remote-hathifile",
+                url="https://example.com/full.gz",
+                download_to=None,
+                output=output,
+                collection_id="71329709",
+                collection_code="NJP",
+                htid_allowlist=None,
+                category="debates",
+                enrich_api=False,
+            ),
+        )
+        monkeypatch.setattr(
+            "scripts.fetch_hathitrust._iter_remote_hathifile_lines",
+            lambda url: iter(rows),
+        )
+
+        exit_code = main()
+
+        assert exit_code == 0
+        assert output.exists()
+        manifest = json.loads(output.read_text(encoding="utf-8"))
+        assert manifest["meta"]["record_count"] == 1
