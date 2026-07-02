@@ -65,6 +65,9 @@ jobs:
             --output "$MANIFEST_PATH"
 
       - name: Stage datasets
+        env:
+          HATHI_API_CONSUMER_KEY: ${{ secrets.HATHI_API_CONSUMER_KEY }}
+          HATHI_API_CONSUMER_SECRET: ${{ secrets.HATHI_API_CONSUMER_SECRET }}
         run: |
           pixi run -e dev python scripts/stage_hf_dataset.py \
             --manifest "$MANIFEST_PATH" \

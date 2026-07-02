@@ -17,12 +17,16 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
+import hmac
 import json
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -35,6 +39,7 @@ from scripts.logging_utils import configure_logging
 from scripts.retry_utils import retry_on_transient_http_errors
 
 HATHI_ZIP_URL = "https://babel.hathitrust.org/cgi/zip"
+HATHI_AGGREGATE_URL = "https://babel.hathitrust.org/cgi/htd/aggregate"
 HATHI_META_URL = "https://share.hathitrust.org/api/volume"
 HATHI_REQUEST_HEADERS = {
     "User-Agent": (
@@ -114,15 +119,17 @@ def _download_volume(
         logger.info("Skipping existing {} (size={})", htid, actual_size)
         return {"sha256": actual_sha256, "size_bytes": actual_size}
 
-    url = f"{HATHI_ZIP_URL}?id={htid}"
-    logger.info("Downloading {} from {}", htid, url)
-    resp = requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS)
-    resp.raise_for_status()
+    signed_aggregate = _download_signed_hathi_aggregate(htid, zip_path)
+    if signed_aggregate is None:
+        url = f"{HATHI_ZIP_URL}?id={htid}"
+        logger.info("Downloading {} from {}", htid, url)
+        resp = requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS)
+        resp.raise_for_status()
 
-    with zip_path.open("wb") as f:
-        for chunk in resp.iter_content(chunk_size=65536):
-            if chunk:
-                f.write(chunk)
+        with zip_path.open("wb") as f:
+            for chunk in resp.iter_content(chunk_size=65536):
+                if chunk:
+                    f.write(chunk)
 
     actual_size = zip_path.stat().st_size
     actual_sha256 = _compute_sha256(zip_path)
@@ -270,6 +277,70 @@ def _compute_sha256(file_path: Path) -> str | None:
         for chunk in iter(lambda: f.read(8192), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
+
+
+def _oauth_escape(value: str) -> str:
+    return quote(value, safe="~-._")
+
+
+def _hathi_api_credentials() -> tuple[str, str] | None:
+    consumer_key = os.getenv("HATHI_API_CONSUMER_KEY", "").strip()
+    consumer_secret = os.getenv("HATHI_API_CONSUMER_SECRET", "").strip()
+    if consumer_key and consumer_secret:
+        return consumer_key, consumer_secret
+    return None
+
+
+def _sign_hathi_url(url: str, consumer_key: str, consumer_secret: str, method: str = "GET") -> str:
+    """Sign a HathiTrust Data API URL with OAuth 1.0 HMAC-SHA1."""
+    parsed = urlparse(url)
+    query_params = parse_qsl(parsed.query, keep_blank_values=True)
+    oauth_params = {
+        "oauth_consumer_key": consumer_key,
+        "oauth_nonce": os.urandom(16).hex(),
+        "oauth_signature_method": "HMAC-SHA1",
+        "oauth_timestamp": str(int(datetime.now(UTC).timestamp())),
+        "oauth_version": "1.0",
+    }
+    params = query_params + list(oauth_params.items())
+    normalized = "&".join(
+        f"{_oauth_escape(key)}={_oauth_escape(value)}"
+        for key, value in sorted(params, key=lambda item: (_oauth_escape(item[0]), _oauth_escape(item[1])))
+    )
+    base_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+    base_string = "&".join(
+        [
+            _oauth_escape(method.upper()),
+            _oauth_escape(base_url),
+            _oauth_escape(normalized),
+        ]
+    )
+    signing_key = f"{_oauth_escape(consumer_secret)}&".encode()
+    digest = hmac.new(signing_key, base_string.encode(), hashlib.sha1).digest()
+    oauth_params["oauth_signature"] = base64.b64encode(digest).decode("ascii")
+    signed_query = urlencode(query_params + list(oauth_params.items()))
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", signed_query, ""))
+
+
+def _download_signed_hathi_aggregate(htid: str, output_path: Path) -> Path | None:
+    creds = _hathi_api_credentials()
+    if creds is None:
+        return None
+
+    consumer_key, consumer_secret = creds
+    api_url = _sign_hathi_url(f"{HATHI_AGGREGATE_URL}/{htid}?v=2", consumer_key, consumer_secret)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    logger.info("Downloading signed aggregate {} -> {}", htid, output_path)
+    resp = requests.get(api_url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS)
+    if resp.status_code >= 400:
+        logger.warning("Signed aggregate fetch failed for {}: {}", htid, resp.status_code)
+        return None
+
+    with output_path.open("wb") as fh:
+        for chunk in resp.iter_content(chunk_size=1024 * 1024):
+            if chunk:
+                fh.write(chunk)
+    return output_path
 
 
 # ---------------------------------------------------------------
