@@ -240,3 +240,7 @@ jobs:
           git add dataset_cards
           git commit -m "docs(zenodo): record HathiTrust-NZ child dataset DOIs [skip ci]"
           git push origin "HEAD:${DEFAULT_BRANCH}"
+
+      - name: Verify publication status
+        if: ${{ inputs.publish_zenodo && inputs.production }}
+        run: pixi run -e dev publication-status --strict
