@@ -63,8 +63,7 @@ jobs:
         run: |
           pixi run -e dev python scripts/fetch_hathitrust.py collection-export \
             --collection-id "$HATHI_COLLECTION_ID" \
-            --output "$MANIFEST_PATH" \
-            --enrich-api
+            --output "$MANIFEST_PATH"
 
       - name: Stage datasets
         run: |

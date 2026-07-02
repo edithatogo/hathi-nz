@@ -531,7 +531,7 @@ class TestParseArgs:
         args = parse_args()
         assert args.command == "collection-export"
         assert args.collection_id == "71329709"
-        assert args.enrich_api is True
+        assert args.enrich_api is False
 
     def test_parse_missing_subcommand(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(sys, "argv", ["prog"])

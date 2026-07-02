@@ -269,26 +269,32 @@ def _load_htid_allowlist(path: Path) -> set[str]:
     return allowlist
 
 
-def _download_collection_htids(collection_id: str) -> list[str]:
-    """Download HTIDs for a HathiTrust collection from the collection builder export."""
+def _download_collection_export_rows(collection_id: str) -> list[dict[str, str]]:
+    """Download rows for a HathiTrust collection from the collection builder export."""
     logger.info("Downloading collection metadata for {}", collection_id)
+    referer = f"https://babel.hathitrust.org/cgi/mb?a=listis&c={collection_id}"
     resp = requests.post(
         HATHI_COLLECTION_EXPORT_URL,
         data={"a": "download", "c": collection_id, "format": "text"},
         timeout=300,
-        headers=HATHI_REQUEST_HEADERS,
+        headers={
+            **HATHI_REQUEST_HEADERS,
+            "Origin": "https://babel.hathitrust.org",
+            "Referer": referer,
+        },
     )
     resp.raise_for_status()
 
     rows = csv.DictReader(io.StringIO(resp.text), delimiter="\t")
-    htids: list[str] = []
+    export_rows: list[dict[str, str]] = []
     for row in rows:
-        htid = (row.get("htitem_id") or row.get("htid") or row.get("id") or "").strip()
+        normalized = {key: (value or "").strip() for key, value in row.items()}
+        htid = normalized.get("htitem_id") or normalized.get("htid") or normalized.get("id") or ""
         if htid:
-            htids.append(htid)
-    if not htids:
+            export_rows.append(normalized)
+    if not export_rows:
         raise ValueError(f"No HTIDs returned for collection {collection_id}")
-    return htids
+    return export_rows
 
 
 def _iter_remote_hathifile_lines(url: str):
@@ -404,17 +410,32 @@ def _base_collection_record(htid: str, collection_id: str, category: str) -> dic
 def build_manifest_from_collection_export(
     collection_id: str = DEFAULT_COLLECTION_ID,
     htid_allowlist: set[str] | None = None,
-    enrich_api: bool = True,
+    enrich_api: bool = False,
     category: str = "debates",
 ) -> list[dict[str, Any]]:
     """Build a volume manifest from a HathiTrust collection export TSV."""
-    htids = _download_collection_htids(collection_id)
+    rows = _download_collection_export_rows(collection_id)
     allowlist = htid_allowlist if htid_allowlist is not None else None
     volumes: list[dict[str, Any]] = []
-    for htid in htids:
+    for row in rows:
+        htid = row.get("htitem_id") or row.get("htid") or row.get("id") or ""
         if allowlist is not None and htid not in allowlist:
             continue
-        record = _base_collection_record(htid, collection_id, category)
+        title = row.get("title") or htid
+        record = {
+            "htid": htid,
+            "category": category,
+            "year": _extract_year(row.get("date", "")) or _extract_year_from_title(title),
+            "volume": _normalize_volume(title) or title,
+            "title": title,
+            "oclc_num": row.get("OCLC", ""),
+            "rights": _rights_code(row.get("rights", "")),
+            "source": "HathiTrust Collection Builder",
+            "collection_id": collection_id,
+            "isbn": row.get("ISBN", ""),
+            "issn": "",
+            "lccn": row.get("LCCN", ""),
+        }
         if enrich_api:
             record = enrich_volume_metadata(record)
         volumes.append(record)
@@ -669,7 +690,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     collection.add_argument(
         "--enrich-api",
         action="store_true",
-        default=True,
+        default=False,
         help="Enrich manifest rows via the HathiTrust volume API.",
     )
 
