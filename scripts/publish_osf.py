@@ -9,7 +9,9 @@ The script is intentionally conservative:
 from __future__ import annotations
 
 import argparse
+import io
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -31,6 +33,9 @@ OSF = _OSF
 
 REQUIRED_METADATA_FIELDS = ("title", "description", "tags", "category")
 DEFAULT_AUTH_ENV = "OSF_TOKEN"
+ZENODO_DOI_LINE = re.compile(
+    r"For academic citation, use the Zenodo DOI \[(?P<doi>[^\]]+)\]\((?P<url>https://doi\.org/[^\)]+)\)\."
+)
 
 
 def load_osf_metadata(metadata_path: Path) -> dict[str, Any]:
@@ -55,6 +60,59 @@ def load_osf_metadata(metadata_path: Path) -> dict[str, Any]:
         raise ValueError(msg)
 
     return metadata
+
+
+def _extract_zenodo_doi(card_path: Path) -> str | None:
+    """Return the DOI recorded in the dataset card, if present."""
+    if not card_path.exists():
+        return None
+
+    text = card_path.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        match = ZENODO_DOI_LINE.search(line)
+        if match:
+            return match.group("doi").strip()
+
+    fallback = re.search(r"10\.5281/zenodo\.\d+", text)
+    if fallback:
+        return fallback.group(0)
+    return None
+
+
+def _inject_zenodo_doi(metadata: dict[str, Any], doi: str | None) -> dict[str, Any]:
+    """Return metadata enriched with the canonical Zenodo DOI reference."""
+    enriched = json.loads(json.dumps(metadata))
+    if not doi:
+        return enriched
+
+    related_identifiers = enriched.setdefault("related_identifiers", [])
+    if not isinstance(related_identifiers, list):
+        msg = "OSF metadata 'related_identifiers' must be a list when present"
+        raise ValueError(msg)
+
+    doi_url = f"https://doi.org/{doi}"
+    if not any(
+        isinstance(entry, dict) and entry.get("identifier") == doi_url for entry in related_identifiers
+    ):
+        related_identifiers.append(
+            {
+                "relation": "isSupplementTo",
+                "identifier": doi_url,
+                "resource_type": "dataset",
+            }
+        )
+    enriched["mirror_of_doi"] = doi
+    return enriched
+
+
+def prepare_osf_metadata(
+    metadata_path: Path,
+    dataset_card_path: Path | None = Path("DATASET_CARD.md"),
+) -> tuple[dict[str, Any], str | None]:
+    """Load OSF metadata and attach the existing Zenodo DOI when available."""
+    metadata = load_osf_metadata(metadata_path)
+    doi = _extract_zenodo_doi(dataset_card_path) if dataset_card_path is not None else None
+    return _inject_zenodo_doi(metadata, doi), doi
 
 
 def collect_release_files(source_dir: Path, metadata_path: Path | None = None) -> list[Path]:
@@ -119,19 +177,25 @@ def publish_release(
     token: str,
     remote_dir: str = "releases",
     storage_provider: str = "osfstorage",
+    dataset_card_path: Path | None = Path("DATASET_CARD.md"),
 ) -> dict[str, Any]:
     """Upload a release directory and its OSF metadata file to an existing project."""
     client = _get_osf_client(token)
     project = client.project(project_id)
     storage = project.storage(storage_provider)
+    metadata, mirrored_doi = prepare_osf_metadata(metadata_path, dataset_card_path)
 
     uploaded_files: list[str] = []
     for file_path in collect_release_files(source_dir, metadata_path):
         relative = _relative_remote_path(file_path, source_dir)
         remote_path = Path(remote_dir) / relative if remote_dir else relative
         logger.info("Uploading {} to OSF at {}", file_path, remote_path)
-        with file_path.open("rb") as fp:
-            storage.create_file(remote_path.as_posix(), fp, force=True, update=False)
+        if file_path.resolve() == metadata_path.resolve():
+            payload = io.BytesIO(json.dumps(metadata, indent=2).encode("utf-8"))
+            storage.create_file(remote_path.as_posix(), payload, force=True, update=False)
+        else:
+            with file_path.open("rb") as fp:
+                storage.create_file(remote_path.as_posix(), fp, force=True, update=False)
         uploaded_files.append(remote_path.as_posix())
 
     return {
@@ -142,6 +206,7 @@ def publish_release(
         "uploaded_count": len(uploaded_files),
         "metadata_path": metadata_path.as_posix(),
         "source_dir": source_dir.as_posix(),
+        "mirrored_doi": mirrored_doi,
     }
 
 
@@ -159,6 +224,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=Path(".osf.json"),
         help="Path to the local OSF metadata file.",
+    )
+    parser.add_argument(
+        "--dataset-card",
+        type=Path,
+        default=Path("DATASET_CARD.md"),
+        help="Dataset card containing the canonical Zenodo DOI to mirror into OSF metadata.",
     )
     parser.add_argument(
         "--project-id",
@@ -201,6 +272,8 @@ def main() -> int:
     args = parse_args()
     metadata = load_osf_metadata(args.metadata)
     release_files = collect_release_files(args.source_dir, args.metadata)
+    dataset_card_path = getattr(args, "dataset_card", Path("DATASET_CARD.md"))
+    mirrored_doi = _extract_zenodo_doi(dataset_card_path) if dataset_card_path is not None else None
     token, project_id = _resolve_credentials(args)
 
     if args.dry_run:
@@ -221,6 +294,7 @@ def main() -> int:
                     "remote_dir": args.remote_dir,
                     "storage_provider": args.storage_provider,
                     "metadata": metadata,
+                    "mirrored_doi": mirrored_doi,
                     "planned_files": [path.as_posix() for path in release_files],
                 },
                 indent=2,
@@ -242,6 +316,7 @@ def main() -> int:
         token=token,
         remote_dir=args.remote_dir,
         storage_provider=args.storage_provider,
+        dataset_card_path=dataset_card_path,
     )
     print(json.dumps(result, indent=2))
     return 0

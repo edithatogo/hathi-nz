@@ -93,6 +93,11 @@ def test_publish_release_uploads_release_tree(
         ),
         encoding="utf-8",
     )
+    dataset_card = tmp_path / "DATASET_CARD.md"
+    dataset_card.write_text(
+        "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456).\n",
+        encoding="utf-8",
+    )
 
     storage = _FakeStorage()
     fake_osf = _FakeOSF(storage)
@@ -104,10 +109,12 @@ def test_publish_release_uploads_release_tree(
         project_id="osf-project-id",
         token="osf-token",
         remote_dir="releases/0.1.0",
+        dataset_card_path=dataset_card,
     )
 
     assert fake_osf.requested_project_id == "osf-project-id"
     assert result["uploaded_count"] == 3
+    assert result["mirrored_doi"] == "10.5281/zenodo.123456"
     assert set(result["uploaded_files"]) == {
         "releases/0.1.0/corpus-nz-hathi-0.1.0-manifest.json",
         "releases/0.1.0/corpus-nz-hathi-0.1.0.zip",
@@ -117,6 +124,19 @@ def test_publish_release_uploads_release_tree(
         result["uploaded_files"]
     )
     assert all(force is True for _path, _content, force, _update in storage.uploads)
+    uploaded_metadata = next(
+        json.loads(content.decode("utf-8"))
+        for path, content, _force, _update in storage.uploads
+        if path.endswith(".osf.json")
+    )
+    assert uploaded_metadata["mirror_of_doi"] == "10.5281/zenodo.123456"
+    assert uploaded_metadata["related_identifiers"] == [
+        {
+            "relation": "isSupplementTo",
+            "identifier": "https://doi.org/10.5281/zenodo.123456",
+            "resource_type": "dataset",
+        }
+    ]
 
 
 def test_main_dry_run_reports_planned_uploads(
@@ -191,10 +211,12 @@ def test_osf_docs_and_dependency_declarations() -> None:
 
     assert "OSF Mirror" in readme
     assert "OSF_PROJECT_ID" in readme
+    assert "Zenodo DOI" in readme
     assert "OSF mirrors" in dataset_card
     assert "OSF_TOKEN" in dataset_card
     assert "OSF Sync" in workflow
     assert "OSF_PROJECT_ID" in workflow
+    assert "--dataset-card DATASET_CARD.md" in workflow
     assert "available=false" in workflow
     assert "steps.credentials.outputs.available == 'true'" in workflow
     assert "osfclient" in pyproject

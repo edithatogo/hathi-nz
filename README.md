@@ -25,7 +25,7 @@ The corpus is published across three platforms:
 | **Hugging Face Hub** | Live, queryable dataset (Parquet + raw files) | [`edithatogo/corpus-nz-hathi`](https://huggingface.co/edithatogo/corpus-nz-hathi) |
 | **GitHub** | Pipeline code, schemas, metadata, workflows | [`edithatogo/hathi-nz`](https://github.com/edithatogo/hathi-nz) |
 | **Zenodo** | DOI-backed annual snapshots for academic citation | _(future)_ |
-| **OSF** | Secondary release mirror for prepared snapshots | _(configured via `OSF_PROJECT_ID`)_ |
+| **OSF** | Secondary release mirror that reuses the Zenodo DOI-backed snapshot metadata | _(configured via `OSF_PROJECT_ID`)_ |
 
 
 ## Architecture
@@ -262,6 +262,7 @@ pixi run python scripts/upload_hf_dataset.py \
     --state-dir data/_state \
     --commit-message "Sync $(date -I)" \
     --dry-run
+```
 
 ### 5. Mirror a release to OSF
 
@@ -272,13 +273,16 @@ pixi run python scripts/package_release.py \
 pixi run python scripts/publish_osf.py \
     --source-dir dist \
     --metadata .osf.json \
+    --dataset-card DATASET_CARD.md \
     --project-id "$OSF_PROJECT_ID" \
     --remote-dir releases/0.1.0 \
     --execute
 ```
 
-Set `OSF_TOKEN` and `OSF_PROJECT_ID` in the environment or GitHub Actions secrets before running the publish step.
-```
+The OSF upload reuses the Zenodo DOI recorded in `DATASET_CARD.md` so the
+mirrored bundle points back to the canonical archival release. Set `OSF_TOKEN`
+and `OSF_PROJECT_ID` in the environment or GitHub Actions secrets before
+running the publish step.
 
 Remove `--dry-run` for actual upload. Requires `HF_TOKEN` environment variable.
 

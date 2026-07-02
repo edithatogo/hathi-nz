@@ -71,6 +71,7 @@ jobs:
           pixi run python scripts/publish_osf.py \
             --source-dir dist \
             --metadata .osf.json \
+            --dataset-card DATASET_CARD.md \
             --project-id "$OSF_PROJECT_ID" \
             --remote-dir "releases/${{ steps.version.outputs.version }}" \
             --execute
