@@ -3,7 +3,7 @@
 Static-host acquisition plans and eligible staged outputs for HathiTrust
 Research Dataset full text related to HathiTrust-NZ.
 
-For academic citation, use the Zenodo DOI pending.
+For academic citation, use the Zenodo DOI [10.5281/zenodo.21134830](https://doi.org/10.5281/zenodo.21134830).
 
 ## Access
 

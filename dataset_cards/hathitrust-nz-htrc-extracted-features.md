@@ -3,7 +3,7 @@
 HTRC Extracted Features 2.5 subset plans and fetched derived feature files for
 HathiTrust-NZ volumes.
 
-For academic citation, use the Zenodo DOI pending.
+For academic citation, use the Zenodo DOI [10.5281/zenodo.21134832](https://doi.org/10.5281/zenodo.21134832).
 
 ## Access
 
