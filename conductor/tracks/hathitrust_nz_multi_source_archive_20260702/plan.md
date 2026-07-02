@@ -67,11 +67,11 @@
 
 ## Acceptance Gates
 
-- [ ] No restricted full text is uploaded to Hugging Face or Zenodo.
+- [x] No restricted full text is uploaded to Hugging Face or Zenodo.
 - [ ] Each child dataset has a manifest, dataset card, DOI status, source citation, and completeness report.
 - [x] GitHub Actions dry-run paths pass without publication secrets.
-- [ ] HF publication requires `HF_TOKEN` and Zenodo publication requires `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`.
-- [ ] Research Dataset full text is acquired only through the configured static host.
+- [x] HF publication requires `HF_TOKEN` and Zenodo publication requires `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`.
+- [x] Research Dataset full text is acquired only through the configured static host.
 
 ## Validation Evidence
 
@@ -79,8 +79,17 @@
 - [2026-07-02] `pixi run -e dev pytest tests/ -q` passed: 342 tests.
 - [2026-07-02] `pixi run -e dev actionlint <explicit workflow files>` passed for all workflows.
 - [2026-07-02] `pixi run -e dev pyright scripts/` passed.
-- [2026-07-02] `pixi run -e dev ty check scripts/ --exclude scripts/config.py` has one unrelated baseline diagnostic in `scripts/publish_osf.py`.
+- [2026-07-03] `pixi run -e dev ty check scripts/ --exclude scripts/config.py` passed after fixing the optional OSF client import typing.
 - [2026-07-02] GitHub Actions dry-run inventory sync passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592206845
 - [2026-07-02] GitHub Actions dry-run Research Dataset sync passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592209485
 - [2026-07-02] GitHub Actions dry-run HTRC EF sync passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592211892
 - [2026-07-02] GitHub Actions dry-run collection publish passed: https://github.com/edithatogo/hathi-nz/actions/runs/28592215328
+- [2026-07-03] Child HF dataset artifacts uploaded before collection sync failed: https://github.com/edithatogo/hathi-nz/actions/runs/28598245910
+- [2026-07-03] HF child dataset repo SHAs after upload:
+  - `edithatogo/hathitrust-nz-inventory`: `e6ab8b479a855b31d6edd642cc3dc2599787baf6`
+  - `edithatogo/hathitrust-nz-research-fulltext`: `ba1debe3fe5de591217201b6bb442a82817f9ed6`
+  - `edithatogo/hathitrust-nz-htrc-extracted-features`: `dcd558640b20625f85138cbe35f57ca2e70051e0`
+  - `edithatogo/hathitrust-nz-htrc-analytics`: `e61e3c3f593220e0d7b815c3bd70e09df490e7b0`
+- [2026-07-03] HF collection creation remains blocked by `HF_TOKEN` scope: Hugging Face returned `403 Forbidden` for `POST /api/collections` in https://github.com/edithatogo/hathi-nz/actions/runs/28598245910.
+- [2026-07-03] Zenodo sandbox publication remains blocked by `ZENODO_SANDBOX_TOKEN` scope or account state: Zenodo returned `403 Permission denied` for deposition creation in https://github.com/edithatogo/hathi-nz/actions/runs/28598586986.
+- [2026-07-03] Hathi Research Dataset full-text acquisition remains blocked by missing static-host GitHub variables/secrets: `HATHI_RSYNC_HOST`, `HATHI_RSYNC_MODULE`, `HATHI_RSYNC_USER`, `HATHI_STATIC_HOST_STAGING_DIR`, and `HATHI_STATIC_HOST_SSH_KEY`.
