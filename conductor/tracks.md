@@ -50,6 +50,10 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/loguru_migration_20260626/](./conductor/archive/loguru_migration_20260626/)*
 - Migrate from stdlib logging to loguru across all scripts
 
+## [~] Track: HathiTrust-NZ Multi-Source Archive
+*Link: [./conductor/tracks/hathitrust_nz_multi_source_archive_20260702/](./conductor/tracks/hathitrust_nz_multi_source_archive_20260702/)*
+- Collection-level archive for HathiTrust-NZ, with child datasets for inventory, Hathi Research Dataset static-host acquisition, HTRC Extracted Features, and HTRC Analytics outputs.
+
 ---
 
 ### Architecture Status (oracle, 2026-06-26)

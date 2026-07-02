@@ -1,0 +1,153 @@
+name: HathiTrust-NZ Research Dataset Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_dataset_name:
+        description: Approved Hathi Research Dataset stream to plan against.
+        required: true
+        default: ht_text_pd_world_open_access
+        type: choice
+        options:
+          - ht_text_pd_open_access
+          - ht_text_pd_world_open_access
+          - ht_text_pd
+          - ht_text_pd_world
+      smoke_limit:
+        description: Limit records for smoke tests. Use 0 for all seed records.
+        required: false
+        default: "3"
+        type: string
+      pull_static_bundle:
+        description: Pull a prepared bundle from the approved static host.
+        required: false
+        default: false
+        type: boolean
+      publish_metadata:
+        description: Publish generated metadata and rsync plan to Hugging Face.
+        required: false
+        default: false
+        type: boolean
+      publish_staged_bundle:
+        description: Also publish the pulled staged bundle. Use only after eligibility review.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  research-dataset:
+    runs-on: ubuntu-latest
+    env:
+      RESEARCH_REPO_ID: ${{ vars.HF_RESEARCH_FULLTEXT_REPO_ID || 'edithatogo/hathitrust-nz-research-fulltext' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Validate research dataset routing
+        run: pixi run -e dev pytest tests/test_hathitrust_nz_archive.py -q
+
+      - name: Build static-host acquisition plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-research"
+          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/research_datasets"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
+            --collection-export data/hathi_collection_export_71329709.tsv \
+            --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --htids-output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard_htids.txt" \
+            --expected-count 510 \
+            --fail-on-count-drift
+          pixi run -e dev python scripts/hathitrust_nz_archive.py research-rsync-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/research_datasets" \
+            --source-dataset-name "${{ inputs.source_dataset_name }}" \
+            --limit "${{ inputs.smoke_limit }}"
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
+      - name: Install rsync for static-host pull
+        if: ${{ inputs.pull_static_bundle }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync
+
+      - name: Pull staged bundle from static host
+        if: ${{ inputs.pull_static_bundle }}
+        shell: bash
+        env:
+          HATHI_RSYNC_HOST: ${{ vars.HATHI_RSYNC_HOST }}
+          HATHI_RSYNC_MODULE: ${{ vars.HATHI_RSYNC_MODULE }}
+          HATHI_RSYNC_USER: ${{ vars.HATHI_RSYNC_USER }}
+          HATHI_STATIC_HOST_STAGING_DIR: ${{ vars.HATHI_STATIC_HOST_STAGING_DIR }}
+          HATHI_STATIC_HOST_SSH_KEY: ${{ secrets.HATHI_STATIC_HOST_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HATHI_RSYNC_HOST" ] || [ -z "$HATHI_RSYNC_MODULE" ] || [ -z "$HATHI_RSYNC_USER" ] || [ -z "$HATHI_STATIC_HOST_STAGING_DIR" ]; then
+            echo "Missing static-host variables: HATHI_RSYNC_HOST, HATHI_RSYNC_MODULE, HATHI_RSYNC_USER, HATHI_STATIC_HOST_STAGING_DIR."
+            exit 1
+          fi
+          if [ -z "$HATHI_STATIC_HOST_SSH_KEY" ]; then
+            echo "Missing HATHI_STATIC_HOST_SSH_KEY secret."
+            exit 1
+          fi
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$HATHI_STATIC_HOST_SSH_KEY" > "$HOME/.ssh/hathi_static_host"
+          chmod 600 "$HOME/.ssh/hathi_static_host"
+          mkdir -p "$BUILD_DIR/research_datasets/staged"
+          rsync -avz \
+            -e "ssh -i $HOME/.ssh/hathi_static_host -o StrictHostKeyChecking=accept-new" \
+            "$HATHI_RSYNC_USER@$HATHI_RSYNC_HOST:${HATHI_STATIC_HOST_STAGING_DIR%/}/" \
+            "$BUILD_DIR/research_datasets/staged/"
+
+      - name: Upload research plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hathitrust-nz-research-dataset-plan
+          path: ${{ env.BUILD_DIR }}
+          if-no-files-found: error
+
+      - name: Publish research metadata to Hugging Face
+        if: ${{ inputs.publish_metadata }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Missing HF_TOKEN secret."
+            exit 1
+          fi
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR/research_datasets" \
+            --repo-id "$RESEARCH_REPO_ID" \
+            --path-in-repo "research-datasets" \
+            --commit-message "Update HathiTrust-NZ Research Dataset plan"
+
+      - name: Publish reviewed staged bundle to Hugging Face
+        if: ${{ inputs.publish_staged_bundle }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Missing HF_TOKEN secret."
+            exit 1
+          fi
+          if [ ! -d "$BUILD_DIR/research_datasets/staged" ]; then
+            echo "No staged bundle was pulled from the static host."
+            exit 1
+          fi
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR/research_datasets/staged" \
+            --repo-id "$RESEARCH_REPO_ID" \
+            --path-in-repo "staged" \
+            --commit-message "Publish reviewed HathiTrust-NZ Research Dataset bundle"

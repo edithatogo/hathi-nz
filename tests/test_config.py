@@ -30,7 +30,15 @@ def test_settings_has_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OSF_PROJECT_ID", raising=False)
     settings = Settings()
     assert settings.HF_REPO_ID == "edithatogo/corpus-nz-hathi"
+    assert settings.HF_COLLECTION_ID == "edithatogo/hathitrust-nz"
+    assert settings.HF_INVENTORY_REPO_ID == "edithatogo/hathitrust-nz-inventory"
+    assert settings.HF_RESEARCH_FULLTEXT_REPO_ID == "edithatogo/hathitrust-nz-research-fulltext"
+    assert settings.HF_HTRC_EF_REPO_ID == "edithatogo/hathitrust-nz-htrc-extracted-features"
+    assert settings.HF_HTRC_ANALYTICS_REPO_ID == "edithatogo/hathitrust-nz-htrc-analytics"
     assert settings.COLLECTION_ID == "71329709"
+    assert settings.HTRC_EF_RSYNC_MODULE == "data.analytics.hathitrust.org::features-2025.04/"
+    assert settings.HATHI_RSYNC_HOST is None
+    assert settings.HATHI_STATIC_HOST_SSH_KEY is None
     assert settings.LOG_LEVEL == "INFO"
     assert settings.ZENODO_SANDBOX is False
     assert settings.OSF_TOKEN is None

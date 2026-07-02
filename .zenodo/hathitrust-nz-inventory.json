@@ -1,0 +1,38 @@
+{
+  "$schema": "https://zenodo.org/schemas/deposits/records/legacy/record.json",
+  "title": "HathiTrust-NZ Inventory",
+  "description": "Collection-level inventory, HTID manifests, rights classification, publication eligibility, and archive completeness reports for HathiTrust-NZ.",
+  "creators": [
+    {
+      "name": "Togo, Edith A.",
+      "affiliation": "Flinders University"
+    }
+  ],
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "upload_type": "dataset",
+  "keywords": [
+    "new-zealand",
+    "hathitrust",
+    "inventory",
+    "digital-humanities",
+    "library-metadata"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://huggingface.co/collections/edithatogo/hathitrust-nz",
+      "resource_type": "dataset"
+    },
+    {
+      "relation": "isDocumentedBy",
+      "identifier": "https://github.com/edithatogo/hathi-nz",
+      "resource_type": "software"
+    }
+  ],
+  "version": "0.1.0",
+  "references": [
+    "HathiTrust Digital Library. https://www.hathitrust.org/",
+    "HathiTrust Collection ID 71329709"
+  ]
+}

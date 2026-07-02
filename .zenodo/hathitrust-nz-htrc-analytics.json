@@ -1,0 +1,39 @@
+{
+  "$schema": "https://zenodo.org/schemas/deposits/records/legacy/record.json",
+  "title": "HathiTrust-NZ HTRC Analytics Outputs",
+  "description": "HTRC Analytics scripts, workset definitions, aggregate outputs, and reproducibility metadata for HathiTrust-NZ.",
+  "creators": [
+    {
+      "name": "Togo, Edith A.",
+      "affiliation": "Flinders University"
+    }
+  ],
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "upload_type": "dataset",
+  "keywords": [
+    "new-zealand",
+    "hathitrust",
+    "htrc",
+    "analytics",
+    "reproducibility"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://huggingface.co/datasets/edithatogo/hathitrust-nz-htrc-analytics",
+      "resource_type": "dataset"
+    },
+    {
+      "relation": "isDocumentedBy",
+      "identifier": "https://github.com/edithatogo/hathi-nz",
+      "resource_type": "software"
+    }
+  ],
+  "version": "0.1.0",
+  "notes": "Public releases contain scripts, aggregates, and reproducibility metadata only when source content remains restricted.",
+  "references": [
+    "HTRC Analytics. https://analytics.hathitrust.org/",
+    "HTRC Workset Toolkit. https://htrc.github.io/HTRC-WorksetToolkit/cli.html"
+  ]
+}

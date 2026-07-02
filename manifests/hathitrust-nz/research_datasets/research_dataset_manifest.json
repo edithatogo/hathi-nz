@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "generated_at": "2026-07-02T12:48:34.459363+00:00",
+    "source_dataset_name": "ht_text_pd_world_open_access",
+    "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/research-datasets/",
+    "record_count": 3,
+    "eligible_full_text_count": 3,
+    "metadata_only_count": 0,
+    "requires_static_host": true,
+    "acquisition_mode": "static_host_rsync_then_actions_publish_staged_bundle",
+    "hf_dataset_repo": "edithatogo/hathitrust-nz-research-fulltext"
+  },
+  "static_host_contract": {
+    "required_secrets": [
+      "HATHI_STATIC_HOST_SSH_KEY"
+    ],
+    "required_variables": [
+      "HATHI_RSYNC_HOST",
+      "HATHI_RSYNC_MODULE",
+      "HATHI_RSYNC_USER",
+      "HATHI_STATIC_HOST_STAGING_DIR"
+    ],
+    "github_actions_role": "Pull pre-approved staged bundles from the static host; do not download Hathi Research Dataset full text directly from GitHub runners."
+  },
+  "eligible_full_text": [
+    {
+      "htid": "uc1.32106019841342",
+      "title": "Parliamentary debates (Hansard) v.281",
+      "rights_code": "17",
+      "rights_label": "cc-zero",
+      "source_dataset_name": "ht_text_pd_world_open_access",
+      "access_class": "public_full_text",
+      "public_metadata_allowed": true,
+      "public_full_text_allowed": true,
+      "public_derived_allowed": true,
+      "requires_static_host": true,
+      "requires_google_agreement": false,
+      "restriction_reason": ""
+    },
+    {
+      "htid": "uc1.32106019841359",
+      "title": "Parliamentary debates (Hansard) v.282",
+      "rights_code": "17",
+      "rights_label": "cc-zero",
+      "source_dataset_name": "ht_text_pd_world_open_access",
+      "access_class": "public_full_text",
+      "public_metadata_allowed": true,
+      "public_full_text_allowed": true,
+      "public_derived_allowed": true,
+      "requires_static_host": true,
+      "requires_google_agreement": false,
+      "restriction_reason": ""
+    },
+    {
+      "htid": "uc1.32106019841375",
+      "title": "Parliamentary debates (Hansard) v.284",
+      "rights_code": "17",
+      "rights_label": "cc-zero",
+      "source_dataset_name": "ht_text_pd_world_open_access",
+      "access_class": "public_full_text",
+      "public_metadata_allowed": true,
+      "public_full_text_allowed": true,
+      "public_derived_allowed": true,
+      "requires_static_host": true,
+      "requires_google_agreement": false,
+      "restriction_reason": ""
+    }
+  ],
+  "metadata_only": []
+}

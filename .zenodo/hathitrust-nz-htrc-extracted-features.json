@@ -1,0 +1,38 @@
+{
+  "$schema": "https://zenodo.org/schemas/deposits/records/legacy/record.json",
+  "title": "HathiTrust-NZ HTRC Extracted Features",
+  "description": "HTRC Extracted Features 2.5 subset manifests and derived JSON-LD feature files for HathiTrust-NZ volumes.",
+  "creators": [
+    {
+      "name": "Togo, Edith A.",
+      "affiliation": "Flinders University"
+    }
+  ],
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "upload_type": "dataset",
+  "keywords": [
+    "new-zealand",
+    "hathitrust",
+    "htrc",
+    "extracted-features",
+    "non-consumptive-research"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://huggingface.co/datasets/edithatogo/hathitrust-nz-htrc-extracted-features",
+      "resource_type": "dataset"
+    },
+    {
+      "relation": "isDocumentedBy",
+      "identifier": "https://github.com/edithatogo/hathi-nz",
+      "resource_type": "software"
+    }
+  ],
+  "version": "0.1.0",
+  "references": [
+    "HTRC Extracted Features 2.5. https://htrc.atlassian.net/wiki/spaces/COM/pages/975306753",
+    "HTRC Analytics. https://analytics.hathitrust.org/"
+  ]
+}

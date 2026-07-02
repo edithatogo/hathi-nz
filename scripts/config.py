@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Hugging Face Hub
     HF_TOKEN: SecretStr | None = None
     HF_REPO_ID: str = "edithatogo/corpus-nz-hathi"
+    HF_COLLECTION_ID: str = "edithatogo/hathitrust-nz"
+    HF_INVENTORY_REPO_ID: str = "edithatogo/hathitrust-nz-inventory"
+    HF_RESEARCH_FULLTEXT_REPO_ID: str = "edithatogo/hathitrust-nz-research-fulltext"
+    HF_HTRC_EF_REPO_ID: str = "edithatogo/hathitrust-nz-htrc-extracted-features"
+    HF_HTRC_ANALYTICS_REPO_ID: str = "edithatogo/hathitrust-nz-htrc-analytics"
 
     # Zenodo
     ZENODO_TOKEN: SecretStr | None = None
@@ -43,6 +48,12 @@ class Settings(BaseSettings):
 
     # HathiTrust
     COLLECTION_ID: str = "71329709"
+    HATHI_RSYNC_HOST: str | None = None
+    HATHI_RSYNC_MODULE: str | None = None
+    HATHI_RSYNC_USER: str | None = None
+    HATHI_STATIC_HOST_SSH_KEY: SecretStr | None = None
+    HATHI_STATIC_HOST_STAGING_DIR: str | None = None
+    HTRC_EF_RSYNC_MODULE: str = "data.analytics.hathitrust.org::features-2025.04/"
 
     # Logging
     LOG_LEVEL: str = "INFO"

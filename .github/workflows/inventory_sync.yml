@@ -1,0 +1,86 @@
+name: HathiTrust-NZ Inventory Sync
+
+on:
+  schedule:
+    - cron: "20 5 * * *"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish inventory artifacts to Hugging Face.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    env:
+      INVENTORY_REPO_ID: ${{ vars.HF_INVENTORY_REPO_ID || 'edithatogo/hathitrust-nz-inventory' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Validate archive routing tests
+        run: pixi run -e dev pytest tests/test_hathitrust_nz_archive.py tests/test_upload_hf_folder.py -q
+
+      - name: Build source-specific inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-inventory"
+          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/collection" "$BUILD_DIR/reports"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
+            --collection-export data/hathi_collection_export_71329709.tsv \
+            --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --htids-output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard_htids.txt" \
+            --expected-count 510 \
+            --fail-on-count-drift
+          pixi run -e dev python scripts/hathitrust_nz_archive.py collection-manifest \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output "$BUILD_DIR/collection/collection_manifest.json" \
+            --completeness-report "$BUILD_DIR/reports/archive_completeness.md"
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
+      - name: Upload inventory artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hathitrust-nz-inventory
+          path: ${{ env.BUILD_DIR }}
+          if-no-files-found: error
+
+      - name: Dry-run Hugging Face upload
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.publish }}
+        run: |
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR" \
+            --repo-id "$INVENTORY_REPO_ID" \
+            --path-in-repo "." \
+            --commit-message "Dry run: update HathiTrust-NZ inventory" \
+            --dry-run
+
+      - name: Publish inventory to Hugging Face
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Missing HF_TOKEN secret."
+            exit 1
+          fi
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR" \
+            --repo-id "$INVENTORY_REPO_ID" \
+            --path-in-repo "." \
+            --commit-message "Update HathiTrust-NZ inventory"

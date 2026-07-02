@@ -1,0 +1,102 @@
+name: HathiTrust-NZ HTRC EF Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      smoke_limit:
+        description: Limit records for smoke tests. Use 0 for all seed records.
+        required: false
+        default: "3"
+        type: string
+      execute_rsync:
+        description: Fetch the HTRC Extracted Features subset with rsync.
+        required: false
+        default: false
+        type: boolean
+      publish:
+        description: Publish generated HTRC EF artifacts to Hugging Face.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  htrc-ef:
+    runs-on: ubuntu-latest
+    env:
+      HTRC_EF_REPO_ID: ${{ vars.HF_HTRC_EF_REPO_ID || 'edithatogo/hathitrust-nz-htrc-extracted-features' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Validate HTRC EF path routing
+        run: pixi run -e dev pytest tests/test_hathitrust_nz_archive.py -q
+
+      - name: Build HTRC EF subset plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-htrc-ef"
+          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/htrc_ef"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
+            --collection-export data/hathi_collection_export_71329709.tsv \
+            --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --htids-output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard_htids.txt" \
+            --expected-count 510 \
+            --fail-on-count-drift
+          pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/htrc_ef" \
+            --limit "${{ inputs.smoke_limit }}"
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
+      - name: Install rsync
+        if: ${{ inputs.execute_rsync }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync
+
+      - name: Fetch HTRC EF subset
+        if: ${{ inputs.execute_rsync }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$BUILD_DIR/htrc_ef"
+          mkdir -p subset
+          rsync -av \
+            --files-from="htrc_ef25_files.txt" \
+            "data.analytics.hathitrust.org::features-2025.04/" \
+            "subset/"
+
+      - name: Upload HTRC EF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hathitrust-nz-htrc-ef
+          path: ${{ env.BUILD_DIR }}
+          if-no-files-found: error
+
+      - name: Publish HTRC EF artifacts to Hugging Face
+        if: ${{ inputs.publish }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Missing HF_TOKEN secret."
+            exit 1
+          fi
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR/htrc_ef" \
+            --repo-id "$HTRC_EF_REPO_ID" \
+            --path-in-repo "htrc-ef-2.5" \
+            --commit-message "Update HathiTrust-NZ HTRC EF subset"

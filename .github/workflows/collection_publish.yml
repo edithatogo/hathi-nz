@@ -1,0 +1,218 @@
+name: HathiTrust-NZ Collection Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version label for archive packages. Defaults to UTC date.
+        required: false
+        type: string
+      publish_manifests:
+        description: Publish collection manifests to the inventory dataset repo.
+        required: false
+        default: false
+        type: boolean
+      publish_hf_collection:
+        description: Create/update the Hugging Face collection and dataset links.
+        required: false
+        default: false
+        type: boolean
+      publish_zenodo:
+        description: Publish per-dataset Zenodo DOI streams.
+        required: false
+        default: false
+        type: boolean
+      production:
+        description: Publish Zenodo releases to production instead of sandbox.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      INVENTORY_REPO_ID: ${{ vars.HF_INVENTORY_REPO_ID || 'edithatogo/hathitrust-nz-inventory' }}
+      HF_COLLECTION_SLUG: ${{ vars.HF_COLLECTION_SLUG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Resolve package version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="$(date -u +%Y.%m.%d)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Validate publication tooling
+        run: |
+          pixi run -e dev pytest \
+            tests/test_hathitrust_nz_archive.py \
+            tests/test_upload_hf_folder.py \
+            tests/test_sync_hf_collection.py \
+            -q
+
+      - name: Build collection publication bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-collection"
+          mkdir -p \
+            "$BUILD_DIR/inventory" \
+            "$BUILD_DIR/collection" \
+            "$BUILD_DIR/research_datasets" \
+            "$BUILD_DIR/htrc_ef" \
+            "$BUILD_DIR/htrc_analytics" \
+            "$BUILD_DIR/reports"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
+            --collection-export data/hathi_collection_export_71329709.tsv \
+            --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --htids-output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard_htids.txt" \
+            --expected-count 510 \
+            --fail-on-count-drift
+          pixi run -e dev python scripts/hathitrust_nz_archive.py collection-manifest \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output "$BUILD_DIR/collection/collection_manifest.json" \
+            --completeness-report "$BUILD_DIR/reports/archive_completeness.md"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py research-rsync-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/research_datasets" \
+            --source-dataset-name ht_text_pd_world_open_access \
+            --limit 0
+          pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/htrc_ef" \
+            --limit 0
+          printf '%s\n' \
+            '# HathiTrust-NZ HTRC Analytics Outputs' \
+            '' \
+            'This directory is reserved for HTRC Analytics scripts, workset definitions, aggregate outputs, and reproducibility metadata.' \
+            'Restricted full text and Data Capsule-only source material must not be committed to this public bundle.' \
+            > "$BUILD_DIR/htrc_analytics/README.md"
+          cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/htrc_analytics/collection_manifest.json"
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
+      - name: Upload collection publication artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hathitrust-nz-collection-publication
+          path: ${{ env.BUILD_DIR }}
+          if-no-files-found: error
+
+      - name: Publish manifests to Hugging Face
+        if: ${{ inputs.publish_manifests }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Missing HF_TOKEN secret."
+            exit 1
+          fi
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR" \
+            --repo-id "$INVENTORY_REPO_ID" \
+            --path-in-repo "collection" \
+            --commit-message "Update HathiTrust-NZ collection manifests"
+
+      - name: Create/update Hugging Face collection
+        if: ${{ inputs.publish_hf_collection }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Missing HF_TOKEN secret."
+            exit 1
+          fi
+          ARGS=(--manifest "$BUILD_DIR/collection/collection_manifest.json")
+          if [ -n "$HF_COLLECTION_SLUG" ]; then
+            ARGS+=(--collection-slug "$HF_COLLECTION_SLUG")
+          fi
+          pixi run -e dev python scripts/sync_hf_collection.py "${ARGS[@]}"
+
+      - name: Package child dataset archives
+        if: ${{ inputs.publish_zenodo }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          VERSION="${{ steps.version.outputs.version }}"
+          python -m zipfile -c "dist/hathitrust-nz-inventory-$VERSION.zip" \
+            "$BUILD_DIR/inventory" "$BUILD_DIR/collection" "$BUILD_DIR/reports"
+          python -m zipfile -c "dist/hathitrust-nz-research-fulltext-$VERSION.zip" \
+            "$BUILD_DIR/research_datasets"
+          python -m zipfile -c "dist/hathitrust-nz-htrc-extracted-features-$VERSION.zip" \
+            "$BUILD_DIR/htrc_ef"
+          python -m zipfile -c "dist/hathitrust-nz-htrc-analytics-$VERSION.zip" \
+            "$BUILD_DIR/htrc_analytics"
+
+      - name: Publish child dataset releases to Zenodo
+        if: ${{ inputs.publish_zenodo }}
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+          ZENODO_SANDBOX_TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN_ENV="ZENODO_SANDBOX_TOKEN"
+          PRODUCTION_ARGS=()
+          if [ "${{ inputs.production }}" = "true" ]; then
+            TOKEN_ENV="ZENODO_TOKEN"
+            PRODUCTION_ARGS=(--production)
+          fi
+          if [ -z "${!TOKEN_ENV}" ]; then
+            echo "Missing $TOKEN_ENV secret."
+            exit 1
+          fi
+          VERSION="${{ steps.version.outputs.version }}"
+          for DATASET in \
+            hathitrust-nz-inventory \
+            hathitrust-nz-research-fulltext \
+            hathitrust-nz-htrc-extracted-features \
+            hathitrust-nz-htrc-analytics
+          do
+            pixi run -e dev python scripts/publish_zenodo.py \
+              --archive "dist/$DATASET-$VERSION.zip" \
+              --metadata ".zenodo/$DATASET.json" \
+              --dataset-card "dataset_cards/$DATASET.md" \
+              --token-env "$TOKEN_ENV" \
+              "${PRODUCTION_ARGS[@]}" \
+              --publish \
+              --execute \
+              | tee "dist/$DATASET-zenodo.json"
+          done
+
+      - name: Commit Zenodo DOI writebacks
+        if: ${{ inputs.publish_zenodo }}
+        shell: bash
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- dataset_cards; then
+            echo "No dataset card DOI updates to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dataset_cards
+          git commit -m "docs(zenodo): record HathiTrust-NZ child dataset DOIs [skip ci]"
+          git push origin "HEAD:${DEFAULT_BRANCH}"

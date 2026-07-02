@@ -1,0 +1,38 @@
+{
+  "$schema": "https://zenodo.org/schemas/deposits/records/legacy/record.json",
+  "title": "HathiTrust-NZ Research Dataset Full Text",
+  "description": "Static-host acquisition plans, manifests, checksums, and eligible staged public full-text outputs for HathiTrust Research Dataset material related to HathiTrust-NZ.",
+  "creators": [
+    {
+      "name": "Togo, Edith A.",
+      "affiliation": "Flinders University"
+    }
+  ],
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "upload_type": "dataset",
+  "keywords": [
+    "new-zealand",
+    "hathitrust",
+    "research-datasets",
+    "static-rsync",
+    "digital-humanities"
+  ],
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://huggingface.co/datasets/edithatogo/hathitrust-nz-research-fulltext",
+      "resource_type": "dataset"
+    },
+    {
+      "relation": "isDocumentedBy",
+      "identifier": "https://github.com/edithatogo/hathi-nz",
+      "resource_type": "software"
+    }
+  ],
+  "version": "0.1.0",
+  "notes": "Restricted or Google-constrained HathiTrust Research Dataset full text is not rehosted unless redistribution approval for the exact publication target is documented.",
+  "references": [
+    "HathiTrust Research Datasets. https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/research-datasets/"
+  ]
+}

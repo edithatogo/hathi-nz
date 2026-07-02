@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "generated_at": "2026-07-02T12:48:33.806814+00:00",
+    "source_dataset_name": "HTRC Extracted Features 2.5",
+    "source_url": "https://analytics.hathitrust.org/",
+    "rsync_module": "data.analytics.hathitrust.org::features-2025.04/",
+    "record_count": 3,
+    "limited": true,
+    "license": "CC-BY-4.0",
+    "hf_dataset_repo": "edithatogo/hathitrust-nz-htrc-extracted-features",
+    "acquisition_mode": "github_actions_rsync_or_static_host_staging"
+  },
+  "files": [
+    {
+      "htid": "uc1.32106019841342",
+      "rsync_path": "uc1/30144/uc1.32106019841342.json.bz2"
+    },
+    {
+      "htid": "uc1.32106019841359",
+      "rsync_path": "uc1/30145/uc1.32106019841359.json.bz2"
+    },
+    {
+      "htid": "uc1.32106019841375",
+      "rsync_path": "uc1/30147/uc1.32106019841375.json.bz2"
+    }
+  ]
+}
