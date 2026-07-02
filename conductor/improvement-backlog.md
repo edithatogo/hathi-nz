@@ -21,6 +21,8 @@
 - [ ] Create OSF publication workflow for third publication target
 - [ ] Create Dockerfile for pixi-based reproducible pipeline execution
 - [ ] Verify and commit pixi.lock for dependency reproducibility
+- [ ] Populate `manifests/latest_manifest.json` and `data/` from the current HathiFile dump so the corpus reaches the full 510-volume archive target
+- [ ] Harvest the 510 collection HTIDs from the HathiTrust collection page and feed them into the new HTID allowlist filter so the manifest matches the curated corpus exactly
 
 ## Skills touched by this workspace
 - conductor-implement

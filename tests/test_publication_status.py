@@ -38,6 +38,12 @@ def _hf_response() -> object:
                 "sha": "abc123",
                 "createdAt": "2026-06-14T12:16:55.000Z",
                 "lastModified": "2026-06-15T09:03:08.000Z",
+                "usedStorage": 1000000,
+                "siblings": [
+                    {"rfilename": ".gitattributes"},
+                    {"rfilename": "metadata.parquet"},
+                    {"rfilename": "data/raw/debates/sample.txt"},
+                ],
             }
 
     return Response()
@@ -101,6 +107,9 @@ def test_check_publication_status_reports_not_ready_when_zenodo_missing(
 ## [x] Track: One
 ## [~] Track: Two
 """,
+            check_publication_status_module.MANIFEST_PATH: """\
+{"meta": {"record_count": 0}, "volumes": []}
+""",
             check_publication_status_module.DATASET_CARD_PATH: "For academic citation, use the Zenodo DOI once a public release is published and recorded here.",
         }[path],
     )
@@ -134,6 +143,9 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
         lambda path: {
             check_publication_status_module.TRACKS_PATH: """\
 ## [x] Track: One
+""",
+            check_publication_status_module.MANIFEST_PATH: """\
+{"meta": {"record_count": 510}, "volumes": [{"htid": "uc1.b2889853"}]}
 """,
             check_publication_status_module.DATASET_CARD_PATH: (
                 "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
@@ -180,6 +192,8 @@ def test_strict_mode_allows_publication_ready_even_when_roadmap_is_incomplete(
             "tracks": {"all_complete": False},
             "hugging_face": {"exists": True},
             "zenodo": {"match_count": 0},
+            "manifest": {"record_count": 510},
+            "expected_volumes": 510,
             "dataset_card_doi": {"doi": "10.5281/zenodo.123456"},
             "doi_status": {"resolves": True},
             "roadmap_complete": False,
@@ -205,6 +219,8 @@ def test_main_strict_exits_nonzero_when_not_ready(monkeypatch: pytest.MonkeyPatc
             "tracks": {"all_complete": False},
             "hugging_face": {"exists": True},
             "zenodo": {"match_count": 0},
+            "manifest": {"record_count": 0},
+            "expected_volumes": 510,
             "ready": False,
         },
     )

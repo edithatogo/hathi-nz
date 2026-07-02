@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import io
 import json
 import sys
 from pathlib import Path
+from typing import Self
 
 import pytest
 import requests
@@ -14,9 +16,12 @@ import requests
 from scripts.fetch_hathitrust import (
     _extract_year,
     _extract_year_from_title,
+    _latest_full_hathifile_url,
     _rights_code,
     build_manifest_from_hathifile,
+    build_manifest_from_hathifile_url,
     compute_sha256,
+    enrich_volume_metadata,
     lookup_volume_metadata,
     parse_args,
     parse_hathifile_line,
@@ -32,19 +37,29 @@ def sample_fields() -> list[str]:
         "uc1.b2889853",
         "pd",
         "pd",
-        "NJP",
-        "uc1",
+        "uc1.31175035194995",
         "New Zealand. Parliament. Parliamentary debates.",
-        "Wellington, N.Z. :[s.n.],1886-",
-        "",
-        "",
+        "uc1",
         "",
         "01149942",
-        "v.1 (1886)",
+        "",
+        "",
+        "",
+        "New Zealand. Parliament. Parliamentary debates (Hansard) v.1",
+        "Wellington, 1886",
         "",
         "n",
         "",
         "",
+        "Wellington",
+        "eng",
+        "txt",
+        "NJP",
+        "UC1",
+        "UC1",
+        "Google",
+        "pd",
+        "New Zealand. Parliament.",
     ]
 
 
@@ -60,55 +75,84 @@ def temp_hathifile_txt(tmp_path: Path) -> Path:
         "uc1.b2889853",
         "pd",
         "pd",
-        "NJP",
-        "uc1",
+        "uc1.31175035194995",
         "Parliamentary debates.",
-        "Wellington, 1886",
-        "",
-        "",
+        "uc1",
         "",
         "01149942",
-        "v.1 (1886)",
+        "",
+        "",
+        "",
+        "Parliamentary debates (Hansard) v.1",
+        "Wellington, 1886",
         "",
         "n",
         "",
         "",
+        "Wellington",
+        "eng",
+        "txt",
+        "NJP",
+        "UC1",
+        "UC1",
+        "Google",
+        "pd",
+        "New Zealand. Parliament.",
     ]
     row2 = [
         "uc1.b2889854",
         "pdus",
         "pdus",
-        "NJP",
-        "uc1",
+        "uc1.31175035194996",
         "Parliamentary debates. v.2",
-        "Wellington, 1887",
-        "",
-        "",
+        "uc1",
         "",
         "01149943",
-        "v.2 (1887)",
+        "",
+        "",
+        "",
+        "Parliamentary debates (Hansard) v.2",
+        "Wellington, 1887",
         "",
         "n",
         "",
         "",
+        "Wellington",
+        "eng",
+        "txt",
+        "NJP",
+        "UC1",
+        "UC1",
+        "Google",
+        "pd",
+        "New Zealand. Parliament.",
     ]
     row3 = [
         "mdp.123456",
         "ic",
         "ic",
-        "MIU",
-        "mdp",
+        "mdp.123456",
         "Some other title",
-        "Ann Arbor 1900",
+        "mdp",
+        "",
+        "99999999",
         "",
         "",
         "",
-        "",
-        "",
-        "",
+        "Some other title v.1",
+        "Ann Arbor, 1900",
         "n",
         "",
         "",
+        "Ann Arbor",
+        "eng",
+        "txt",
+        "MIU",
+        "MIU",
+        "MIU",
+        "Google",
+        "ic",
+        "Some author",
     ]
     lines = [header[0], T.join(row1), T.join(row2), T.join(row3)]
     p = tmp_path / "hathifile.txt"
@@ -132,7 +176,7 @@ class TestParseHathifileLine:
         assert record["htid"] == "uc1.b2889853"
         assert record["category"] == "debates"
         assert record["year"] == 1886
-        assert record["volume"] == "v.1 (1886)"
+        assert record["volume"] == "v.1"
         assert record["rights"] == "pd"
         assert record["oclc_num"] == "01149942"
         assert record["source"] == "uc1"
@@ -159,6 +203,15 @@ class TestParseHathifileLine:
         record = parse_hathifile_line(sample_hathifile_line, collection_id="99999999")
         assert record is not None
         assert record["collection_id"] == "99999999"
+
+    def test_filters_nonmatching_collection_code(self, sample_hathifile_line: str) -> None:
+        assert parse_hathifile_line(sample_hathifile_line, collection_code="MIU") is None
+
+    def test_filters_nonmatching_htid_allowlist(self, sample_hathifile_line: str) -> None:
+        assert parse_hathifile_line(
+            sample_hathifile_line,
+            htid_allowlist={"other.id"},
+        ) is None
 
 
 class TestRightsCode:
@@ -232,10 +285,9 @@ class TestComputeSha256:
 class TestBuildManifestFromHathifile:
     def test_build_from_txt(self, temp_hathifile_txt: Path) -> None:
         volumes = build_manifest_from_hathifile(temp_hathifile_txt)
-        assert len(volumes) == 3
+        assert len(volumes) == 2
         assert volumes[0]["htid"] == "uc1.b2889853"
         assert volumes[1]["htid"] == "uc1.b2889854"
-        assert volumes[2]["htid"] == "mdp.123456"
 
     def test_build_from_txt_missing_year_filled(self, tmp_path: Path) -> None:
         row = T.join(
@@ -243,19 +295,29 @@ class TestBuildManifestFromHathifile:
                 "uc1.b2889855",
                 "pd",
                 "pd",
-                "NJP",
-                "uc1",
+                "uc1.31175035194997",
                 "Debates. 1888",
+                "uc1",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "Debates (Hansard) v.3",
                 "No year in imprint",
-                "",
-                "",
-                "",
-                "",
-                "v.3",
                 "",
                 "n",
                 "",
                 "",
+                "Wellington",
+                "eng",
+                "txt",
+                "NJP",
+                "UC1",
+                "UC1",
+                "Google",
+                "pd",
+                "New Zealand. Parliament.",
             ]
         )
         p = tmp_path / "hathi_no_imprint_year.txt"
@@ -266,7 +328,15 @@ class TestBuildManifestFromHathifile:
 
     def test_build_from_gz(self, temp_hathifile_gz: Path) -> None:
         volumes = build_manifest_from_hathifile(temp_hathifile_gz)
-        assert len(volumes) == 3
+        assert len(volumes) == 2
+
+    def test_build_from_txt_with_allowlist(self, temp_hathifile_txt: Path) -> None:
+        volumes = build_manifest_from_hathifile(
+            temp_hathifile_txt,
+            htid_allowlist={"uc1.b2889854"},
+        )
+        assert len(volumes) == 1
+        assert volumes[0]["htid"] == "uc1.b2889854"
 
     def test_empty_hathifile(self, tmp_path: Path) -> None:
         p = tmp_path / "empty.txt"
@@ -291,6 +361,8 @@ class TestWriteManifest:
                 "volume": "v.1",
                 "title": "Parliamentary debates.",
                 "rights": "pd",
+                "collection_id": "71329709",
+                "source": "uc1",
             }
         ]
         out = tmp_path / "manifest.json"
@@ -321,6 +393,8 @@ class TestWriteManifest:
                 "volume": "",
                 "title": "Test",
                 "rights": "pd",
+                "collection_id": "71329709",
+                "source": "mdp",
             }
         ]
         write_manifest(volumes, nested)
@@ -419,7 +493,24 @@ class TestParseArgs:
         assert args.hathifile == Path("some_file.txt")
         assert args.output == Path("custom.json")
         assert args.collection_id == "71329709"
+        assert args.collection_code == "NJP"
         assert args.category == "debates"
+
+    def test_parse_hathifile_allowlist(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "prog",
+                "hathifile",
+                "--hathifile",
+                "some_file.txt",
+                "--htid-allowlist",
+                "allow.txt",
+            ],
+        )
+        args = parse_args()
+        assert args.htid_allowlist == Path("allow.txt")
 
     def test_parse_api_lookup_command(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(sys, "argv", ["prog", "api-lookup", "uc1.b2889853"])
@@ -448,12 +539,15 @@ class TestParseArgs:
                 "data.txt",
                 "--collection-id",
                 "12345",
+                "--collection-code",
+                "MIU",
                 "--category",
                 "hansard",
             ],
         )
         args = parse_args()
         assert args.collection_id == "12345"
+        assert args.collection_code == "MIU"
         assert args.category == "hansard"
 
 
@@ -468,8 +562,8 @@ class TestRoundTrip:
         loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
         assert "meta" in loaded
         assert "volumes" in loaded
-        assert loaded["meta"]["record_count"] == 3
-        assert len(loaded["volumes"]) == 3
+        assert loaded["meta"]["record_count"] == 2
+        assert len(loaded["volumes"]) == 2
 
         for vol in loaded["volumes"]:
             assert "htid" in vol
@@ -478,3 +572,233 @@ class TestRoundTrip:
             assert "volume" in vol
             assert "title" in vol
             assert "rights" in vol
+
+
+class TestRemoteHathifile:
+    def test_latest_full_hathifile_url_picks_full_file(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        payload = [
+            {"filename": "hathi_upd_20260701.txt.gz", "full": False, "url": "https://example.com/upd"},
+            {"filename": "hathi_full_20260701.txt.gz", "full": True, "url": "https://example.com/full"},
+        ]
+
+        class Response:
+            @staticmethod
+            def raise_for_status() -> None:
+                return None
+
+            @staticmethod
+            def json() -> list[dict[str, object]]:
+                return payload
+
+        monkeypatch.setattr("requests.get", lambda *a, **kw: Response())
+        assert _latest_full_hathifile_url() == "https://example.com/full"
+
+    def test_build_manifest_from_hathifile_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        rows = "\n".join(
+            [
+                T.join(
+                    [
+                        "uc1.b2889853",
+                        "pd",
+                        "pd",
+                        "uc1.31175035194995",
+                        "Parliamentary debates.",
+                        "uc1",
+                        "",
+                        "01149942",
+                        "",
+                        "",
+                        "",
+                        "Parliamentary debates (Hansard) v.1",
+                        "Wellington, 1886",
+                        "",
+                        "n",
+                        "",
+                        "",
+                        "Wellington",
+                        "eng",
+                        "txt",
+                        "NJP",
+                        "UC1",
+                        "UC1",
+                        "Google",
+                        "pd",
+                        "New Zealand. Parliament.",
+                    ]
+                ),
+                T.join(
+                    [
+                        "mdp.123456",
+                        "ic",
+                        "ic",
+                        "mdp.123456",
+                        "Other",
+                        "mdp",
+                        "",
+                        "99999999",
+                        "",
+                        "",
+                        "",
+                        "Other",
+                        "Ann Arbor, 1900",
+                        "",
+                        "n",
+                        "",
+                        "",
+                        "Ann Arbor",
+                        "eng",
+                        "txt",
+                        "MIU",
+                        "MIU",
+                        "MIU",
+                        "Google",
+                        "ic",
+                        "Some author",
+                    ]
+                ),
+            ]
+        ).encode("utf-8")
+        compressed = io.BytesIO()
+        with gzip.GzipFile(fileobj=compressed, mode="wb") as gz:
+            gz.write(rows)
+        payload = compressed.getvalue()
+
+        class Response:
+            ok = True
+            status_code = 200
+            raw = io.BytesIO(payload)
+
+            def __enter__(self) -> Self:
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            @staticmethod
+            def raise_for_status() -> None:
+                return None
+
+        def fake_get(*args: object, **kwargs: object) -> Response:  # noqa: ARG001
+            return Response()
+
+        monkeypatch.setattr("requests.get", fake_get)
+        volumes = build_manifest_from_hathifile_url("https://example.com/full.gz")
+        assert len(volumes) == 1
+        assert volumes[0]["htid"] == "uc1.b2889853"
+
+    def test_build_manifest_from_hathifile_url_with_api_enrichment(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        rows = "\n".join(
+            [
+                T.join(
+                    [
+                        "uc1.b2889853",
+                        "allow",
+                        "cc-zero",
+                        "007119315",
+                        "1854-55",
+                        "UC",
+                        "b15154233",
+                        "173322878,173355174,248552646,4826506",
+                        "",
+                        "0111-5642",
+                        "",
+                        "Parliamentary debates (Hansard)",
+                        "by authority, Government Printer",
+                        "con",
+                        "2017-03-20 14:46:17",
+                        "0",
+                        "1855",
+                        "nz ",
+                        "eng",
+                        "SE",
+                        "NJP",
+                        "universityofcalifornia",
+                        "universityofcalifornia",
+                        "google",
+                        "google",
+                        "New Zealand. Parliament",
+                    ]
+                )
+            ]
+        ).encode("utf-8")
+        compressed = io.BytesIO()
+        with gzip.GzipFile(fileobj=compressed, mode="wb") as gz:
+            gz.write(rows)
+        payload = compressed.getvalue()
+
+        class Response:
+            ok = True
+            status_code = 200
+            raw = io.BytesIO(payload)
+
+            def __enter__(self) -> Self:
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            @staticmethod
+            def raise_for_status() -> None:
+                return None
+
+        def fake_get(url: str, timeout: int, stream: bool = False):  # type: ignore[no-untyped-def]
+            if stream:
+                return Response()
+
+            class ApiResponse:
+                @staticmethod
+                def raise_for_status() -> None:
+                    return None
+
+                @staticmethod
+                def json() -> dict[str, object]:
+                    return {
+                        "htid": "uc1.b2889853",
+                        "title": "Parliamentary debates (Hansard)",
+                        "source": "UC",
+                        "year": 1855,
+                        "rights": "allow",
+                        "volume": "v.1",
+                    }
+
+            return ApiResponse()
+
+        monkeypatch.setattr("requests.get", fake_get)
+        volumes = build_manifest_from_hathifile_url(
+            "https://example.com/full.gz",
+            enrich_api=True,
+        )
+        assert len(volumes) == 1
+        assert volumes[0]["title"] == "Parliamentary debates (Hansard)"
+        assert volumes[0]["volume"] == "v.1"
+        assert volumes[0]["source"] == "UC"
+
+    def test_enrich_volume_metadata(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def fake_get(*args: object, **kwargs: object):  # type: ignore[no-untyped-def]
+            class ApiResponse:
+                @staticmethod
+                def raise_for_status() -> None:
+                    return None
+
+                @staticmethod
+                def json() -> dict[str, object]:
+                    return {
+                        "htid": "uc1.b2889853",
+                        "title": "Parliamentary debates (Hansard)",
+                        "source": "UC",
+                        "year": 1855,
+                        "rights": "allow",
+                        "volume": "v.1",
+                    }
+
+            return ApiResponse()
+
+        monkeypatch.setattr("requests.get", fake_get)
+        record = {"htid": "uc1.b2889853", "title": "X", "year": None, "rights": "pd"}
+        enriched = enrich_volume_metadata(record)
+        assert enriched["title"] == "Parliamentary debates (Hansard)"
+        assert enriched["year"] == 1855
+        assert enriched["source"] == "UC"

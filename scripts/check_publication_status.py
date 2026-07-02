@@ -19,6 +19,7 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 TRACKS_PATH = ROOT / "conductor" / "tracks.md"
 DATASET_CARD_PATH = ROOT / "DATASET_CARD.md"
+MANIFEST_PATH = ROOT / "manifests" / "latest_manifest.json"
 
 get_settings: Callable[[], Any] | None = None
 try:
@@ -33,6 +34,7 @@ DOI_LINE = re.compile(
     r"For academic citation, use the Zenodo DOI \[(?P<doi>[^\]]+)\]\((?P<url>https://doi\.org/[^\)]+)\)\."
 )
 DOI_FALLBACK = re.compile(r"10\.5281/zenodo\.\d+")
+EXPECTED_VOLUMES_LINE = re.compile(r"\*\*Expected volumes\*\*\s*\|\s*(?P<count>\d+)")
 
 
 def _text(path: Path) -> str:
@@ -77,6 +79,33 @@ def _dataset_card_doi(text: str) -> dict[str, str] | None:
     return None
 
 
+def _dataset_card_expected_volumes(text: str) -> int | None:
+    match = EXPECTED_VOLUMES_LINE.search(text)
+    if match:
+        return int(match.group("count"))
+    return None
+
+
+def _manifest_summary(text: str) -> dict[str, Any]:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return {"exists": False, "error": str(exc), "record_count": 0}
+    meta = data.get("meta") if isinstance(data, dict) else {}
+    volumes = data.get("volumes") if isinstance(data, dict) else []
+    record_count = 0
+    if isinstance(meta, dict) and isinstance(meta.get("record_count"), int):
+        record_count = meta["record_count"]
+    elif isinstance(volumes, list):
+        record_count = len(volumes)
+    return {
+        "exists": True,
+        "record_count": record_count,
+        "generated_at": meta.get("generated_at") if isinstance(meta, dict) else None,
+        "source": meta.get("source") if isinstance(meta, dict) else None,
+    }
+
+
 def _doi_resolves(doi_url: str) -> dict[str, Any]:
     try:
         response = requests.get(doi_url, timeout=30, allow_redirects=True)
@@ -112,6 +141,16 @@ def _check_hugging_face(repo_id: str) -> dict[str, Any]:
             payload["sha"] = data.get("sha")
             payload["created_at"] = data.get("createdAt")
             payload["last_modified"] = data.get("lastModified")
+            payload["used_storage"] = data.get("usedStorage")
+            siblings = data.get("siblings")
+            if isinstance(siblings, list):
+                payload["sibling_count"] = len(siblings)
+                payload["data_file_count"] = sum(
+                    1
+                    for sibling in siblings
+                    if isinstance(sibling, dict)
+                    and str(sibling.get("rfilename") or "").strip() != ".gitattributes"
+                )
     return payload
 
 
@@ -152,19 +191,29 @@ def check_publication_status() -> dict[str, Any]:
     hugging_face = _check_hugging_face(_hf_repo_id())
     zenodo = _check_zenodo()
     dataset_card = _text(DATASET_CARD_PATH)
+    manifest = _manifest_summary(_text(MANIFEST_PATH)) if MANIFEST_PATH.exists() else {"exists": False, "record_count": 0}
+    expected_volumes = _dataset_card_expected_volumes(dataset_card)
     card_doi = _dataset_card_doi(dataset_card)
     doi_status = _doi_resolves(card_doi["url"]) if card_doi is not None else None
+    hf_has_files = hugging_face.get("data_file_count", 0) > 0
+    manifest_complete = bool(manifest.get("record_count", 0))
+    if expected_volumes is not None:
+        manifest_complete = manifest_complete and manifest.get("record_count") == expected_volumes
     publication_ready = bool(
         hugging_face.get("exists")
+        and hf_has_files
         and card_doi is not None
         and doi_status is not None
         and doi_status.get("resolves")
+        and manifest_complete
     )
     ready = publication_ready
     return {
         "tracks": tracks,
         "hugging_face": hugging_face,
         "zenodo": zenodo,
+        "manifest": manifest,
+        "expected_volumes": expected_volumes,
         "dataset_card_doi": card_doi,
         "doi_status": doi_status,
         "roadmap_complete": tracks["all_complete"],

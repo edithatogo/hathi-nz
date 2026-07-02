@@ -9,7 +9,9 @@ Supports:
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
+import io
 import json
 import re
 import sys
@@ -52,24 +54,71 @@ def _default_collection_id() -> str:
 
 # Default HathiTrust collection for NZ Parliamentary Debates
 DEFAULT_COLLECTION_ID = _default_collection_id()
+DEFAULT_COLLECTION_CODE = "NJP"
 
 # Base URLs
 HATHI_DATA_API = "https://share.hathitrust.org/api/volume"
 HATHIFILE_BASE = "https://www.hathitrust.org/hathifiles"
+HATHIFILE_LIST_URL = "https://www.hathitrust.org/files/hathifiles/hathi_file_list.json"
 
 # Volume page URL pattern for Wayback / Hathi listing pages
 VOLUME_PAGE_PATTERN = re.compile(r"/volume/(\d+)\?page=(\d+)")
 
-# HathiFile column indices (hathifile_2026*.txt.gz format)
-# Standard hathifile columns: 0=htid, 1=access, 2=rights, 3=collection_code,
-# 4=source, 5=title, 6=imprint, 7=isbn, 8=issn, 9=lccn, 10=oclc_num,
-# 11=enumcron, 12=description, 13=govdoc, 14=rights_determination_reason
-# Updated: actual positions depend on hathifile schema version
+HATHIFILE_FIELDS = (
+    "htid",
+    "access",
+    "rights",
+    "ht_bib_key",
+    "description",
+    "source",
+    "source_bib_num",
+    "oclc_num",
+    "isbn",
+    "issn",
+    "lccn",
+    "title",
+    "imprint",
+    "rights_reason_code",
+    "rights_timestamp",
+    "us_gov_doc_flag",
+    "rights_date_used",
+    "pub_place",
+    "lang",
+    "bib_fmt",
+    "collection_code",
+    "content_provider_code",
+    "responsible_entity_code",
+    "digitization_agent_code",
+    "access_profile_code",
+    "author",
+)
+
+
+def _field(parts: list[str], name: str, default: str = "") -> str:
+    try:
+        idx = HATHIFILE_FIELDS.index(name)
+    except ValueError:
+        return default
+    if idx >= len(parts):
+        return default
+    return parts[idx]
+
+
+def _normalize_volume(value: str) -> str:
+    value = value.strip()
+    if not value:
+        return ""
+    match = re.search(r"\b(v\.?\s*\d+[A-Za-z0-9().,-]*)\b", value, flags=re.IGNORECASE)
+    if match:
+        return re.sub(r"\s+", " ", match.group(1)).strip()
+    return value
 
 
 def parse_hathifile_line(
     line: str,
     collection_id: str = DEFAULT_COLLECTION_ID,
+    collection_code: str = DEFAULT_COLLECTION_CODE,
+    htid_allowlist: set[str] | None = None,
     category: str = "debates",
 ) -> dict[str, Any] | None:
     """Parse a single HathiFile tab-delimited line into a volume record.
@@ -77,6 +126,8 @@ def parse_hathifile_line(
     Args:
         line: A tab-delimited line from a hathifile.
         collection_id: Target collection ID to filter by.
+        collection_code: HathiFile collection code to filter by.
+        htid_allowlist: Optional set of HTIDs to keep.
         category: Default content category.
 
     Returns:
@@ -89,29 +140,43 @@ def parse_hathifile_line(
         return None
 
     parts = line.split("	")
-    if len(parts) < 14:
+    if len(parts) < 16:
+        return None
+    if parts[0] == "htid":
+        return None
+    if len(parts) >= len(HATHIFILE_FIELDS):
+        collection_matches = _field(parts, "collection_code") == collection_code
+    elif len(parts) >= 4:
+        collection_matches = parts[3] == collection_code
+    else:
+        collection_matches = False
+    if not collection_matches:
         return None
 
     htid = parts[0]
+    if htid_allowlist is not None and htid not in htid_allowlist:
+        return None
     rights = _rights_code(parts[2])
+    title = _field(parts, "title")
+    description = _field(parts, "description")
+    imprint = _field(parts, "imprint")
 
-    # HathiFile does not directly embed collection_id in the basic dump;
-    # we rely on the caller to filter. We record it but don't filter here.
     record: dict[str, Any] = {
         "htid": htid,
         "category": category,
-        "year": _extract_year(parts[6] if len(parts) > 6 else ""),
-        "volume": parts[11] if len(parts) > 11 else "",
-        "title": parts[5] if len(parts) > 5 else "",
-        "oclc_num": parts[10] if len(parts) > 10 and parts[10] else "",
+        "year": _extract_year(imprint) or _extract_year_from_title(title) or _extract_year_from_title(description),
+        "volume": _normalize_volume(title) or _normalize_volume(description) or _normalize_volume(imprint) or title,
+        "title": title or description,
+        "oclc_num": _field(parts, "oclc_num"),
         "rights": rights,
-        "source": parts[4] if len(parts) > 4 else "",
-        "enumcron": parts[11] if len(parts) > 11 else "",
+        "source": _field(parts, "source"),
         "collection_id": collection_id,
-        "isbn": parts[7] if len(parts) > 7 else "",
-        "issn": parts[8] if len(parts) > 8 else "",
-        "lccn": parts[9] if len(parts) > 9 else "",
+        "isbn": _field(parts, "isbn"),
+        "issn": _field(parts, "issn"),
+        "lccn": _field(parts, "lccn"),
     }
+    if not record["volume"]:
+        record["volume"] = record["title"]
     return record
 
 
@@ -149,6 +214,89 @@ def _extract_year_from_title(title: str) -> int | None:
     return None
 
 
+def _latest_full_hathifile_url() -> str:
+    response = requests.get(HATHIFILE_LIST_URL, timeout=30)
+    response.raise_for_status()
+    files = response.json()
+    if not isinstance(files, list):
+        msg = "Unexpected Hathifile list payload"
+        raise ValueError(msg)
+
+    candidates = [
+        entry
+        for entry in files
+        if isinstance(entry, dict)
+        and entry.get("full") is True
+        and isinstance(entry.get("url"), str)
+    ]
+    if not candidates:
+        msg = "No full Hathifile entry found"
+        raise ValueError(msg)
+
+    latest = max(candidates, key=lambda entry: str(entry.get("filename") or entry.get("url")))
+    return str(latest["url"])
+
+
+def _download_hathifile(url: str, output_path: Path) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    logger.info("Downloading hathifile {} -> {}", url, output_path)
+    resp = requests.get(url, timeout=300, stream=True)
+    resp.raise_for_status()
+    with output_path.open("wb") as fh:
+        for chunk in resp.iter_content(chunk_size=1024 * 1024):
+            if chunk:
+                fh.write(chunk)
+    return output_path
+
+
+def _load_htid_allowlist(path: Path) -> set[str]:
+    allowlist: set[str] = set()
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if line and not line.startswith("#"):
+            allowlist.add(line)
+    return allowlist
+
+
+def _iter_remote_hathifile_lines(url: str):
+    with requests.get(url, timeout=300, stream=True) as resp:
+        resp.raise_for_status()
+        resp.raw.decode_content = False
+        with gzip.GzipFile(fileobj=resp.raw) as gz, io.TextIOWrapper(
+            gz,
+            encoding="utf-8",
+            errors="replace",
+        ) as fh:
+            yield from fh
+
+
+def build_manifest_from_hathifile_url(
+    url: str,
+    collection_id: str = DEFAULT_COLLECTION_ID,
+    collection_code: str = DEFAULT_COLLECTION_CODE,
+    htid_allowlist: set[str] | None = None,
+    enrich_api: bool = False,
+    category: str = "debates",
+) -> list[dict[str, Any]]:
+    """Build a volume manifest directly from a remote HathiFile URL."""
+    volumes: list[dict[str, Any]] = []
+    for line in _iter_remote_hathifile_lines(url):
+        record = parse_hathifile_line(
+            line,
+            collection_id,
+            collection_code,
+            htid_allowlist,
+            category,
+        )
+        if record:
+            if record["year"] is None:
+                record["year"] = _extract_year_from_title(record["title"])
+            if enrich_api:
+                record = enrich_volume_metadata(record)
+            volumes.append(record)
+    return volumes
+
+
 @retry_on_transient_http_errors
 def _lookup_volume_metadata(htid: str) -> dict[str, Any]:
     url = f"{HATHI_DATA_API}/{htid}/json"
@@ -174,6 +322,35 @@ def lookup_volume_metadata(htid: str) -> dict[str, Any] | None:
         return None
 
 
+def _merge_api_metadata(record: dict[str, Any], api_data: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(record)
+    for key in ("title", "source", "collection_id", "isbn", "issn", "lccn", "oclc_num"):
+        value = api_data.get(key)
+        if isinstance(value, str) and value.strip():
+            merged[key] = value
+    year = api_data.get("year")
+    if merged.get("year") is None and isinstance(year, int):
+        merged["year"] = year
+    rights = api_data.get("rights")
+    if isinstance(rights, str) and rights.strip():
+        merged["rights"] = _rights_code(rights)
+    volume = api_data.get("volume")
+    if isinstance(volume, str) and volume.strip():
+        merged["volume"] = volume
+    return merged
+
+
+def enrich_volume_metadata(record: dict[str, Any]) -> dict[str, Any]:
+    """Use the HathiTrust volume API to enrich a parsed record."""
+    htid = str(record.get("htid") or "")
+    if not htid:
+        return record
+    api_data = lookup_volume_metadata(htid)
+    if not api_data:
+        return record
+    return _merge_api_metadata(record, api_data)
+
+
 def compute_sha256(file_path: Path) -> str | None:
     """Compute SHA-256 digest of a file.
 
@@ -196,6 +373,9 @@ def compute_sha256(file_path: Path) -> str | None:
 def build_manifest_from_hathifile(
     hathifile_path: Path,
     collection_id: str = DEFAULT_COLLECTION_ID,
+    collection_code: str = DEFAULT_COLLECTION_CODE,
+    htid_allowlist: set[str] | None = None,
+    enrich_api: bool = False,
     category: str = "debates",
 ) -> list[dict[str, Any]]:
     """Build a volume manifest from a local HathiFile dump.
@@ -203,6 +383,9 @@ def build_manifest_from_hathifile(
     Args:
         hathifile_path: Path to a .txt or .txt.gz hathifile.
         collection_id: Filter to this collection.
+        collection_code: HathiFile collection code filter.
+        htid_allowlist: Optional set of HTIDs to keep.
+        enrich_api: Enrich matching rows using the HathiTrust Data API.
         category: Default content category.
 
     Returns:
@@ -219,13 +402,27 @@ def build_manifest_from_hathifile(
     with open_func(hathifile_path, mode, encoding="utf-8", errors="replace") as fh:  # type: ignore[operator]
         for line in fh:  # type: ignore[assignment]
             if isinstance(line, str):
-                record = parse_hathifile_line(line, collection_id, category)
+                record = parse_hathifile_line(
+                    line,
+                    collection_id,
+                    collection_code,
+                    htid_allowlist,
+                    category,
+                )
             else:
-                record = parse_hathifile_line(line.decode("utf-8"), collection_id, category)
+                record = parse_hathifile_line(
+                    line.decode("utf-8"),
+                    collection_id,
+                    collection_code,
+                    htid_allowlist,
+                    category,
+                )
             if record:
                 # Fill missing year from title if needed
                 if record["year"] is None:
                     record["year"] = _extract_year_from_title(record["title"])
+                if enrich_api:
+                    record = enrich_volume_metadata(record)
                 volumes.append(record)
 
     return volumes
@@ -302,6 +499,17 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="HathiTrust collection ID filter",
     )
     hf.add_argument(
+        "--collection-code",
+        default=DEFAULT_COLLECTION_CODE,
+        help="HathiFile collection code filter",
+    )
+    hf.add_argument(
+        "--htid-allowlist",
+        type=Path,
+        default=None,
+        help="Optional text file with one HTID per line to keep.",
+    )
+    hf.add_argument(
         "--category",
         default="debates",
         help="Default content category for records",
@@ -314,6 +522,54 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     api.add_argument("htid", help="HathiTrust volume ID (e.g. uc1.b2889853)")
 
+    remote = sub.add_parser(
+        "remote-hathifile",
+        help="Download the latest Hathifile and build the manifest from it.",
+    )
+    remote.add_argument(
+        "--url",
+        default="",
+        help="Specific Hathifile URL to use. Defaults to the latest full file.",
+    )
+    remote.add_argument(
+        "--download-to",
+        type=Path,
+        default=Path("data/raw/hathifiles/latest_hathifile.txt.gz"),
+        help="Optional local cache path for the downloaded Hathifile.",
+    )
+    remote.add_argument(
+        "--output",
+        type=Path,
+        default=Path("manifests/latest_manifest.json"),
+        help="Output manifest path",
+    )
+    remote.add_argument(
+        "--collection-id",
+        default=DEFAULT_COLLECTION_ID,
+        help="HathiTrust collection ID filter",
+    )
+    remote.add_argument(
+        "--collection-code",
+        default=DEFAULT_COLLECTION_CODE,
+        help="HathiFile collection code filter",
+    )
+    remote.add_argument(
+        "--htid-allowlist",
+        type=Path,
+        default=None,
+        help="Optional text file with one HTID per line to keep.",
+    )
+    remote.add_argument(
+        "--category",
+        default="debates",
+        help="Default content category for records",
+    )
+    remote.add_argument(
+        "--enrich-api",
+        action="store_true",
+        help="Enrich manifest rows via the HathiTrust volume API.",
+    )
+
     return parser.parse_args(args)
 
 
@@ -324,14 +580,18 @@ def main() -> int:
 
     if args.command == "hathifile":
         logger.info(
-            "Parsing hathifile: {} (collection={}, category={})",
+            "Parsing hathifile: {} (collection={}, collection_code={}, category={})",
             args.hathifile,
             args.collection_id,
+            args.collection_code,
             args.category,
         )
+        allowlist = _load_htid_allowlist(args.htid_allowlist) if args.htid_allowlist else None
         volumes = build_manifest_from_hathifile(
             hathifile_path=args.hathifile,
             collection_id=args.collection_id,
+            collection_code=args.collection_code,
+            htid_allowlist=allowlist,
             category=args.category,
         )
         manifest = write_manifest(volumes, args.output)
@@ -345,6 +605,39 @@ def main() -> int:
         else:
             print(f"Volume not found: {args.htid}")
             return 1
+
+    if args.command == "remote-hathifile":
+        url = args.url or _latest_full_hathifile_url()
+        logger.info(
+            "Parsing remote hathifile: {} (collection={}, collection_code={}, category={})",
+            url,
+            args.collection_id,
+            args.collection_code,
+            args.category,
+        )
+        allowlist = _load_htid_allowlist(args.htid_allowlist) if args.htid_allowlist else None
+        if args.download_to:
+            _download_hathifile(url, args.download_to)
+            volumes = build_manifest_from_hathifile(
+                args.download_to,
+                collection_id=args.collection_id,
+                collection_code=args.collection_code,
+                htid_allowlist=allowlist,
+                enrich_api=args.enrich_api,
+                category=args.category,
+            )
+        else:
+            volumes = build_manifest_from_hathifile_url(
+                url,
+                collection_id=args.collection_id,
+                collection_code=args.collection_code,
+                htid_allowlist=allowlist,
+                enrich_api=args.enrich_api,
+                category=args.category,
+            )
+        manifest = write_manifest(volumes, args.output)
+        print(json.dumps(manifest["meta"], indent=2))
+        return 0
 
     return 1
 

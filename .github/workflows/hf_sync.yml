@@ -40,36 +40,50 @@ jobs:
           use_oidc: true
           fail_ci_if_error: true
 
-      - name: Prepare catalog manifest
+      - name: Set runner workspace paths
+        shell: bash
         run: |
-          mkdir -p manifests
-          if [ ! -f manifests/latest_manifest.json ]; then
-            python -c "import json, pathlib; pathlib.Path('manifests/latest_manifest.json').write_text(json.dumps({'meta': {'generated_at': None, 'source': 'HathiTrust Collection ID 71329709', 'version': '0.1.0', 'record_count': 0, 'schema': 'manifests/schema.json'}, 'volumes': []}, indent=2), encoding='utf-8')"
-          fi
+          set -euo pipefail
+          export HATHI_ROOT="$RUNNER_TEMP/hathi-nz"
+          mkdir -p "$HATHI_ROOT/manifests" "$HATHI_ROOT/raw" "$HATHI_ROOT/processed" "$HATHI_ROOT/state"
+          {
+            echo "HATHI_ROOT=$HATHI_ROOT"
+            echo "MANIFEST_PATH=$HATHI_ROOT/manifests/latest_manifest.json"
+            echo "DOWNLOAD_DIR=$HATHI_ROOT/raw"
+            echo "STAGE_DIR=$HATHI_ROOT/processed"
+            echo "STATE_DIR=$HATHI_ROOT/state"
+          } >> "$GITHUB_ENV"
+
+      - name: Fetch catalog manifest in GitHub Actions
+        run: |
+          pixi run -e dev python scripts/fetch_hathitrust.py remote-hathifile \
+            --output "$MANIFEST_PATH" \
+            --download-to "$DOWNLOAD_DIR/latest_hathifile.txt.gz" \
+            --enrich-api
 
       - name: Stage datasets
         run: |
-          pixi run python scripts/stage_hf_dataset.py \
-            --manifest manifests/latest_manifest.json \
-            --download-dir data/raw \
-            --stage-dir data/processed \
-            --state-dir data/_state
+          pixi run -e dev python scripts/stage_hf_dataset.py \
+            --manifest "$MANIFEST_PATH" \
+            --download-dir "$DOWNLOAD_DIR" \
+            --stage-dir "$STAGE_DIR" \
+            --state-dir "$STATE_DIR"
 
       - name: Validate catalog and staged data
         run: |
-          pixi run python scripts/validate_catalog.py \
-            --manifest manifests/latest_manifest.json \
-            --stage-dir data/processed \
+          pixi run -e dev python scripts/validate_catalog.py \
+            --manifest "$MANIFEST_PATH" \
+            --stage-dir "$STAGE_DIR" \
             --schema manifests/schema.json \
-            --report data/_state/validation_report.json \
+            --report "$STATE_DIR/validation_report.json" \
             --fail-on-warning
 
       - name: Upload to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          pixi run python scripts/upload_hf_dataset.py \
-            --stage-dir data/processed \
+          pixi run -e dev python scripts/upload_hf_dataset.py \
+            --stage-dir "$STAGE_DIR" \
             --repo-id edithatogo/corpus-nz-hathi \
-            --state-dir data/_state \
+            --state-dir "$STATE_DIR" \
             --commit-message "Auto-sync: corpus-nz-hathi update"
