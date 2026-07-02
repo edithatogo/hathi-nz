@@ -36,6 +36,15 @@ from scripts.retry_utils import retry_on_transient_http_errors
 
 HATHI_ZIP_URL = "https://babel.hathitrust.org/cgi/zip"
 HATHI_META_URL = "https://share.hathitrust.org/api/volume"
+HATHI_REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/126.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json,text/plain,*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 try:
     from _version import get_version
@@ -107,7 +116,7 @@ def _download_volume(
 
     url = f"{HATHI_ZIP_URL}?id={htid}"
     logger.info("Downloading {} from {}", htid, url)
-    resp = requests.get(url, timeout=300, stream=True)
+    resp = requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS)
     resp.raise_for_status()
 
     with zip_path.open("wb") as f:
