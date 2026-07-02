@@ -60,6 +60,15 @@ DEFAULT_COLLECTION_CODE = "NJP"
 HATHI_DATA_API = "https://share.hathitrust.org/api/volume"
 HATHIFILE_BASE = "https://www.hathitrust.org/hathifiles"
 HATHIFILE_LIST_URL = "https://www.hathitrust.org/files/hathifiles/hathi_file_list.json"
+HATHI_REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/126.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json,text/plain,*/*",
+    "Accept-Language": "en-US,en;q=0.9",
+}
 
 # Volume page URL pattern for Wayback / Hathi listing pages
 VOLUME_PAGE_PATTERN = re.compile(r"/volume/(\d+)\?page=(\d+)")
@@ -215,7 +224,7 @@ def _extract_year_from_title(title: str) -> int | None:
 
 
 def _latest_full_hathifile_url() -> str:
-    response = requests.get(HATHIFILE_LIST_URL, timeout=30)
+    response = requests.get(HATHIFILE_LIST_URL, timeout=30, headers=HATHI_REQUEST_HEADERS)
     response.raise_for_status()
     files = response.json()
     if not isinstance(files, list):
@@ -240,7 +249,7 @@ def _latest_full_hathifile_url() -> str:
 def _download_hathifile(url: str, output_path: Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     logger.info("Downloading hathifile {} -> {}", url, output_path)
-    resp = requests.get(url, timeout=300, stream=True)
+    resp = requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS)
     resp.raise_for_status()
     with output_path.open("wb") as fh:
         for chunk in resp.iter_content(chunk_size=1024 * 1024):
@@ -259,7 +268,7 @@ def _load_htid_allowlist(path: Path) -> set[str]:
 
 
 def _iter_remote_hathifile_lines(url: str):
-    with requests.get(url, timeout=300, stream=True) as resp:
+    with requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS) as resp:
         resp.raise_for_status()
         resp.raw.decode_content = False
         with gzip.GzipFile(fileobj=resp.raw) as gz, io.TextIOWrapper(
@@ -300,7 +309,7 @@ def build_manifest_from_hathifile_url(
 @retry_on_transient_http_errors
 def _lookup_volume_metadata(htid: str) -> dict[str, Any]:
     url = f"{HATHI_DATA_API}/{htid}/json"
-    resp = requests.get(url, timeout=30)
+    resp = requests.get(url, timeout=30, headers=HATHI_REQUEST_HEADERS)
     resp.raise_for_status()
     return resp.json()
 

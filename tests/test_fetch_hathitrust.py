@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import gzip
 import argparse
+import gzip
 import hashlib
 import io
 import json
@@ -746,7 +746,12 @@ class TestRemoteHathifile:
             def raise_for_status() -> None:
                 return None
 
-        def fake_get(url: str, timeout: int, stream: bool = False):  # type: ignore[no-untyped-def]
+        def fake_get(
+            url: str,
+            timeout: int,
+            stream: bool = False,
+            **kwargs: object,
+        ):  # type: ignore[no-untyped-def]
             if stream:
                 return Response()
 
