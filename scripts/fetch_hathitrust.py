@@ -9,6 +9,7 @@ Supports:
 from __future__ import annotations
 
 import argparse
+import csv
 import gzip
 import hashlib
 import io
@@ -58,6 +59,7 @@ DEFAULT_COLLECTION_CODE = "NJP"
 
 # Base URLs
 HATHI_DATA_API = "https://share.hathitrust.org/api/volume"
+HATHI_COLLECTION_EXPORT_URL = "https://babel.hathitrust.org/shcgi/mb"
 HATHIFILE_BASE = "https://www.hathitrust.org/hathifiles"
 HATHIFILE_LIST_URL = "https://www.hathitrust.org/files/hathifiles/hathi_file_list.json"
 HATHI_REQUEST_HEADERS = {
@@ -267,6 +269,28 @@ def _load_htid_allowlist(path: Path) -> set[str]:
     return allowlist
 
 
+def _download_collection_htids(collection_id: str) -> list[str]:
+    """Download HTIDs for a HathiTrust collection from the collection builder export."""
+    logger.info("Downloading collection metadata for {}", collection_id)
+    resp = requests.post(
+        HATHI_COLLECTION_EXPORT_URL,
+        data={"a": "download", "c": collection_id, "format": "text"},
+        timeout=300,
+        headers=HATHI_REQUEST_HEADERS,
+    )
+    resp.raise_for_status()
+
+    rows = csv.DictReader(io.StringIO(resp.text), delimiter="\t")
+    htids: list[str] = []
+    for row in rows:
+        htid = (row.get("htitem_id") or row.get("htid") or row.get("id") or "").strip()
+        if htid:
+            htids.append(htid)
+    if not htids:
+        raise ValueError(f"No HTIDs returned for collection {collection_id}")
+    return htids
+
+
 def _iter_remote_hathifile_lines(url: str):
     with requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS) as resp:
         resp.raise_for_status()
@@ -358,6 +382,43 @@ def enrich_volume_metadata(record: dict[str, Any]) -> dict[str, Any]:
     if not api_data:
         return record
     return _merge_api_metadata(record, api_data)
+
+
+def _base_collection_record(htid: str, collection_id: str, category: str) -> dict[str, Any]:
+    return {
+        "htid": htid,
+        "category": category,
+        "year": None,
+        "volume": htid,
+        "title": htid,
+        "oclc_num": "",
+        "rights": "undetermined",
+        "source": "HathiTrust Collection Builder",
+        "collection_id": collection_id,
+        "isbn": "",
+        "issn": "",
+        "lccn": "",
+    }
+
+
+def build_manifest_from_collection_export(
+    collection_id: str = DEFAULT_COLLECTION_ID,
+    htid_allowlist: set[str] | None = None,
+    enrich_api: bool = True,
+    category: str = "debates",
+) -> list[dict[str, Any]]:
+    """Build a volume manifest from a HathiTrust collection export TSV."""
+    htids = _download_collection_htids(collection_id)
+    allowlist = htid_allowlist if htid_allowlist is not None else None
+    volumes: list[dict[str, Any]] = []
+    for htid in htids:
+        if allowlist is not None and htid not in allowlist:
+            continue
+        record = _base_collection_record(htid, collection_id, category)
+        if enrich_api:
+            record = enrich_volume_metadata(record)
+        volumes.append(record)
+    return volumes
 
 
 def compute_sha256(file_path: Path) -> str | None:
@@ -579,6 +640,39 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Enrich manifest rows via the HathiTrust volume API.",
     )
 
+    collection = sub.add_parser(
+        "collection-export",
+        help="Download a HathiTrust collection export TSV and build the manifest from it.",
+    )
+    collection.add_argument(
+        "--collection-id",
+        default=DEFAULT_COLLECTION_ID,
+        help="HathiTrust collection ID to export",
+    )
+    collection.add_argument(
+        "--output",
+        type=Path,
+        default=Path("manifests/latest_manifest.json"),
+        help="Output manifest path",
+    )
+    collection.add_argument(
+        "--htid-allowlist",
+        type=Path,
+        default=None,
+        help="Optional text file with one HTID per line to keep.",
+    )
+    collection.add_argument(
+        "--category",
+        default="debates",
+        help="Default content category for records",
+    )
+    collection.add_argument(
+        "--enrich-api",
+        action="store_true",
+        default=True,
+        help="Enrich manifest rows via the HathiTrust volume API.",
+    )
+
     return parser.parse_args(args)
 
 
@@ -644,6 +738,23 @@ def main() -> int:
                 enrich_api=args.enrich_api,
                 category=args.category,
             )
+        manifest = write_manifest(volumes, args.output)
+        print(json.dumps(manifest["meta"], indent=2))
+        return 0
+
+    if args.command == "collection-export":
+        logger.info(
+            "Parsing collection export: {} (category={})",
+            args.collection_id,
+            args.category,
+        )
+        allowlist = _load_htid_allowlist(args.htid_allowlist) if args.htid_allowlist else None
+        volumes = build_manifest_from_collection_export(
+            collection_id=args.collection_id,
+            htid_allowlist=allowlist,
+            enrich_api=args.enrich_api,
+            category=args.category,
+        )
         manifest = write_manifest(volumes, args.output)
         print(json.dumps(manifest["meta"], indent=2))
         return 0

@@ -58,10 +58,12 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Fetch catalog manifest in GitHub Actions
+        env:
+          HATHI_COLLECTION_ID: ${{ vars.HATHI_COLLECTION_ID || '71329709' }}
         run: |
-          pixi run -e dev python scripts/fetch_hathitrust.py remote-hathifile \
+          pixi run -e dev python scripts/fetch_hathitrust.py collection-export \
+            --collection-id "$HATHI_COLLECTION_ID" \
             --output "$MANIFEST_PATH" \
-            --download-to "$DOWNLOAD_DIR/latest_hathifile.txt.gz" \
             --enrich-api
 
       - name: Stage datasets

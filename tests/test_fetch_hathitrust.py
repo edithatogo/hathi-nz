@@ -19,6 +19,7 @@ from scripts.fetch_hathitrust import (
     _extract_year_from_title,
     _latest_full_hathifile_url,
     _rights_code,
+    build_manifest_from_collection_export,
     build_manifest_from_hathifile,
     build_manifest_from_hathifile_url,
     compute_sha256,
@@ -525,6 +526,13 @@ class TestParseArgs:
         args = parse_args()
         assert args.output == Path("manifests/latest_manifest.json")
 
+    def test_parse_collection_export_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(sys, "argv", ["prog", "collection-export"])
+        args = parse_args()
+        assert args.command == "collection-export"
+        assert args.collection_id == "71329709"
+        assert args.enrich_api is True
+
     def test_parse_missing_subcommand(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(sys, "argv", ["prog"])
         with pytest.raises(SystemExit):
@@ -783,6 +791,55 @@ class TestRemoteHathifile:
         assert volumes[0]["volume"] == "v.1"
         assert volumes[0]["source"] == "UC"
 
+    def test_build_manifest_from_collection_export(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        tsv = "\n".join(
+            [
+                "htitem_id\ttitle",
+                "uc1.b2889853\tParliamentary debates (Hansard) v.1",
+                "uc1.b2889854\tParliamentary debates (Hansard) v.2",
+            ]
+        )
+
+        class ExportResponse:
+            @staticmethod
+            def raise_for_status() -> None:
+                return None
+
+            @property
+            def text(self) -> str:
+                return tsv
+
+        def fake_post(*args: object, **kwargs: object) -> ExportResponse:  # noqa: ARG001
+            return ExportResponse()
+
+        def fake_get(*args: object, **kwargs: object):  # type: ignore[no-untyped-def]
+            class ApiResponse:
+                @staticmethod
+                def raise_for_status() -> None:
+                    return None
+
+                @staticmethod
+                def json() -> dict[str, object]:
+                    return {
+                        "htid": "uc1.b2889853",
+                        "title": "Parliamentary debates (Hansard) v.1",
+                        "source": "UC",
+                        "year": 1886,
+                        "rights": "allow",
+                        "volume": "v.1",
+                    }
+
+            return ApiResponse()
+
+        monkeypatch.setattr("requests.post", fake_post)
+        monkeypatch.setattr("requests.get", fake_get)
+        volumes = build_manifest_from_collection_export("71329709")
+        assert len(volumes) == 2
+        assert volumes[0]["htid"] == "uc1.b2889853"
+        assert volumes[0]["title"] == "Parliamentary debates (Hansard) v.1"
+        assert volumes[0]["collection_id"] == "71329709"
+        assert volumes[1]["htid"] == "uc1.b2889854"
+
     def test_enrich_volume_metadata(self, monkeypatch: pytest.MonkeyPatch) -> None:
         def fake_get(*args: object, **kwargs: object):  # type: ignore[no-untyped-def]
             class ApiResponse:
@@ -893,3 +950,37 @@ class TestRemoteHathifile:
         assert output.exists()
         manifest = json.loads(output.read_text(encoding="utf-8"))
         assert manifest["meta"]["record_count"] == 1
+
+    def test_main_collection_export_branch(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        output = tmp_path / "collection.json"
+        called: dict[str, object] = {}
+
+        monkeypatch.setattr(
+            "scripts.fetch_hathitrust.parse_args",
+            lambda args=None: argparse.Namespace(
+                command="collection-export",
+                collection_id="71329709",
+                output=output,
+                htid_allowlist=None,
+                category="debates",
+                enrich_api=True,
+            ),
+        )
+        monkeypatch.setattr(
+            "scripts.fetch_hathitrust.build_manifest_from_collection_export",
+            lambda **kwargs: called.update(kwargs) or [{"htid": "uc1.b2889853", "title": "x"}],
+        )
+        monkeypatch.setattr(
+            "scripts.fetch_hathitrust.write_manifest",
+            lambda volumes, output_path: {"meta": {"record_count": len(volumes)}},
+        )
+
+        exit_code = main()
+
+        assert exit_code == 0
+        assert called["collection_id"] == "71329709"
+        assert called["enrich_api"] is True
