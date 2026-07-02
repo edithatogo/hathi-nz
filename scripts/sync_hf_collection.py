@@ -18,6 +18,12 @@ from loguru import logger
 from scripts.hathitrust_nz_archive import HUGGING_FACE_COLLECTION, child_datasets
 from scripts.logging_utils import configure_logging
 
+HF_COLLECTION_DESCRIPTION_LIMIT = 149
+DEFAULT_COLLECTION_DESCRIPTION = (
+    "HathiTrust-NZ archive: inventory, Research Dataset plans, HTRC EF, "
+    "HTRC Analytics, and corpus-nz-hathi."
+)
+
 
 class CollectionDatasetItem(TypedDict):
     """Dataset item payload for a Hugging Face collection."""
@@ -65,6 +71,9 @@ def sync_hf_collection(
     dry_run: bool = False,
 ) -> dict[str, Any]:
     """Create/update a Hugging Face collection and add dataset items."""
+    description = description.strip()
+    if len(description) > HF_COLLECTION_DESCRIPTION_LIMIT:
+        description = description[:HF_COLLECTION_DESCRIPTION_LIMIT].rstrip()
     items = _dataset_items(manifest)
     payload = {
         "title": title,
@@ -123,11 +132,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--manifest", type=Path)
     parser.add_argument(
         "--description",
-        default=(
-            "HathiTrust-NZ collection archive linking inventory, Research Dataset "
-            "planning, HTRC Extracted Features, HTRC Analytics outputs, and the "
-            "legacy corpus-nz-hathi dataset."
-        ),
+        default=DEFAULT_COLLECTION_DESCRIPTION,
     )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args(args)

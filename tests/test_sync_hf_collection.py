@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from scripts import sync_hf_collection as module
-from scripts.sync_hf_collection import parse_args, sync_hf_collection
+from scripts.sync_hf_collection import (
+    DEFAULT_COLLECTION_DESCRIPTION,
+    HF_COLLECTION_DESCRIPTION_LIMIT,
+    parse_args,
+    sync_hf_collection,
+)
 
 
 def test_sync_collection_dry_run_uses_child_dataset_items() -> None:
@@ -18,6 +23,17 @@ def test_sync_collection_dry_run_uses_child_dataset_items() -> None:
     assert result["dry_run"] is True
     assert "edithatogo/corpus-nz-hathi" in {item["item_id"] for item in result["items"]}
     assert "edithatogo/hathitrust-nz-inventory" in {item["item_id"] for item in result["items"]}
+    assert len(DEFAULT_COLLECTION_DESCRIPTION) <= HF_COLLECTION_DESCRIPTION_LIMIT
+
+
+def test_sync_collection_truncates_long_description_in_dry_run() -> None:
+    result = sync_hf_collection(
+        title="hathitrust-nz",
+        namespace="edithatogo",
+        description="x" * 200,
+        dry_run=True,
+    )
+    assert len(result["description"]) <= HF_COLLECTION_DESCRIPTION_LIMIT
 
 
 def test_sync_collection_execute_creates_and_adds_items(monkeypatch: Any) -> None:
