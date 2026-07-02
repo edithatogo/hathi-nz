@@ -36,6 +36,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       INVENTORY_REPO_ID: ${{ vars.HF_INVENTORY_REPO_ID || 'edithatogo/hathitrust-nz-inventory' }}
+      RESEARCH_REPO_ID: ${{ vars.HF_RESEARCH_FULLTEXT_REPO_ID || 'edithatogo/hathitrust-nz-research-fulltext' }}
+      HTRC_EF_REPO_ID: ${{ vars.HF_HTRC_EF_REPO_ID || 'edithatogo/hathitrust-nz-htrc-extracted-features' }}
+      HTRC_ANALYTICS_REPO_ID: ${{ vars.HF_HTRC_ANALYTICS_REPO_ID || 'edithatogo/hathitrust-nz-htrc-analytics' }}
       HF_COLLECTION_SLUG: ${{ vars.HF_COLLECTION_SLUG }}
     steps:
       - uses: actions/checkout@v4
@@ -116,7 +119,7 @@ jobs:
           path: ${{ env.BUILD_DIR }}
           if-no-files-found: error
 
-      - name: Publish manifests to Hugging Face
+      - name: Publish child dataset artifacts to Hugging Face
         if: ${{ inputs.publish_manifests }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -130,6 +133,21 @@ jobs:
             --repo-id "$INVENTORY_REPO_ID" \
             --path-in-repo "collection" \
             --commit-message "Update HathiTrust-NZ collection manifests"
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR/research_datasets" \
+            --repo-id "$RESEARCH_REPO_ID" \
+            --path-in-repo "research-datasets" \
+            --commit-message "Update HathiTrust-NZ Research Dataset plan"
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR/htrc_ef" \
+            --repo-id "$HTRC_EF_REPO_ID" \
+            --path-in-repo "htrc-ef-2.5" \
+            --commit-message "Update HathiTrust-NZ HTRC EF subset"
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$BUILD_DIR/htrc_analytics" \
+            --repo-id "$HTRC_ANALYTICS_REPO_ID" \
+            --path-in-repo "analytics" \
+            --commit-message "Update HathiTrust-NZ HTRC Analytics outputs"
 
       - name: Create/update Hugging Face collection
         if: ${{ inputs.publish_hf_collection }}

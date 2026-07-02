@@ -24,12 +24,13 @@ from loguru import logger
 from scripts.config import get_settings
 from scripts.logging_utils import configure_logging
 
+OSF: Any
 try:  # pragma: no cover - import availability is validated through runtime tests
-    from osfclient import OSF as _OSF
+    import osfclient
 except ImportError:  # pragma: no cover
-    _OSF = None
-
-OSF = _OSF
+    OSF = None
+else:
+    OSF = osfclient.OSF
 
 REQUIRED_METADATA_FIELDS = ("title", "description", "tags", "category")
 DEFAULT_AUTH_ENV = "OSF_TOKEN"
@@ -92,7 +93,8 @@ def _inject_zenodo_doi(metadata: dict[str, Any], doi: str | None) -> dict[str, A
 
     doi_url = f"https://doi.org/{doi}"
     if not any(
-        isinstance(entry, dict) and entry.get("identifier") == doi_url for entry in related_identifiers
+        isinstance(entry, dict) and entry.get("identifier") == doi_url
+        for entry in related_identifiers
     ):
         related_identifiers.append(
             {
