@@ -3,8 +3,10 @@
 - Source collection: HathiTrust Collection `71329709`.
 - HF collection: `edithatogo/hathitrust-nz`.
 - Seed record count: `510`.
-- Parsed volume labels: `369`.
-- Needs enumeration enrichment: `141`.
+- Parsed numeric volume labels: `369`.
+- Parsed enumeration labels: `510`.
+- Fully parsed seed labels: `510`.
+- Needs enumeration enrichment: `0`.
 - Public full-text uploads fail closed when rights, source, or access profile is ambiguous.
 - Hathi Research Dataset full text must be staged via the approved static rsync host.
 - HTRC Extracted Features 2.5 subset acquisition uses rsync file allowlists.

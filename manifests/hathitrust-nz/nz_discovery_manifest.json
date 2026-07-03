@@ -1,0 +1,139 @@
+{
+  "meta": {
+    "generated_at": "2026-07-03T05:08:41.309989+00:00",
+    "pipeline_version": "v0.1.0-77-g96204f9",
+    "collection_id": "hathitrust-nz",
+    "hf_collection": "edithatogo/hathitrust-nz",
+    "seed_collection_id": "71329709",
+    "seed_record_count": 510
+  },
+  "source_families": [
+    {
+      "family_id": "parliamentary_and_legal",
+      "title": "Parliamentary and legal serials",
+      "status": "active_discovery",
+      "public_archive_status": "mixed",
+      "public_sources": [
+        "Parliamentary Debates / Hansard",
+        "Gazettes",
+        "Statutes, Acts, and Ordinances"
+      ],
+      "restricted_sources": [
+        "Records with page-only, suppressed, or Google-restricted access profiles"
+      ],
+      "source_inputs": [
+        "HathiTrust collection exports",
+        "Hathifiles",
+        "HathiTrust catalog records",
+        "HathiTrust Bibliographic API"
+      ],
+      "acquisition_modes": [
+        "github_actions_inventory",
+        "github_actions_public_metadata_publish",
+        "static_host_rsync_for_restricted_research_datasets"
+      ]
+    },
+    {
+      "family_id": "government_and_policy",
+      "title": "Government and policy serials",
+      "status": "active_discovery",
+      "public_archive_status": "mixed",
+      "public_sources": [
+        "Departmental reports",
+        "Official statistics",
+        "Commission reports",
+        "Public works and education reports"
+      ],
+      "restricted_sources": [
+        "Records with privacy-limited, suppressed, or Google-restricted profiles"
+      ],
+      "source_inputs": [
+        "Hathifiles",
+        "HathiTrust public collections",
+        "HathiTrust Bibliographic API",
+        "Catalog record crosswalks"
+      ],
+      "acquisition_modes": [
+        "github_actions_inventory",
+        "github_actions_public_metadata_publish",
+        "static_host_rsync_for_restricted_research_datasets"
+      ]
+    },
+    {
+      "family_id": "scholarly_and_cultural",
+      "title": "NZ scholarly and cultural serials",
+      "status": "active_discovery",
+      "public_archive_status": "mixed",
+      "public_sources": [
+        "Journal and proceedings material with public rights",
+        "Public-domain scholarly serials"
+      ],
+      "restricted_sources": [
+        "Google-restricted or page-only serials"
+      ],
+      "source_inputs": [
+        "Hathifiles",
+        "HathiTrust catalog records",
+        "Public collections",
+        "HathiTrust Bibliographic API"
+      ],
+      "acquisition_modes": [
+        "github_actions_inventory",
+        "github_actions_public_metadata_publish",
+        "static_host_rsync_for_restricted_research_datasets"
+      ]
+    },
+    {
+      "family_id": "maori_and_aotearoa",
+      "title": "M\u0101ori / Aotearoa materials",
+      "status": "active_discovery",
+      "public_archive_status": "mixed",
+      "public_sources": [
+        "Public-domain dictionaries, histories, grammars, and missionary-era publications",
+        "Public-domain newspapers and pamphlets"
+      ],
+      "restricted_sources": [
+        "Privacy-limited, suppressed, or otherwise non-rehostable records"
+      ],
+      "source_inputs": [
+        "Hathifiles",
+        "HathiTrust catalog records",
+        "HathiTrust Bibliographic API",
+        "HTRC Workset Builder and extracted features search"
+      ],
+      "acquisition_modes": [
+        "github_actions_inventory",
+        "github_actions_public_metadata_publish",
+        "static_host_rsync_for_restricted_research_datasets"
+      ]
+    }
+  ],
+  "seed_summary": {
+    "record_count": 510,
+    "rights_counts": {
+      "cc-zero": 510
+    },
+    "access_class_counts": {
+      "public_full_text": 510
+    },
+    "label_parse": {
+      "parsed": 510,
+      "needs_enrichment": 0
+    },
+    "volume_number_parse": {
+      "parsed": 369,
+      "needs_enrichment": 141,
+      "min": 1,
+      "max": 507
+    },
+    "enumeration_parse": {
+      "parsed": 510,
+      "needs_enrichment": 0
+    }
+  },
+  "discovery_notes": [
+    "The seed Hansard set is the canonical entry point, but discovery extends to additional NZ source families.",
+    "Public metadata and manifests are GitHub-Actions-friendly; restricted full text remains static-host only until permission is explicit.",
+    "HTRC derived features remain publication-safe as derived data, while raw full text follows HathiTrust redistribution rules."
+  ]
+}

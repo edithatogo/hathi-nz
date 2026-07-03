@@ -30,7 +30,7 @@ def test_settings_has_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OSF_PROJECT_ID", raising=False)
     settings = Settings()
     assert settings.HF_REPO_ID == "edithatogo/corpus-nz-hathi"
-    assert settings.HF_COLLECTION_ID == "edithatogo/hathitrust-nz"
+    assert settings.HF_COLLECTION_ID == "edithatogo/hathitrust-nz-6a472b1e3de68381856b31f9"
     assert settings.HF_INVENTORY_REPO_ID == "edithatogo/hathitrust-nz-inventory"
     assert settings.HF_RESEARCH_FULLTEXT_REPO_ID == "edithatogo/hathitrust-nz-research-fulltext"
     assert settings.HF_HTRC_EF_REPO_ID == "edithatogo/hathitrust-nz-htrc-extracted-features"

@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # Hugging Face Hub
     HF_TOKEN: SecretStr | None = None
     HF_REPO_ID: str = "edithatogo/corpus-nz-hathi"
-    HF_COLLECTION_ID: str = "edithatogo/hathitrust-nz"
+    HF_COLLECTION_ID: str = "edithatogo/hathitrust-nz-6a472b1e3de68381856b31f9"
     HF_INVENTORY_REPO_ID: str = "edithatogo/hathitrust-nz-inventory"
     HF_RESEARCH_FULLTEXT_REPO_ID: str = "edithatogo/hathitrust-nz-research-fulltext"
     HF_HTRC_EF_REPO_ID: str = "edithatogo/hathitrust-nz-htrc-extracted-features"

@@ -36,6 +36,7 @@ HATHITRUST_NZ_COLLECTION_SLUG = "nz_parliamentary_debates_hansard"
 HATHITRUST_NZ_EXPECTED_COUNT = 510
 HATHITRUST_NZ_CATALOG_RECORD = "007119315"
 HUGGING_FACE_COLLECTION = "edithatogo/hathitrust-nz"
+PARLIAMENTARY_DEBATES_TITLE_PREFIX = "Parliamentary debates"
 
 HF_COMPAT_DATASET_REPO = "edithatogo/corpus-nz-hathi"
 HF_INVENTORY_REPO = "edithatogo/hathitrust-nz-inventory"
@@ -49,6 +50,7 @@ HATHI_RESEARCH_PD_OPEN_ACCESS = "ht_text_pd_open_access"
 HATHI_RESEARCH_PD_WORLD_OPEN_ACCESS = "ht_text_pd_world_open_access"
 HATHI_RESEARCH_PD_WITH_GOOGLE = "ht_text_pd"
 HATHI_RESEARCH_PD_WORLD_WITH_GOOGLE = "ht_text_pd_world"
+HANSARD_TITLE_PREFIX = "Parliamentary debates (Hansard)"
 
 RIGHTS_LABELS = {
     "1": "pd",
@@ -164,29 +166,38 @@ def htrc_stubbytree_path(htid: str) -> str:
 
 def parse_volume_label(title: str) -> tuple[int | None, str | None]:
     """Extract a sortable volume number and enumeration label from a title."""
+    number: int | None = None
+    label: str | None = None
     if not title:
-        return None, None
-
-    volume_match = re.search(r"\bv\.(\d+[A-Za-z]?)\b", title, flags=re.IGNORECASE)
-    if volume_match:
-        number_text = volume_match.group(1)
-        number_match = re.match(r"\d+", number_text)
-        number = int(number_match.group(0)) if number_match else None
-        return number, f"v.{number_text}"
-
-    year_part_match = re.search(r"\b(18\d{2}|19\d{2})(?::(\d+))\b", title)
-    if year_part_match:
-        year = int(year_part_match.group(1))
-        part = year_part_match.group(2)
-        return None, f"{year}:{part}"
-
-    year_range_match = re.search(r"\b(18\d{2}|19\d{2})-(\d{2})\b", title)
-    if year_range_match:
-        start = year_range_match.group(1)
-        end = year_range_match.group(2)
-        return None, f"{start}-{end}"
-
-    return None, None
+        pass
+    else:
+        volume_match = re.search(r"\bv\.(\d+[A-Za-z]?)\b", title, flags=re.IGNORECASE)
+        if volume_match:
+            number_text = volume_match.group(1)
+            number_match = re.match(r"\d+", number_text)
+            number = int(number_match.group(0)) if number_match else None
+            label = f"v.{number_text}"
+        else:
+            year_part_match = re.search(r"\b(18\d{2}|19\d{2})(?::(\d+))\b", title)
+            if year_part_match:
+                year = int(year_part_match.group(1))
+                part = year_part_match.group(2)
+                label = f"{year}:{part}"
+            else:
+                year_range_match = re.search(r"\b(18\d{2}|19\d{2})-(\d{2})\b", title)
+                if year_range_match:
+                    start = year_range_match.group(1)
+                    end = year_range_match.group(2)
+                    label = f"{start}-{end}"
+                elif title.startswith(HANSARD_TITLE_PREFIX):
+                    label = title[len(HANSARD_TITLE_PREFIX) :].strip(" -")
+                elif title.startswith(PARLIAMENTARY_DEBATES_TITLE_PREFIX):
+                    suffix = title[len(PARLIAMENTARY_DEBATES_TITLE_PREFIX) :].strip(" -")
+                    if suffix and not (suffix.startswith("(") and suffix.endswith(")")):
+                        label = suffix
+    if label == "":
+        label = None
+    return number, label
 
 
 def classify_publication_policy(
@@ -287,7 +298,7 @@ def normalize_collection_export_row(
         "date": row.get("date", "").strip(),
         "volume_number": volume_number,
         "enumeration": enumeration,
-        "enumeration_status": "parsed" if volume_number is not None else "needs_enrichment",
+        "enumeration_status": "parsed" if (volume_number is not None or enumeration is not None) else "needs_enrichment",
         "rights_code": rights_code,
         "rights_label": policy["rights_label"],
         "oclc": row.get("OCLC", "").strip(),
@@ -321,8 +332,14 @@ def summarize_inventory(volumes: list[dict[str, Any]]) -> dict[str, Any]:
     """Return count summaries used by acceptance gates."""
     rights_counts = Counter(str(volume.get("rights_label", "")) for volume in volumes)
     access_counts = Counter(str(volume.get("access_class", "")) for volume in volumes)
-    parsed_count = sum(1 for volume in volumes if volume.get("enumeration_status") == "parsed")
-    needs_enrichment_count = len(volumes) - parsed_count
+    parsed_volume_numbers = sum(1 for volume in volumes if isinstance(volume.get("volume_number"), int))
+    parsed_enumerations = sum(1 for volume in volumes if str(volume.get("enumeration") or "").strip())
+    parsed_labels = sum(
+        1
+        for volume in volumes
+        if volume.get("enumeration_status") == "parsed"
+    )
+    needs_enrichment_count = len(volumes) - parsed_labels
     volume_numbers = [
         int(volume["volume_number"])
         for volume in volumes
@@ -332,11 +349,19 @@ def summarize_inventory(volumes: list[dict[str, Any]]) -> dict[str, Any]:
         "record_count": len(volumes),
         "rights_counts": dict(sorted(rights_counts.items())),
         "access_class_counts": dict(sorted(access_counts.items())),
-        "volume_number_parse": {
-            "parsed": parsed_count,
+        "label_parse": {
+            "parsed": parsed_labels,
             "needs_enrichment": needs_enrichment_count,
+        },
+        "volume_number_parse": {
+            "parsed": parsed_volume_numbers,
+            "needs_enrichment": len(volumes) - parsed_volume_numbers,
             "min": min(volume_numbers) if volume_numbers else None,
             "max": max(volume_numbers) if volume_numbers else None,
+        },
+        "enumeration_parse": {
+            "parsed": parsed_enumerations,
+            "needs_enrichment": len(volumes) - parsed_enumerations,
         },
     }
 
@@ -380,6 +405,162 @@ def child_datasets() -> list[dict[str, Any]]:
             "zenodo_stream": "hathitrust-nz-htrc-analytics",
         },
     ]
+
+
+def discovery_families() -> list[dict[str, Any]]:
+    """Return the broader NZ discovery families tracked for future expansion."""
+    return [
+        {
+            "family_id": "parliamentary_and_legal",
+            "title": "Parliamentary and legal serials",
+            "status": "active_discovery",
+            "public_archive_status": "mixed",
+            "public_sources": [
+                "Parliamentary Debates / Hansard",
+                "Gazettes",
+                "Statutes, Acts, and Ordinances",
+            ],
+            "restricted_sources": [
+                "Records with page-only, suppressed, or Google-restricted access profiles",
+            ],
+            "source_inputs": [
+                "HathiTrust collection exports",
+                "Hathifiles",
+                "HathiTrust catalog records",
+                "HathiTrust Bibliographic API",
+            ],
+            "acquisition_modes": [
+                "github_actions_inventory",
+                "github_actions_public_metadata_publish",
+                "static_host_rsync_for_restricted_research_datasets",
+            ],
+        },
+        {
+            "family_id": "government_and_policy",
+            "title": "Government and policy serials",
+            "status": "active_discovery",
+            "public_archive_status": "mixed",
+            "public_sources": [
+                "Departmental reports",
+                "Official statistics",
+                "Commission reports",
+                "Public works and education reports",
+            ],
+            "restricted_sources": [
+                "Records with privacy-limited, suppressed, or Google-restricted profiles",
+            ],
+            "source_inputs": [
+                "Hathifiles",
+                "HathiTrust public collections",
+                "HathiTrust Bibliographic API",
+                "Catalog record crosswalks",
+            ],
+            "acquisition_modes": [
+                "github_actions_inventory",
+                "github_actions_public_metadata_publish",
+                "static_host_rsync_for_restricted_research_datasets",
+            ],
+        },
+        {
+            "family_id": "scholarly_and_cultural",
+            "title": "NZ scholarly and cultural serials",
+            "status": "active_discovery",
+            "public_archive_status": "mixed",
+            "public_sources": [
+                "Journal and proceedings material with public rights",
+                "Public-domain scholarly serials",
+            ],
+            "restricted_sources": [
+                "Google-restricted or page-only serials",
+            ],
+            "source_inputs": [
+                "Hathifiles",
+                "HathiTrust catalog records",
+                "Public collections",
+                "HathiTrust Bibliographic API",
+            ],
+            "acquisition_modes": [
+                "github_actions_inventory",
+                "github_actions_public_metadata_publish",
+                "static_host_rsync_for_restricted_research_datasets",
+            ],
+        },
+        {
+            "family_id": "maori_and_aotearoa",
+            "title": "Māori / Aotearoa materials",
+            "status": "active_discovery",
+            "public_archive_status": "mixed",
+            "public_sources": [
+                "Public-domain dictionaries, histories, grammars, and missionary-era publications",
+                "Public-domain newspapers and pamphlets",
+            ],
+            "restricted_sources": [
+                "Privacy-limited, suppressed, or otherwise non-rehostable records",
+            ],
+            "source_inputs": [
+                "Hathifiles",
+                "HathiTrust catalog records",
+                "HathiTrust Bibliographic API",
+                "HTRC Workset Builder and extracted features search",
+            ],
+            "acquisition_modes": [
+                "github_actions_inventory",
+                "github_actions_public_metadata_publish",
+                "static_host_rsync_for_restricted_research_datasets",
+            ],
+        },
+    ]
+
+
+def build_discovery_manifest(inventory: dict[str, Any]) -> dict[str, Any]:
+    """Build a broader NZ discovery manifest for future collection growth."""
+    return {
+        "meta": {
+            "generated_at": utc_now(),
+            "pipeline_version": get_version(),
+            "collection_id": "hathitrust-nz",
+            "hf_collection": HUGGING_FACE_COLLECTION,
+            "seed_collection_id": inventory.get("meta", {}).get("collection_id"),
+            "seed_record_count": inventory.get("meta", {}).get("record_count", 0),
+        },
+        "source_families": discovery_families(),
+        "seed_summary": inventory.get("summary", {}),
+        "discovery_notes": [
+            "The seed Hansard set is the canonical entry point, but discovery extends to additional NZ source families.",
+            "Public metadata and manifests are GitHub-Actions-friendly; restricted full text remains static-host only until permission is explicit.",
+            "HTRC derived features remain publication-safe as derived data, while raw full text follows HathiTrust redistribution rules.",
+        ],
+    }
+
+
+def write_discovery_report(discovery: dict[str, Any], output: Path) -> None:
+    """Write a concise Markdown discovery report."""
+    lines = [
+        "# HathiTrust-NZ Discovery Manifest",
+        "",
+        "- This manifest documents the broader NZ source families that should be discovered beyond the Hansard seed.",
+        "- Public metadata and derived manifests are publication-safe; restricted full text remains static-host only.",
+        "",
+        "## Families",
+        "",
+    ]
+    for family in discovery.get("source_families", []):
+        lines.extend(
+            [
+                f"### {family['title']}",
+                "",
+                f"- Family ID: `{family['family_id']}`",
+                f"- Status: `{family['status']}`",
+                f"- Public archive status: `{family['public_archive_status']}`",
+                f"- Discovery inputs: {', '.join(family.get('source_inputs', []))}",
+                f"- Acquisition modes: {', '.join(family.get('acquisition_modes', []))}",
+                f"- Public sources: {', '.join(family.get('public_sources', []))}",
+                f"- Restricted sources: {', '.join(family.get('restricted_sources', []))}",
+                "",
+            ]
+        )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def build_inventory(
@@ -635,14 +816,18 @@ def write_completeness_report(inventory: dict[str, Any], output: Path) -> None:
     """Write a concise Markdown archive completeness report."""
     summary = inventory.get("summary", {})
     parse = summary.get("volume_number_parse", {})
+    label_parse = summary.get("label_parse", {})
+    enumeration_parse = summary.get("enumeration_parse", {})
     lines = [
         "# HathiTrust-NZ Archive Completeness Report",
         "",
         f"- Source collection: HathiTrust Collection `{HATHITRUST_NZ_COLLECTION_ID}`.",
         f"- HF collection: `{HUGGING_FACE_COLLECTION}`.",
         f"- Seed record count: `{summary.get('record_count', 0)}`.",
-        f"- Parsed volume labels: `{parse.get('parsed', 0)}`.",
-        f"- Needs enumeration enrichment: `{parse.get('needs_enrichment', 0)}`.",
+        f"- Parsed numeric volume labels: `{parse.get('parsed', 0)}`.",
+        f"- Parsed enumeration labels: `{enumeration_parse.get('parsed', 0)}`.",
+        f"- Fully parsed seed labels: `{label_parse.get('parsed', 0)}`.",
+        f"- Needs enumeration enrichment: `{label_parse.get('needs_enrichment', 0)}`.",
         "- Public full-text uploads fail closed when rights, source, or access profile is ambiguous.",
         "- Hathi Research Dataset full text must be staged via the approved static rsync host.",
         "- HTRC Extracted Features 2.5 subset acquisition uses rsync file allowlists.",
@@ -688,6 +873,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     research.add_argument("--limit", type=int, default=0)
 
+    discovery = subparsers.add_parser("discovery-manifest", help="Build broader NZ discovery manifest")
+    discovery.add_argument("--inventory", type=Path, required=True)
+    discovery.add_argument("--output", type=Path, required=True)
+    discovery.add_argument("--report", type=Path)
+
     return parser.parse_args(args)
 
 
@@ -729,6 +919,14 @@ def main() -> int:
             source_dataset_name=args.source_dataset_name,
             limit=args.limit,
         )
+        return 0
+
+    if args.command == "discovery-manifest":
+        inventory = load_inventory(args.inventory)
+        discovery = build_discovery_manifest(inventory)
+        write_json(args.output, discovery)
+        if args.report is not None:
+            write_discovery_report(discovery, args.report)
         return 0
 
     return 2

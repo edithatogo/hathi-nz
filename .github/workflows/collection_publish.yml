@@ -80,6 +80,7 @@ jobs:
           mkdir -p \
             "$BUILD_DIR/inventory" \
             "$BUILD_DIR/collection" \
+            "$BUILD_DIR/discovery" \
             "$BUILD_DIR/research_datasets" \
             "$BUILD_DIR/htrc_ef" \
             "$BUILD_DIR/htrc_analytics" \
@@ -94,6 +95,10 @@ jobs:
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output "$BUILD_DIR/collection/collection_manifest.json" \
             --completeness-report "$BUILD_DIR/reports/archive_completeness.md"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py discovery-manifest \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output "$BUILD_DIR/discovery/nz_discovery_manifest.json" \
+            --report "$BUILD_DIR/discovery/nz_discovery_manifest.md"
           pixi run -e dev python scripts/hathitrust_nz_archive.py research-rsync-plan \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/research_datasets" \

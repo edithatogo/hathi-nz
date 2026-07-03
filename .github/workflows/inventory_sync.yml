@@ -40,7 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-inventory"
-          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/collection" "$BUILD_DIR/reports"
+          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/collection" "$BUILD_DIR/discovery" "$BUILD_DIR/reports"
           pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
             --collection-export data/hathi_collection_export_71329709.tsv \
             --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
@@ -51,6 +51,10 @@ jobs:
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output "$BUILD_DIR/collection/collection_manifest.json" \
             --completeness-report "$BUILD_DIR/reports/archive_completeness.md"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py discovery-manifest \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output "$BUILD_DIR/discovery/nz_discovery_manifest.json" \
+            --report "$BUILD_DIR/discovery/nz_discovery_manifest.md"
           echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
 
       - name: Upload inventory artifact

@@ -13,12 +13,14 @@ from scripts.hathitrust_nz_archive import (
     HATHITRUST_NZ_EXPECTED_COUNT,
     assert_expected_count,
     build_collection_manifest,
+    build_discovery_manifest,
     build_inventory,
     classify_publication_policy,
     clean_htrc_htid,
     htrc_stubbytree_path,
     load_collection_export_tsv,
     parse_volume_label,
+    write_discovery_report,
     write_htrc_ef_plan,
     write_research_dataset_plan,
 )
@@ -107,6 +109,9 @@ def test_real_hansard_export_has_510_rows_and_source_specific_summary() -> None:
     assert inventory["summary"]["rights_counts"] == {"cc-zero": 510}
     assert inventory["summary"]["volume_number_parse"]["parsed"] == 369
     assert inventory["summary"]["volume_number_parse"]["needs_enrichment"] == 141
+    assert inventory["summary"]["enumeration_parse"]["parsed"] == 510
+    assert inventory["summary"]["label_parse"]["parsed"] == 510
+    assert inventory["summary"]["label_parse"]["needs_enrichment"] == 0
     assert {volume["catalog_record_id"] for volume in inventory["volumes"]} == {"007119315"}
 
 
@@ -128,12 +133,17 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
         limit=2,
     )
     collection_manifest = build_collection_manifest(inventory)
+    discovery_manifest = build_discovery_manifest(inventory)
 
     assert htrc_manifest["meta"]["record_count"] == 2
     assert (tmp_path / "htrc" / "htrc_ef25_files.txt").exists()
     assert research_manifest["meta"]["eligible_full_text_count"] == 2
     assert (tmp_path / "research" / "research_dataset_eligible_htids.txt").exists()
     assert collection_manifest["meta"]["hf_collection"] == "edithatogo/hathitrust-nz"
+    assert len(discovery_manifest["source_families"]) == 4
+    assert any(
+        family["family_id"] == "maori_and_aotearoa" for family in discovery_manifest["source_families"]
+    )
 
     persisted = json.loads((tmp_path / "research" / "research_dataset_manifest.json").read_text())
     assert persisted["static_host_contract"]["required_variables"] == [
@@ -142,3 +152,14 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
         "HATHI_RSYNC_USER",
         "HATHI_STATIC_HOST_STAGING_DIR",
     ]
+
+
+def test_write_discovery_report(tmp_path: Path) -> None:
+    volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
+    inventory = build_inventory(volumes[:3], expected_count=3)
+    discovery = build_discovery_manifest(inventory)
+    out = tmp_path / "discovery" / "report.md"
+    write_discovery_report(discovery, out)
+    text = out.read_text(encoding="utf-8")
+    assert "# HathiTrust-NZ Discovery Manifest" in text
+    assert "Parliamentary and legal serials" in text

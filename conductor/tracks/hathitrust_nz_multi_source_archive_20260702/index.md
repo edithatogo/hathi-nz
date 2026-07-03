@@ -3,7 +3,7 @@
 - Track ID: `hathitrust_nz_multi_source_archive_20260702`
 - Status: `in_progress`
 - Seed collection: HathiTrust Collection `71329709`
-- HF collection target: `edithatogo/hathitrust-nz`
+- HF collection target: `edithatogo/hathitrust-nz-6a472b1e3de68381856b31f9`
 - Existing compatibility dataset: `edithatogo/corpus-nz-hathi`
 - New child datasets:
   - `edithatogo/hathitrust-nz-inventory`

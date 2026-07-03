@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-07-02T12:48:33.088222+00:00",
-    "pipeline_version": "v0.1.0-69-gad2a9d3",
+    "generated_at": "2026-07-03T05:08:41.603912+00:00",
+    "pipeline_version": "v0.1.0-77-g96204f9",
     "collection_id": "hathitrust-nz",
     "hf_collection": "edithatogo/hathitrust-nz",
     "legacy_dataset_repo": "edithatogo/corpus-nz-hathi",
@@ -17,11 +17,19 @@
     "access_class_counts": {
       "public_full_text": 510
     },
+    "label_parse": {
+      "parsed": 510,
+      "needs_enrichment": 0
+    },
     "volume_number_parse": {
       "parsed": 369,
       "needs_enrichment": 141,
       "min": 1,
       "max": 507
+    },
+    "enumeration_parse": {
+      "parsed": 510,
+      "needs_enrichment": 0
     }
   },
   "sources": [

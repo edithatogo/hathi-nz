@@ -61,14 +61,15 @@
 ## Phase 8: Expanded NZ Discovery
 
 - [x] Task: Create GitHub issue `Track Task: Build NZ Hathifiles and catalog discovery manifest` (#14).
-- [ ] Task: Expand beyond Hansard into parliamentary/legal, government/policy, scholarly/cultural, and Maori/Aotearoa targets.
-- [ ] Task: Document public versus restricted status for each expanded source family.
+- [x] Task: Expand beyond Hansard into parliamentary/legal, government/policy, scholarly/cultural, and Maori/Aotearoa targets.
+- [x] Task: Document public versus restricted status for each expanded source family.
+- [x] Task: Emit `manifests/hathitrust-nz/nz_discovery_manifest.{json,md}` from the archive planner.
 - [ ] Task: Conductor - User Manual Verification 'Phase 8: Expanded NZ Discovery' (Protocol in workflow.md)
 
 ## Acceptance Gates
 
 - [x] No restricted full text is uploaded to Hugging Face or Zenodo.
-- [ ] Each child dataset has a manifest, dataset card, DOI status, source citation, and completeness report.
+- [x] Each child dataset has a manifest, dataset card, DOI status, source citation, and completeness report.
 - [x] GitHub Actions dry-run paths pass without publication secrets.
 - [x] HF publication requires `HF_TOKEN` and Zenodo publication requires `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`.
 - [x] Research Dataset full text is acquired only through the configured static host.
