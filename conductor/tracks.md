@@ -54,6 +54,10 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/tracks/hathitrust_nz_multi_source_archive_20260702/](./conductor/tracks/hathitrust_nz_multi_source_archive_20260702/)*
 - Collection-level archive for HathiTrust-NZ, with child datasets for inventory, Hathi Research Dataset static-host acquisition, HTRC Extracted Features, and HTRC Analytics outputs.
 
+## [ ] Track: HathiTrust-NZ Interim Acquisition Hardening
+*Link: [./conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/](./conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/)*
+- Implements interim Internet Archive/Open Library overlap acquisition, HathiTrust metadata refresh lanes, HTRC EF/Analytics routing, source-policy gates, provenance ledgers, manual review queues, and completeness reporting while official HathiTrust rsync access is pending.
+
 ---
 
 ### Architecture Status (oracle, 2026-06-26)

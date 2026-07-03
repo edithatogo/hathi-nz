@@ -31,6 +31,10 @@
 - Static-host variables and SSH key are required before Hathi Research Dataset full text can be pulled into Actions.
 - Restricted or Google-constrained full text must not be uploaded without explicit redistribution approval for the exact publication target.
 
+## Related Tracks
+
+- `hathitrust_nz_interim_acquisition_hardening_20260703`: implements interim Internet Archive/Open Library acquisition, source-policy hardening, provenance ledgers, HTRC EF/Analytics routing, and completeness evidence while official HathiTrust rsync access is pending.
+
 ## GitHub Issues
 
 - #13: Track: HathiTrust-NZ collection architecture and inventory

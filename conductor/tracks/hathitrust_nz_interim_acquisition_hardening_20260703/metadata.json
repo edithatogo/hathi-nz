@@ -1,0 +1,60 @@
+{
+  "track_id": "hathitrust_nz_interim_acquisition_hardening_20260703",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-07-03T19:50:26+10:00",
+  "updated_at": "2026-07-03T19:50:26+10:00",
+  "description": "Implement interim HathiTrust-NZ acquisition routes and provenance hardening while official HathiTrust rsync access is pending.",
+  "parent_track": "hathitrust_nz_multi_source_archive_20260702",
+  "execution_default": "github_actions",
+  "static_host_usage": [
+    "official HathiTrust Research Dataset rsync acquisition",
+    "large HTRC Extracted Features staging when GitHub runner limits are exceeded"
+  ],
+  "source_families": [
+    "hathitrust_research_dataset",
+    "hathifiles",
+    "hathitrust_oai_pmh",
+    "hathitrust_bibliographic_api",
+    "htrc_solr_ef20",
+    "htrc_extracted_features",
+    "htrc_analytics",
+    "internet_archive",
+    "open_library",
+    "digitalnz",
+    "national_library_nz",
+    "papers_past",
+    "official_parliamentary_sources",
+    "manual_evidence"
+  ],
+  "recommended_improvements": [
+    "source policy registry",
+    "manual review queue",
+    "provenance ledger",
+    "checksum and file manifest",
+    "source-priority routing",
+    "scheduled IA smoke workflow",
+    "metadata refresh jobs",
+    "completeness dashboard",
+    "dataset-card route evidence",
+    "issue and project status synchronization"
+  ],
+  "blocked_until_external_access": [
+    "official HathiTrust rsync keys and static host approval",
+    "Hugging Face collection mutation permission",
+    "Zenodo deposition permission"
+  ],
+  "github_project": "hathi-nz Conductor Roadmap",
+  "github_project_url": "https://github.com/users/edithatogo/projects/12",
+  "rare_insights_project_url": "https://github.com/users/edithatogo/projects/4",
+  "github_issues": {
+    "parent": 21,
+    "source_policy": 22,
+    "metadata_refresh": 23,
+    "ia_acquisition": 24,
+    "htrc_outputs": 25,
+    "routing_gates": 26,
+    "actions_orchestration": 27,
+    "completeness_evidence": 28
+  }
+}
