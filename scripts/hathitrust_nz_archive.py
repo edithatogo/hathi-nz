@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import json
 import re
 import sys
@@ -20,6 +21,8 @@ from typing import Any
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import requests
 
 from scripts.logging_utils import configure_logging
 
@@ -46,11 +49,15 @@ HF_HTRC_ANALYTICS_REPO = "edithatogo/hathitrust-nz-htrc-analytics"
 
 HTRC_EF_VERSION = "2.5"
 HTRC_EF_RSYNC_MODULE = "data.analytics.hathitrust.org::features-2025.04/"
+INTERNET_ARCHIVE_SEARCH_URL = "https://archive.org/advancedsearch.php"
+INTERNET_ARCHIVE_METADATA_URL = "https://archive.org/metadata/{identifier}"
+INTERNET_ARCHIVE_DOWNLOAD_URL = "https://archive.org/download/{identifier}/{filename}"
 HATHI_RESEARCH_PD_OPEN_ACCESS = "ht_text_pd_open_access"
 HATHI_RESEARCH_PD_WORLD_OPEN_ACCESS = "ht_text_pd_world_open_access"
 HATHI_RESEARCH_PD_WITH_GOOGLE = "ht_text_pd"
 HATHI_RESEARCH_PD_WORLD_WITH_GOOGLE = "ht_text_pd_world"
 HANSARD_TITLE_PREFIX = "Parliamentary debates (Hansard)"
+PARLIAMENTARY_DEBATES_TITLE_PREFIX = "Parliamentary debates"
 
 RIGHTS_LABELS = {
     "1": "pd",
@@ -125,6 +132,15 @@ STATIC_RSYNC_DATASETS = {
     HATHI_RESEARCH_PD_WORLD_OPEN_ACCESS,
     HATHI_RESEARCH_PD_WITH_GOOGLE,
     HATHI_RESEARCH_PD_WORLD_WITH_GOOGLE,
+}
+INTERNET_ARCHIVE_TEXT_SUFFIXES = (
+    "_djvu.txt",
+    "_hocr_searchtext.txt.gz",
+    "_djvu.xml",
+)
+INTERNET_ARCHIVE_SEARCH_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Codex HathiTrust-NZ archive planner)",
+    "Accept": "application/json,text/plain,*/*",
 }
 
 
@@ -539,6 +555,7 @@ def build_discovery_manifest(inventory: dict[str, Any]) -> dict[str, Any]:
         "seed_summary": inventory.get("summary", {}),
         "discovery_notes": [
             "The seed Hansard set is the canonical entry point, but discovery extends to additional NZ source families.",
+            "Internet Archive public-domain overlap is the interim full-text path until HathiTrust rsync access is available.",
             "Public metadata and manifests are GitHub-Actions-friendly; restricted full text remains static-host only until permission is explicit.",
             "HTRC derived features remain publication-safe as derived data, while raw full text follows HathiTrust redistribution rules.",
         ],
@@ -551,6 +568,7 @@ def write_discovery_report(discovery: dict[str, Any], output: Path) -> None:
         "# HathiTrust-NZ Discovery Manifest",
         "",
         "- This manifest documents the broader NZ source families that should be discovered beyond the Hansard seed.",
+        "- Internet Archive overlap is the interim full-text path until HathiTrust rsync access is restored.",
         "- Public metadata and derived manifests are publication-safe; restricted full text remains static-host only.",
         "",
         "## Families",
@@ -778,6 +796,233 @@ def write_research_dataset_plan(
     return manifest
 
 
+def base_title_for_internet_archive(title: str) -> str:
+    """Return a conservative title query for Archive.org search."""
+    if not title:
+        return ""
+
+    if title.startswith(HANSARD_TITLE_PREFIX):
+        return HANSARD_TITLE_PREFIX
+
+    if title.startswith(PARLIAMENTARY_DEBATES_TITLE_PREFIX):
+        return PARLIAMENTARY_DEBATES_TITLE_PREFIX
+
+    _, label = parse_volume_label(title)
+    if label and title.endswith(label):
+        base = title[: -len(label)].strip(" :-")
+        if base:
+            return base
+    return title
+
+
+def internet_archive_search(query: str, *, rows: int = 5) -> list[dict[str, Any]]:
+    """Search Archive.org and return raw docs."""
+    params = {
+        "q": query,
+        "fl[]": ["identifier", "title", "creator", "year", "collection", "publicdate"],
+        "rows": rows,
+        "output": "json",
+    }
+    response = requests.get(
+        INTERNET_ARCHIVE_SEARCH_URL,
+        params=params,
+        headers=INTERNET_ARCHIVE_SEARCH_HEADERS,
+        timeout=60,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    return list(payload.get("response", {}).get("docs", []))
+
+
+def internet_archive_metadata(identifier: str) -> dict[str, Any]:
+    """Fetch Archive.org metadata for a single item identifier."""
+    response = requests.get(
+        INTERNET_ARCHIVE_METADATA_URL.format(identifier=identifier),
+        headers=INTERNET_ARCHIVE_SEARCH_HEADERS,
+        timeout=60,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict):
+        msg = f"Archive.org metadata for {identifier} is not an object"
+        raise TypeError(msg)
+    return payload
+
+
+def internet_archive_text_candidates(metadata: dict[str, Any]) -> list[str]:
+    """Return downloadable text-like files for a metadata record."""
+    files = metadata.get("files", [])
+    candidates: list[str] = []
+    for file_entry in files:
+        if not isinstance(file_entry, dict):
+            continue
+        name = str(file_entry.get("name", ""))
+        if not name:
+            continue
+        if name.endswith(INTERNET_ARCHIVE_TEXT_SUFFIXES):
+            candidates.append(name)
+    prioritized: list[str] = []
+    for suffix in INTERNET_ARCHIVE_TEXT_SUFFIXES:
+        prioritized.extend(sorted(name for name in candidates if name.endswith(suffix)))
+    return list(dict.fromkeys(prioritized))
+
+
+def internet_archive_best_match(volume: dict[str, Any], docs: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Pick a conservative Archive.org match for a HathiTrust record."""
+    title = str(volume.get("title", "")).strip()
+    author = str(volume.get("author", "")).strip()
+    title_query = base_title_for_internet_archive(title)
+    title_lower = title_query.lower()
+    author_lower = author.lower()
+
+    for doc in docs:
+        doc_title = str(doc.get("title", "")).strip()
+        doc_creator = str(doc.get("creator", "")).strip()
+        doc_title_lower = doc_title.lower()
+        doc_creator_lower = doc_creator.lower()
+        if title_lower and title_lower not in doc_title_lower:
+            continue
+        if author_lower and author_lower not in doc_creator_lower:
+            continue
+        return doc
+    return None
+
+
+def download_internet_archive_text(
+    identifier: str,
+    metadata: dict[str, Any],
+    output_dir: Path,
+) -> Path | None:
+    """Download the best available text file from Archive.org."""
+    candidates = internet_archive_text_candidates(metadata)
+    if not candidates:
+        return None
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{identifier}.txt"
+    for filename in candidates:
+        response = requests.get(
+            INTERNET_ARCHIVE_DOWNLOAD_URL.format(identifier=identifier, filename=filename),
+            headers=INTERNET_ARCHIVE_SEARCH_HEADERS,
+            timeout=120,
+        )
+        if response.status_code != 200:
+            continue
+        content = response.content
+        if filename.endswith(".gz"):
+            content = gzip.decompress(content)
+        output_path.write_bytes(content)
+        return output_path
+    return None
+
+
+def write_internet_archive_overlap_plan(
+    inventory: dict[str, Any],
+    output_dir: Path,
+    *,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Write an Archive.org overlap plan for interim full-text mirroring."""
+    volumes = list(inventory.get("volumes", []))
+    if limit > 0:
+        volumes = volumes[:limit]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    text_output_dir = output_dir / "texts"
+    matched: list[dict[str, Any]] = []
+    unmatched: list[dict[str, Any]] = []
+
+    for volume in volumes:
+        title_query = base_title_for_internet_archive(str(volume.get("title", "")))
+        author = str(volume.get("author", "")).strip()
+        query_parts = [f'title:"{title_query}"']
+        if author:
+            query_parts.append(f'creator:"{author}"')
+        query_parts.append("mediatype:texts")
+        query = " AND ".join(query_parts)
+
+        try:
+            docs = internet_archive_search(query, rows=5)
+        except requests.RequestException as exc:
+            unmatched.append(
+                {
+                    "htid": volume["htid"],
+                    "title": volume.get("title", ""),
+                    "author": author,
+                    "search_query": query,
+                    "error": str(exc),
+                }
+            )
+            continue
+
+        best = internet_archive_best_match(volume, docs)
+        if not best:
+            unmatched.append(
+                {
+                    "htid": volume["htid"],
+                    "title": volume.get("title", ""),
+                    "author": author,
+                    "search_query": query,
+                    "error": "no_match",
+                }
+            )
+            continue
+
+        identifier = str(best.get("identifier", "")).strip()
+        record: dict[str, Any] = {
+            "htid": volume["htid"],
+            "title": volume.get("title", ""),
+            "author": author,
+            "search_query": query,
+            "archive_identifier": identifier,
+            "archive_title": best.get("title", ""),
+            "archive_creator": best.get("creator", ""),
+            "archive_year": best.get("year", ""),
+            "archive_collection": best.get("collection", []),
+            "archive_publicdate": best.get("publicdate", ""),
+            "archive_metadata_url": INTERNET_ARCHIVE_METADATA_URL.format(identifier=identifier),
+            "archive_download_url": f"https://archive.org/download/{identifier}/",
+        }
+
+        try:
+            metadata = internet_archive_metadata(identifier)
+            record["archive_file_candidates"] = internet_archive_text_candidates(metadata)
+            text_path = download_internet_archive_text(identifier, metadata, text_output_dir)
+            if text_path is not None:
+                record["text_path"] = text_path.as_posix()
+        except requests.RequestException as exc:
+            record["error"] = str(exc)
+            unmatched.append(record)
+            continue
+
+        matched.append(record)
+
+    manifest = {
+        "meta": {
+            "generated_at": utc_now(),
+            "source_dataset_name": "Internet Archive public-domain overlap",
+            "source_url": "https://archive.org/",
+            "record_count": len(volumes),
+            "matched_count": len(matched),
+            "unmatched_count": len(unmatched),
+            "hf_dataset_repo": HF_RESEARCH_FULLTEXT_REPO,
+            "acquisition_mode": "internet_archive_public_metadata_and_text",
+        },
+        "matched": matched,
+        "unmatched": unmatched,
+    }
+    write_json(output_dir / "internet_archive_overlap_manifest.json", manifest)
+    write_lines(
+        output_dir / "internet_archive_overlap_htids.txt",
+        [record["htid"] for record in matched],
+    )
+    write_lines(
+        output_dir / "internet_archive_overlap_identifiers.txt",
+        [record["archive_identifier"] for record in matched if record.get("archive_identifier")],
+    )
+    return manifest
+
+
 def build_collection_manifest(inventory: dict[str, Any]) -> dict[str, Any]:
     """Build the collection-level manifest linking child datasets."""
     summary = inventory.get("summary", {})
@@ -819,6 +1064,15 @@ def build_collection_manifest(inventory: dict[str, Any]) -> dict[str, Any]:
                     "static host and published only when rehost eligibility is explicit."
                 ),
             },
+            {
+                "source_id": "internet_archive_public_domain_overlap",
+                "source_type": "archive_org_public_metadata_and_text",
+                "public_archive_rule": (
+                    "Archive.org is the interim public-domain overlap source until HathiTrust "
+                    "rsync access is restored; only public-domain overlap items with matching "
+                    "title/creator evidence are admitted."
+                ),
+            },
         ],
         "child_datasets": child_datasets(),
     }
@@ -841,7 +1095,8 @@ def write_completeness_report(inventory: dict[str, Any], output: Path) -> None:
         f"- Fully parsed seed labels: `{label_parse.get('parsed', 0)}`.",
         f"- Needs enumeration enrichment: `{label_parse.get('needs_enrichment', 0)}`.",
         "- Public full-text uploads fail closed when rights, source, or access profile is ambiguous.",
-        "- Hathi Research Dataset full text must be staged via the approved static rsync host.",
+        "- Internet Archive public-domain overlap is the interim full-text path while HathiTrust rsync remains unavailable.",
+        "- Hathi Research Dataset full text must be staged via the approved static rsync host once access is restored.",
         "- HTRC Extracted Features 2.5 subset acquisition uses rsync file allowlists.",
         "",
         "## Child Datasets",
@@ -885,6 +1140,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     research.add_argument("--limit", type=int, default=0)
 
+    ia = subparsers.add_parser(
+        "internet-archive-plan", help="Build an Internet Archive overlap mirror plan"
+    )
+    ia.add_argument("--inventory", type=Path, required=True)
+    ia.add_argument("--output-dir", type=Path, required=True)
+    ia.add_argument("--limit", type=int, default=0)
+
     discovery = subparsers.add_parser("discovery-manifest", help="Build broader NZ discovery manifest")
     discovery.add_argument("--inventory", type=Path, required=True)
     discovery.add_argument("--output", type=Path, required=True)
@@ -897,6 +1159,7 @@ def main() -> int:
     """CLI entry point."""
     configure_logging()
     args = parse_args()
+    result = 2
 
     if args.command == "inventory":
         volumes = load_collection_export_tsv(args.collection_export)
@@ -908,22 +1171,19 @@ def main() -> int:
         if args.fail_on_count_drift:
             assert_expected_count(inventory, args.expected_count)
         write_inventory_outputs(inventory, output=args.output, htids_output=args.htids_output)
-        return 0
-
-    if args.command == "collection-manifest":
+        result = 0
+    elif args.command == "collection-manifest":
         inventory = load_inventory(args.inventory)
         manifest = build_collection_manifest(inventory)
         write_json(args.output, manifest)
         if args.completeness_report is not None:
             write_completeness_report(inventory, args.completeness_report)
-        return 0
-
-    if args.command == "htrc-ef-plan":
+        result = 0
+    elif args.command == "htrc-ef-plan":
         inventory = load_inventory(args.inventory)
         write_htrc_ef_plan(inventory, args.output_dir, limit=args.limit)
-        return 0
-
-    if args.command == "research-rsync-plan":
+        result = 0
+    elif args.command == "research-rsync-plan":
         inventory = load_inventory(args.inventory)
         write_research_dataset_plan(
             inventory,
@@ -931,17 +1191,20 @@ def main() -> int:
             source_dataset_name=args.source_dataset_name,
             limit=args.limit,
         )
-        return 0
-
-    if args.command == "discovery-manifest":
+        result = 0
+    elif args.command == "internet-archive-plan":
+        inventory = load_inventory(args.inventory)
+        write_internet_archive_overlap_plan(inventory, args.output_dir, limit=args.limit)
+        result = 0
+    elif args.command == "discovery-manifest":
         inventory = load_inventory(args.inventory)
         discovery = build_discovery_manifest(inventory)
         write_json(args.output, discovery)
         if args.report is not None:
             write_discovery_report(discovery, args.report)
-        return 0
+        result = 0
 
-    return 2
+    return result
 
 
 if __name__ == "__main__":

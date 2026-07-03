@@ -63,6 +63,7 @@
 - [x] Task: Create GitHub issue `Track Task: Build NZ Hathifiles and catalog discovery manifest` (#14).
 - [x] Task: Expand beyond Hansard into parliamentary/legal, government/policy, scholarly/cultural, and Maori/Aotearoa targets.
 - [x] Task: Document public versus restricted status for each expanded source family.
+- [x] Task: Add Internet Archive overlap fallback for interim public-domain full-text mirroring.
 - [x] Task: Emit `manifests/hathitrust-nz/nz_discovery_manifest.{json,md}` from the archive planner.
 - [ ] Task: Conductor - User Manual Verification 'Phase 8: Expanded NZ Discovery' (Protocol in workflow.md)
 
@@ -70,6 +71,7 @@
 
 - [x] No restricted full text is uploaded to Hugging Face or Zenodo.
 - [x] Each child dataset has a manifest, dataset card, DOI status, source citation, and completeness report.
+- [x] Interim public-domain full text can be mirrored from Internet Archive while HathiTrust rsync access is unavailable.
 - [x] GitHub Actions dry-run paths pass without publication secrets.
 - [x] HF publication requires `HF_TOKEN` and Zenodo publication requires `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`.
 - [x] Research Dataset full text is acquired only through the configured static host.

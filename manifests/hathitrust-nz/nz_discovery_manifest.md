@@ -1,6 +1,7 @@
 # HathiTrust-NZ Discovery Manifest
 
 - This manifest documents the broader NZ source families that should be discovered beyond the Hansard seed.
+- Internet Archive overlap is the interim full-text path until HathiTrust rsync access is restored.
 - Public metadata and derived manifests are publication-safe; restricted full text remains static-host only.
 
 ## Families

@@ -14,6 +14,7 @@
 ## Current Repo Implementation
 
 - Source-specific inventory builder: `scripts/hathitrust_nz_archive.py`
+- Interim Internet Archive overlap planner: `scripts/hathitrust_nz_archive.py`
 - Generic child dataset uploader: `scripts/upload_hf_folder.py`
 - HF collection sync helper: `scripts/sync_hf_collection.py`
 - GitHub Actions:

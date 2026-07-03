@@ -8,7 +8,8 @@
 - Fully parsed seed labels: `510`.
 - Needs enumeration enrichment: `0`.
 - Public full-text uploads fail closed when rights, source, or access profile is ambiguous.
-- Hathi Research Dataset full text must be staged via the approved static rsync host.
+- Internet Archive public-domain overlap is the interim full-text path while HathiTrust rsync remains unavailable.
+- Hathi Research Dataset full text must be staged via the approved static rsync host once access is restored.
 - HTRC Extracted Features 2.5 subset acquisition uses rsync file allowlists.
 
 ## Child Datasets

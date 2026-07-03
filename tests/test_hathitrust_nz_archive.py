@@ -12,6 +12,7 @@ from scripts.hathitrust_nz_archive import (
     HATHI_RESEARCH_PD_WITH_GOOGLE,
     HATHITRUST_NZ_EXPECTED_COUNT,
     assert_expected_count,
+    base_title_for_internet_archive,
     build_collection_manifest,
     build_discovery_manifest,
     build_inventory,
@@ -22,6 +23,7 @@ from scripts.hathitrust_nz_archive import (
     parse_volume_label,
     write_discovery_report,
     write_htrc_ef_plan,
+    write_internet_archive_overlap_plan,
     write_research_dataset_plan,
 )
 
@@ -140,6 +142,10 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
     assert research_manifest["meta"]["eligible_full_text_count"] == 2
     assert (tmp_path / "research" / "research_dataset_eligible_htids.txt").exists()
     assert collection_manifest["meta"]["hf_collection"] == "edithatogo/hathitrust-nz"
+    assert any(
+        source["source_id"] == "internet_archive_public_domain_overlap"
+        for source in collection_manifest["sources"]
+    )
     assert len(discovery_manifest["source_families"]) == 4
     assert any(
         family["family_id"] == "maori_and_aotearoa" for family in discovery_manifest["source_families"]
@@ -164,3 +170,85 @@ def test_write_discovery_report(tmp_path: Path) -> None:
     text = out.read_text(encoding="utf-8")
     assert "# HathiTrust-NZ Discovery Manifest" in text
     assert "Parliamentary and legal serials" in text
+
+
+def test_base_title_for_internet_archive() -> None:
+    assert (
+        base_title_for_internet_archive("Parliamentary debates (Hansard) v.281")
+        == "Parliamentary debates (Hansard)"
+    )
+    assert base_title_for_internet_archive("Parliamentary debates 291") == "Parliamentary debates"
+
+
+def test_write_internet_archive_overlap_plan(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    volumes = [
+        {
+            "htid": "uc1.test1",
+            "title": "Parliamentary debates (Hansard) v.1",
+            "author": "New Zealand. Parliament",
+        }
+    ]
+
+    class FakeResponse:
+        def __init__(
+            self,
+            payload: dict[str, object],
+            *,
+            status_code: int = 200,
+            content: bytes = b"",
+        ) -> None:
+            self._payload = payload
+            self.status_code = status_code
+            self.content = content
+
+        def raise_for_status(self) -> None:
+            if self.status_code >= 400:
+                raise RuntimeError("http error")
+
+        def json(self) -> dict[str, object]:
+            return self._payload
+
+    def fake_get(
+        url: str,
+        params: dict[str, object] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: int | None = None,
+    ) -> FakeResponse:
+        del params, headers, timeout
+        if "advancedsearch.php" in url:
+            return FakeResponse(
+                {
+                    "response": {
+                        "docs": [
+                            {
+                                "identifier": "parliamentarydeb1870newz",
+                                "title": "Parliamentary debates (Hansard)",
+                                "creator": "New Zealand. Parliament. House of Representatives",
+                                "year": "1870",
+                                "collection": ["americana"],
+                                "publicdate": "2015-03-30 17:03:33",
+                            }
+                        ]
+                    }
+                }
+            )
+        if "metadata/parliamentarydeb1870newz" in url:
+            return FakeResponse(
+                {
+                    "metadata": {"title": "Parliamentary debates (Hansard)"},
+                    "files": [
+                        {"name": "parliamentarydeb1870newz_djvu.txt"},
+                    ],
+                }
+            )
+        if "download/parliamentarydeb1870newz" in url:
+            return FakeResponse({}, content=b"Debate text")
+        raise AssertionError(f"unexpected url: {url}")
+
+    monkeypatch.setattr("scripts.hathitrust_nz_archive.requests.get", fake_get)
+
+    inventory = build_inventory(volumes, expected_count=1)
+    manifest = write_internet_archive_overlap_plan(inventory, tmp_path / "ia", limit=0)
+    assert manifest["meta"]["matched_count"] == 1
+    assert (tmp_path / "ia" / "internet_archive_overlap_manifest.json").exists()
+    assert (tmp_path / "ia" / "texts" / "parliamentarydeb1870newz.txt").read_text(encoding="utf-8") == "Debate text"

@@ -13,6 +13,14 @@ on:
           - ht_text_pd_world_open_access
           - ht_text_pd
           - ht_text_pd_world
+      source_mode:
+        description: Interim source mode.
+        required: true
+        default: internet_archive_fallback
+        type: choice
+        options:
+          - internet_archive_fallback
+          - hathi_static_host
       smoke_limit:
         description: Limit records for smoke tests. Use 0 for all seed records.
         required: false
@@ -59,6 +67,7 @@ jobs:
         run: pixi run -e dev pytest tests/test_hathitrust_nz_archive.py -q
 
       - name: Build static-host acquisition plan
+        if: ${{ inputs.source_mode == 'hathi_static_host' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -77,14 +86,33 @@ jobs:
             --limit "${{ inputs.smoke_limit }}"
           echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
 
+      - name: Build Internet Archive overlap plan
+        if: ${{ inputs.source_mode == 'internet_archive_fallback' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-research"
+          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/research_datasets/internet_archive"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
+            --collection-export data/hathi_collection_export_71329709.tsv \
+            --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --htids-output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard_htids.txt" \
+            --expected-count 510 \
+            --fail-on-count-drift
+          pixi run -e dev python scripts/hathitrust_nz_archive.py internet-archive-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/research_datasets/internet_archive" \
+            --limit "${{ inputs.smoke_limit }}"
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
       - name: Install rsync for static-host pull
-        if: ${{ inputs.pull_static_bundle }}
+        if: ${{ inputs.source_mode == 'hathi_static_host' && inputs.pull_static_bundle }}
         run: |
           sudo apt-get update
           sudo apt-get install -y rsync
 
       - name: Pull staged bundle from static host
-        if: ${{ inputs.pull_static_bundle }}
+        if: ${{ inputs.source_mode == 'hathi_static_host' && inputs.pull_static_bundle }}
         shell: bash
         env:
           HATHI_RSYNC_HOST: ${{ vars.HATHI_RSYNC_HOST }}
@@ -134,7 +162,7 @@ jobs:
             --commit-message "Update HathiTrust-NZ Research Dataset plan"
 
       - name: Publish reviewed staged bundle to Hugging Face
-        if: ${{ inputs.publish_staged_bundle }}
+        if: ${{ inputs.publish_staged_bundle && inputs.source_mode == 'hathi_static_host' }}
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |

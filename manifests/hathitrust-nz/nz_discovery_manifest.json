@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-07-03T06:22:36.497410+00:00",
-    "pipeline_version": "v0.1.0-78-gcbf93db",
+    "generated_at": "2026-07-03T06:52:36.659413+00:00",
+    "pipeline_version": "v0.1.0-79-g058868d",
     "collection_id": "hathitrust-nz",
     "hf_collection": "edithatogo/hathitrust-nz",
     "seed_collection_id": "71329709",
@@ -145,6 +145,7 @@
   },
   "discovery_notes": [
     "The seed Hansard set is the canonical entry point, but discovery extends to additional NZ source families.",
+    "Internet Archive public-domain overlap is the interim full-text path until HathiTrust rsync access is available.",
     "Public metadata and manifests are GitHub-Actions-friendly; restricted full text remains static-host only until permission is explicit.",
     "HTRC derived features remain publication-safe as derived data, while raw full text follows HathiTrust redistribution rules."
   ]

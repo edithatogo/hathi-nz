@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-07-03T05:08:41.603912+00:00",
-    "pipeline_version": "v0.1.0-77-g96204f9",
+    "generated_at": "2026-07-03T06:52:36.649149+00:00",
+    "pipeline_version": "v0.1.0-79-g058868d",
     "collection_id": "hathitrust-nz",
     "hf_collection": "edithatogo/hathitrust-nz",
     "legacy_dataset_repo": "edithatogo/corpus-nz-hathi",
@@ -51,6 +51,11 @@
       "source_id": "hathi_research_datasets",
       "source_type": "static_ip_rsync",
       "public_archive_rule": "Metadata is public; full text is staged only through the approved static host and published only when rehost eligibility is explicit."
+    },
+    {
+      "source_id": "internet_archive_public_domain_overlap",
+      "source_type": "archive_org_public_metadata_and_text",
+      "public_archive_rule": "Archive.org is the interim public-domain overlap source until HathiTrust rsync access is restored; only public-domain overlap items with matching title/creator evidence are admitted."
     }
   ],
   "child_datasets": [
