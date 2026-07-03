@@ -1,0 +1,59 @@
+name: HathiTrust-NZ Internet Archive Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      smoke_limit:
+        description: Limit records for smoke tests. Use 0 for all seed records.
+        required: false
+        default: "1"
+        type: string
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  internet-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Validate Internet Archive planner
+        run: pixi run -e dev pytest tests/test_hathitrust_nz_archive.py -q
+
+      - name: Build Internet Archive smoke bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-ia-smoke"
+          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/research_datasets/internet_archive"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
+            --collection-export data/hathi_collection_export_71329709.tsv \
+            --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --htids-output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard_htids.txt" \
+            --expected-count 510 \
+            --fail-on-count-drift
+          pixi run -e dev python scripts/hathitrust_nz_archive.py internet-archive-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/research_datasets/internet_archive" \
+            --limit "${{ inputs.smoke_limit }}"
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
+      - name: Upload Internet Archive smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hathitrust-nz-internet-archive-smoke
+          path: ${{ env.BUILD_DIR }}
+          if-no-files-found: error

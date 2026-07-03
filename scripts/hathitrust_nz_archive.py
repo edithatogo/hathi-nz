@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import csv
 import gzip
+import hashlib
 import json
 import re
 import sys
@@ -1094,6 +1095,31 @@ def internet_archive_best_match(volume: dict[str, Any], docs: list[dict[str, Any
     return None
 
 
+def internet_archive_review_reason(volume: dict[str, Any], doc: dict[str, Any]) -> list[str]:
+    """Return why a candidate needs manual review instead of auto-match."""
+    reasons: list[str] = []
+    title = base_title_for_internet_archive(str(volume.get("title", "")).strip()).lower()
+    author = str(volume.get("author", "")).strip().lower()
+    doc_title = str(doc.get("title", "")).strip().lower()
+    doc_creator = str(doc.get("creator", "")).strip().lower()
+    if title and title not in doc_title:
+        reasons.append("title_mismatch")
+    if author and author not in doc_creator:
+        reasons.append("creator_mismatch")
+    if not reasons:
+        reasons.append("needs_manual_review")
+    return reasons
+
+
+def sha256_file(path: Path) -> str:
+    """Return the SHA-256 checksum for a file."""
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def download_internet_archive_text(
     identifier: str,
     metadata: dict[str, Any],
@@ -1135,6 +1161,9 @@ def write_internet_archive_overlap_plan(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     text_output_dir = output_dir / "texts"
+    provenance_ledger: list[dict[str, Any]] = []
+    review_queue: list[dict[str, Any]] = []
+    checksum_rows: list[dict[str, Any]] = []
     matched: list[dict[str, Any]] = []
     unmatched: list[dict[str, Any]] = []
 
@@ -1172,6 +1201,30 @@ def write_internet_archive_overlap_plan(
                     "error": "no_match",
                 }
             )
+            if docs:
+                candidate = docs[0]
+                review_queue.append(
+                    {
+                        "htid": volume["htid"],
+                        "title": volume.get("title", ""),
+                        "author": author,
+                        "search_query": query,
+                        "candidate_identifier": candidate.get("identifier", ""),
+                        "candidate_title": candidate.get("title", ""),
+                        "candidate_creator": candidate.get("creator", ""),
+                        "candidate_year": candidate.get("year", ""),
+                        "review_reasons": internet_archive_review_reason(volume, candidate),
+                    }
+                )
+            provenance_ledger.append(
+                {
+                    "htid": volume["htid"],
+                    "search_query": query,
+                    "status": "unmatched",
+                    "matched": False,
+                    "candidate_count": len(docs),
+                }
+            )
             continue
 
         identifier = str(best.get("identifier", "")).strip()
@@ -1196,12 +1249,51 @@ def write_internet_archive_overlap_plan(
             text_path = download_internet_archive_text(identifier, metadata, text_output_dir)
             if text_path is not None:
                 record["text_path"] = text_path.as_posix()
+                checksum = sha256_file(text_path)
+                checksum_rows.append(
+                    {
+                        "htid": volume["htid"],
+                        "archive_identifier": identifier,
+                        "file_path": text_path.as_posix(),
+                        "filename": text_path.name,
+                        "size_bytes": text_path.stat().st_size,
+                        "sha256": checksum,
+                    }
+                )
+                record["sha256"] = checksum
         except requests.RequestException as exc:
             record["error"] = str(exc)
             unmatched.append(record)
+            provenance_ledger.append(
+                {
+                    "htid": volume["htid"],
+                    "search_query": query,
+                    "status": "error",
+                    "matched": False,
+                    "error": str(exc),
+                }
+            )
             continue
 
         matched.append(record)
+        provenance_ledger.append(
+            {
+                "htid": volume["htid"],
+                "search_query": query,
+                "status": "matched",
+                "matched": True,
+                "archive_identifier": identifier,
+                "archive_metadata_url": record["archive_metadata_url"],
+                "archive_download_url": record["archive_download_url"],
+                "archive_title": record["archive_title"],
+                "archive_creator": record["archive_creator"],
+                "archive_year": record["archive_year"],
+                "evidence": {
+                    "title": base_title_for_internet_archive(str(volume.get("title", ""))),
+                    "creator": str(volume.get("author", "")).strip(),
+                },
+            }
+        )
 
     manifest = {
         "meta": {
@@ -1211,13 +1303,18 @@ def write_internet_archive_overlap_plan(
             "record_count": len(volumes),
             "matched_count": len(matched),
             "unmatched_count": len(unmatched),
+            "review_queue_count": len(review_queue),
+            "checksum_count": len(checksum_rows),
             "hf_dataset_repo": HF_RESEARCH_FULLTEXT_REPO,
             "acquisition_mode": "internet_archive_public_metadata_and_text",
         },
         "matched": matched,
         "unmatched": unmatched,
+        "review_queue": review_queue,
     }
     write_json(output_dir / "internet_archive_overlap_manifest.json", manifest)
+    write_json(output_dir / "internet_archive_provenance_ledger.json", {"rows": provenance_ledger})
+    write_json(output_dir / "internet_archive_checksum_manifest.json", {"files": checksum_rows})
     write_lines(
         output_dir / "internet_archive_overlap_htids.txt",
         [record["htid"] for record in matched],
@@ -1225,6 +1322,10 @@ def write_internet_archive_overlap_plan(
     write_lines(
         output_dir / "internet_archive_overlap_identifiers.txt",
         [record["archive_identifier"] for record in matched if record.get("archive_identifier")],
+    )
+    write_lines(
+        output_dir / "internet_archive_review_queue_htids.txt",
+        [entry["htid"] for entry in review_queue],
     )
     return manifest
 

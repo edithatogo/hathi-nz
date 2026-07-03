@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -264,5 +265,79 @@ def test_write_internet_archive_overlap_plan(tmp_path: Path, monkeypatch: pytest
     inventory = build_inventory(volumes, expected_count=1)
     manifest = write_internet_archive_overlap_plan(inventory, tmp_path / "ia", limit=0)
     assert manifest["meta"]["matched_count"] == 1
+    assert manifest["meta"]["review_queue_count"] == 0
+    assert manifest["meta"]["checksum_count"] == 1
     assert (tmp_path / "ia" / "internet_archive_overlap_manifest.json").exists()
     assert (tmp_path / "ia" / "texts" / "parliamentarydeb1870newz.txt").read_text(encoding="utf-8") == "Debate text"
+    assert (tmp_path / "ia" / "internet_archive_provenance_ledger.json").exists()
+    assert (tmp_path / "ia" / "internet_archive_checksum_manifest.json").exists()
+    checksum_manifest = json.loads((tmp_path / "ia" / "internet_archive_checksum_manifest.json").read_text())
+    assert checksum_manifest["files"][0]["sha256"] == hashlib.sha256(b"Debate text").hexdigest()
+
+
+def test_write_internet_archive_overlap_plan_routes_ambiguous_matches_to_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    volumes = [
+        {
+            "htid": "uc1.test2",
+            "title": "Parliamentary debates (Hansard) v.2",
+            "author": "New Zealand. Parliament",
+        }
+    ]
+
+    class FakeResponse:
+        def __init__(
+            self,
+            payload: dict[str, object],
+            *,
+            status_code: int = 200,
+            content: bytes = b"",
+        ) -> None:
+            self._payload = payload
+            self.status_code = status_code
+            self.content = content
+
+        def raise_for_status(self) -> None:
+            if self.status_code >= 400:
+                raise RuntimeError("http error")
+
+        def json(self) -> dict[str, object]:
+            return self._payload
+
+    def fake_get(
+        url: str,
+        params: dict[str, object] | None = None,
+        headers: dict[str, str] | None = None,
+        timeout: int | None = None,
+    ) -> FakeResponse:
+        del params, headers, timeout
+        if "advancedsearch.php" in url:
+            return FakeResponse(
+                {
+                    "response": {
+                        "docs": [
+                            {
+                                "identifier": "ambiguous-item",
+                                "title": "Parliamentary debates (Hansard)",
+                                "creator": "Another creator",
+                                "year": "1871",
+                                "collection": ["americana"],
+                                "publicdate": "2015-03-30 17:03:33",
+                            }
+                        ]
+                    }
+                }
+            )
+        raise AssertionError(f"unexpected url: {url}")
+
+    monkeypatch.setattr("scripts.hathitrust_nz_archive.requests.get", fake_get)
+
+    inventory = build_inventory(volumes, expected_count=1)
+    manifest = write_internet_archive_overlap_plan(inventory, tmp_path / "ia", limit=0)
+    assert manifest["meta"]["matched_count"] == 0
+    assert manifest["meta"]["review_queue_count"] == 1
+    assert manifest["meta"]["checksum_count"] == 0
+    assert (tmp_path / "ia" / "internet_archive_review_queue_htids.txt").read_text(encoding="utf-8") == "uc1.test2\n"
+    review_manifest = json.loads((tmp_path / "ia" / "internet_archive_overlap_manifest.json").read_text())
+    assert review_manifest["review_queue"][0]["review_reasons"]
