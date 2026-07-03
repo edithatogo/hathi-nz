@@ -119,6 +119,12 @@ jobs:
               --output-dir "$BUILD_DIR/research_datasets/internet_archive" \
               --limit 0
           fi
+          mkdir -p "$BUILD_DIR/reports/source-policy" "$BUILD_DIR/reports/internet-archive"
+          cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/reports/source-policy/collection_manifest.json"
+          if [ -d "$BUILD_DIR/research_datasets/internet_archive" ]; then
+            cp "$BUILD_DIR/research_datasets/internet_archive"/internet_archive_*.json "$BUILD_DIR/reports/internet-archive/" 2>/dev/null || true
+            cp "$BUILD_DIR/research_datasets/internet_archive"/internet_archive_*.txt "$BUILD_DIR/reports/internet-archive/" 2>/dev/null || true
+          fi
           pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/htrc_ef" \

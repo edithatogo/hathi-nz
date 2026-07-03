@@ -27,3 +27,7 @@ def test_collection_publish_workflow_runs_strict_publication_status_gate() -> No
     assert "Verify publication status" in workflow
     assert "publication-status --strict" in workflow
     assert "inputs.publish_zenodo && inputs.production" in workflow
+    assert "source-policy" in workflow
+    assert "internet-archive" in workflow
+    assert 'cp "$BUILD_DIR/research_datasets/internet_archive"' in workflow
+    assert 'cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/reports/source-policy/collection_manifest.json"' in workflow
