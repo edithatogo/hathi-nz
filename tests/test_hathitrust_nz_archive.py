@@ -25,6 +25,7 @@ from scripts.hathitrust_nz_archive import (
     source_policy_entry,
     source_policy_summary,
     write_discovery_report,
+    write_htrc_analytics_plan,
     write_htrc_ef_plan,
     write_internet_archive_overlap_plan,
     write_metadata_refresh_plan,
@@ -133,6 +134,7 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
     inventory = build_inventory(volumes[:3], expected_count=3)
 
     htrc_manifest = write_htrc_ef_plan(inventory, tmp_path / "htrc", limit=2)
+    analytics_manifest = write_htrc_analytics_plan(inventory, tmp_path / "analytics", limit=2)
     research_manifest = write_research_dataset_plan(
         inventory,
         tmp_path / "research",
@@ -144,6 +146,8 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
 
     assert htrc_manifest["meta"]["record_count"] == 2
     assert (tmp_path / "htrc" / "htrc_ef25_files.txt").exists()
+    assert analytics_manifest["meta"]["record_count"] == 2
+    assert (tmp_path / "analytics" / "htrc_workset_candidates.json").exists()
     assert research_manifest["meta"]["eligible_full_text_count"] == 2
     assert (tmp_path / "research" / "research_dataset_eligible_htids.txt").exists()
     assert collection_manifest["meta"]["hf_collection"] == "edithatogo/hathitrust-nz"

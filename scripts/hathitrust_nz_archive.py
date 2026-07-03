@@ -1071,6 +1071,82 @@ def write_htrc_ef_plan(
     return manifest
 
 
+def write_htrc_analytics_plan(
+    inventory: dict[str, Any],
+    output_dir: Path,
+    *,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Write HTRC Analytics workset and reproducibility outputs."""
+    volumes = list(inventory.get("volumes", []))
+    if limit > 0:
+        volumes = volumes[:limit]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    workset_candidates: list[dict[str, Any]] = []
+    for volume in volumes:
+        workset_candidates.append(
+            {
+                "htid": volume["htid"],
+                "title": volume.get("title", ""),
+                "author": volume.get("author", ""),
+                "rights_code": volume.get("rights_code", ""),
+                "rights_label": volume.get("rights_label", ""),
+                "htrc_ef25_rsync_path": volume.get("htrc_ef25_rsync_path", ""),
+                "source_policy": source_policy_entry("htrc_analytics"),
+                "source_priority": source_priority("htrc_analytics"),
+                "workset_route": "derived_features_and_aggregate_analysis",
+                "notes": (
+                    "Analytics outputs remain non-consumptive; restricted full text stays out "
+                    "of the analytics bundle."
+                ),
+            }
+        )
+
+    manifest = {
+        "meta": {
+            "generated_at": utc_now(),
+            "source_dataset_name": "HTRC Analytics outputs",
+            "source_url": source_policy_entry("htrc_analytics")["source_url"],
+            "record_count": len(volumes),
+            "limited": limit > 0,
+            "hf_dataset_repo": HF_HTRC_ANALYTICS_REPO,
+            "acquisition_mode": "github_actions_analytics_metadata",
+            "license": "CC-BY-4.0",
+        },
+        "source_policy": source_policy_entry("htrc_analytics"),
+        "workset_candidates": workset_candidates,
+    }
+    write_json(output_dir / "htrc_analytics_manifest.json", manifest)
+    write_json(
+        output_dir / "htrc_workset_candidates.json",
+        {"meta": manifest["meta"], "candidates": workset_candidates},
+    )
+    write_lines(
+        output_dir / "htrc_workset_candidates.txt",
+        [candidate["htid"] for candidate in workset_candidates],
+    )
+    write_lines(
+        output_dir / "README.md",
+        [
+            "# HathiTrust-NZ HTRC Analytics Outputs",
+            "",
+            "Scripts, workset definitions, aggregate outputs, and reproducibility metadata",
+            "for HTRC Analytics workflows related to HathiTrust-NZ.",
+            "",
+            "This bundle is non-consumptive. Restricted full text and Data Capsule-only",
+            "source material are not rehosted.",
+            "",
+            "## Workset Candidates",
+            "",
+            f"- Candidate count: `{len(workset_candidates)}`.",
+            f"- Source policy: `{manifest['source_policy']['display_name']}`.",
+            f"- Source priority: `{manifest['source_policy']['source_priority']}`.",
+        ],
+    )
+    return manifest
+
+
 def write_research_dataset_plan(
     inventory: dict[str, Any],
     output_dir: Path,
@@ -1720,6 +1796,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     htrc_ef.add_argument("--output-dir", type=Path, required=True)
     htrc_ef.add_argument("--limit", type=int, default=0)
 
+    htrc_analytics = subparsers.add_parser(
+        "htrc-analytics-plan", help="Build HTRC Analytics workset outputs"
+    )
+    htrc_analytics.add_argument("--inventory", type=Path, required=True)
+    htrc_analytics.add_argument("--output-dir", type=Path, required=True)
+    htrc_analytics.add_argument("--limit", type=int, default=0)
+
     research = subparsers.add_parser("research-rsync-plan", help="Build Research Dataset plan")
     research.add_argument("--inventory", type=Path, required=True)
     research.add_argument("--output-dir", type=Path, required=True)
@@ -1800,6 +1883,10 @@ def main() -> int:
     elif args.command == "htrc-ef-plan":
         inventory = load_inventory(args.inventory)
         write_htrc_ef_plan(inventory, args.output_dir, limit=args.limit)
+        result = 0
+    elif args.command == "htrc-analytics-plan":
+        inventory = load_inventory(args.inventory)
+        write_htrc_analytics_plan(inventory, args.output_dir, limit=args.limit)
         result = 0
     elif args.command == "research-rsync-plan":
         inventory = load_inventory(args.inventory)

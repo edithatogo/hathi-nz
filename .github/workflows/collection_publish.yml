@@ -138,13 +138,10 @@ jobs:
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/htrc_ef" \
             --limit 0
-          printf '%s\n' \
-            '# HathiTrust-NZ HTRC Analytics Outputs' \
-            '' \
-            'This directory is reserved for HTRC Analytics scripts, workset definitions, aggregate outputs, and reproducibility metadata.' \
-            'Restricted full text and Data Capsule-only source material must not be committed to this public bundle.' \
-            > "$BUILD_DIR/htrc_analytics/README.md"
-          cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/htrc_analytics/collection_manifest.json"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-analytics-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/htrc_analytics" \
+            --limit 0
           echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
 
       - name: Upload collection publication artifact
