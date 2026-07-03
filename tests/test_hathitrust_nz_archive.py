@@ -21,6 +21,8 @@ from scripts.hathitrust_nz_archive import (
     htrc_stubbytree_path,
     load_collection_export_tsv,
     parse_volume_label,
+    source_policy_entry,
+    source_policy_summary,
     write_discovery_report,
     write_htrc_ef_plan,
     write_internet_archive_overlap_plan,
@@ -146,6 +148,11 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
         source["source_id"] == "internet_archive_public_domain_overlap"
         for source in collection_manifest["sources"]
     )
+    assert collection_manifest["source_policy_registry"][0]["source_id"] == "official_parliamentary_sources"
+    assert any(
+        entry["source_id"] == "internet_archive" and entry["access_class"] == "public_domain_overlap_only"
+        for entry in collection_manifest["source_policy_registry"]
+    )
     assert len(discovery_manifest["source_families"]) == 4
     assert any(
         family["family_id"] == "maori_and_aotearoa" for family in discovery_manifest["source_families"]
@@ -159,6 +166,13 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
         "HATHI_RSYNC_USER",
         "HATHI_STATIC_HOST_STAGING_DIR",
     ]
+
+
+def test_source_policy_registry_is_stable_and_priority_sorted() -> None:
+    summary = source_policy_summary()
+    assert summary[0]["source_id"] == "official_parliamentary_sources"
+    assert summary[-1]["source_id"] == "manual_evidence"
+    assert source_policy_entry("internet_archive")["publication_eligibility"]["hugging_face"] == "public_domain_overlap_only"
 
 
 def test_write_discovery_report(tmp_path: Path) -> None:

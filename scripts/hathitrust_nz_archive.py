@@ -138,6 +138,181 @@ INTERNET_ARCHIVE_TEXT_SUFFIXES = (
     "_hocr_searchtext.txt.gz",
     "_djvu.xml",
 )
+SOURCE_POLICY_REGISTRY = {
+    "hathitrust_research_dataset": {
+        "display_name": "HathiTrust Research Dataset",
+        "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/research-datasets/",
+        "permitted_artifacts": [
+            "metadata",
+            "manifests",
+            "full_text",
+            "ocr_text",
+        ],
+        "access_class": "approved_static_host",
+        "default_acquisition_mode": "static_host_rsync",
+        "publication_eligibility": {
+            "hugging_face": "metadata_only_until_static_host_bundle_is_eligible",
+            "zenodo": "metadata_only_until_static_host_bundle_is_eligible",
+        },
+        "source_priority": 10,
+    },
+    "hathifiles": {
+        "display_name": "Hathifiles",
+        "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/hathifiles/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 90,
+    },
+    "hathitrust_oai_pmh": {
+        "display_name": "HathiTrust OAI-PMH",
+        "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/oai-feed/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 80,
+    },
+    "hathitrust_bibliographic_api": {
+        "display_name": "HathiTrust Bibliographic API",
+        "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/bibliographic-api/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 85,
+    },
+    "htrc_solr_ef20": {
+        "display_name": "HTRC Solr EF20",
+        "source_url": "https://solr2.htrc.illinois.edu/solr-ef20/",
+        "permitted_artifacts": ["metadata", "manifests", "derived_features"],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_derived_features",
+            "zenodo": "public_derived_features",
+        },
+        "source_priority": 70,
+    },
+    "htrc_extracted_features": {
+        "display_name": "HTRC Extracted Features",
+        "source_url": "https://htrc.atlassian.net/wiki/spaces/COM/pages/43295914/Extracted+Features+v.2.0",
+        "permitted_artifacts": ["metadata", "manifests", "derived_features"],
+        "access_class": "public_derived_features",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_derived_features",
+            "zenodo": "public_derived_features",
+        },
+        "source_priority": 60,
+    },
+    "htrc_analytics": {
+        "display_name": "HTRC Analytics",
+        "source_url": "https://analytics.hathitrust.org/",
+        "permitted_artifacts": ["scripts", "aggregates", "reproducibility_metadata"],
+        "access_class": "public_analytics_only",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_scripts_aggregates_and_reproducibility_metadata",
+            "zenodo": "public_scripts_aggregates_and_reproducibility_metadata",
+        },
+        "source_priority": 55,
+    },
+    "internet_archive": {
+        "display_name": "Internet Archive",
+        "source_url": "https://archive.org/",
+        "permitted_artifacts": ["metadata", "manifests", "full_text", "ocr_text"],
+        "access_class": "public_domain_overlap_only",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_domain_overlap_only",
+            "zenodo": "public_domain_overlap_only",
+        },
+        "source_priority": 65,
+    },
+    "open_library": {
+        "display_name": "Open Library",
+        "source_url": "https://openlibrary.org/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_metadata",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 64,
+    },
+    "digitalnz": {
+        "display_name": "DigitalNZ",
+        "source_url": "https://digitalnz.org/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_metadata",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 50,
+    },
+    "national_library_nz": {
+        "display_name": "National Library NZ",
+        "source_url": "https://natlib.govt.nz/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_metadata",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 50,
+    },
+    "papers_past": {
+        "display_name": "Papers Past",
+        "source_url": "https://paperspast.natlib.govt.nz/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_metadata",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 50,
+    },
+    "official_parliamentary_sources": {
+        "display_name": "Official parliamentary sources",
+        "source_url": "https://www.parliament.nz/",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "public_metadata",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+            "hugging_face": "public_metadata",
+            "zenodo": "public_metadata",
+        },
+        "source_priority": 95,
+    },
+    "manual_evidence": {
+        "display_name": "Manual evidence",
+        "source_url": "",
+        "permitted_artifacts": ["metadata", "manifests"],
+        "access_class": "manual_review_only",
+        "default_acquisition_mode": "manual",
+        "publication_eligibility": {
+            "hugging_face": "manual_review_only",
+            "zenodo": "manual_review_only",
+        },
+        "source_priority": 5,
+    },
+}
 INTERNET_ARCHIVE_SEARCH_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Codex HathiTrust-NZ archive planner)",
     "Accept": "application/json,text/plain,*/*",
@@ -155,6 +330,25 @@ def canonical_rights_label(rights_code: str | int | None) -> str:
     if not value:
         return "und"
     return RIGHTS_LABELS.get(value, value)
+
+
+def source_policy_registry() -> dict[str, dict[str, Any]]:
+    """Return a copy of the source policy registry."""
+    return json.loads(json.dumps(SOURCE_POLICY_REGISTRY))
+
+
+def source_policy_entry(source_id: str) -> dict[str, Any]:
+    """Return one source policy entry or raise if it is unknown."""
+    try:
+        return source_policy_registry()[source_id]
+    except KeyError as exc:  # pragma: no cover - defensive
+        msg = f"Unknown source policy entry: {source_id}"
+        raise KeyError(msg) from exc
+
+
+def source_priority(source_id: str) -> int:
+    """Return the routing priority for a source."""
+    return int(source_policy_entry(source_id)["source_priority"])
 
 
 def clean_htrc_htid(htid: str) -> str:
@@ -420,6 +614,18 @@ def child_datasets() -> list[dict[str, Any]]:
             "access_class": "public_scripts_aggregates_and_reproducibility_metadata",
             "zenodo_stream": "hathitrust-nz-htrc-analytics",
         },
+    ]
+
+
+def source_policy_summary() -> list[dict[str, Any]]:
+    """Return the source policy registry as sorted manifest entries."""
+    registry = source_policy_registry()
+    return [
+        {
+            "source_id": source_id,
+            **registry[source_id],
+        }
+        for source_id in sorted(registry, key=source_priority, reverse=True)
     ]
 
 
@@ -1074,6 +1280,7 @@ def build_collection_manifest(inventory: dict[str, Any]) -> dict[str, Any]:
                 ),
             },
         ],
+        "source_policy_registry": source_policy_summary(),
         "child_datasets": child_datasets(),
     }
 
