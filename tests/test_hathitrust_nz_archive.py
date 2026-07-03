@@ -27,6 +27,7 @@ from scripts.hathitrust_nz_archive import (
     write_discovery_report,
     write_htrc_ef_plan,
     write_internet_archive_overlap_plan,
+    write_metadata_refresh_plan,
     write_research_dataset_plan,
 )
 
@@ -174,6 +175,24 @@ def test_source_policy_registry_is_stable_and_priority_sorted() -> None:
     assert summary[0]["source_id"] == "official_parliamentary_sources"
     assert summary[-1]["source_id"] == "manual_evidence"
     assert source_policy_entry("internet_archive")["publication_eligibility"]["hugging_face"] == "public_domain_overlap_only"
+
+
+def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
+    volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
+    inventory = build_inventory(volumes[:2], expected_count=2)
+    manifest = write_metadata_refresh_plan(inventory, tmp_path / "metadata", limit=2, oai_cursor="cursor-123")
+
+    assert manifest["meta"]["record_count"] == 2
+    assert manifest["lanes"]["hathifiles"]["record_count"] == 2
+    assert manifest["lanes"]["oai_pmh"]["requested_cursor"] == "cursor-123"
+    assert manifest["lanes"]["bibliographic_api"]["records"][0]["refresh_mode"] == "known_identifier_enrichment"
+    assert (tmp_path / "metadata" / "metadata_refresh_manifest.json").exists()
+    assert (tmp_path / "metadata" / "hathifiles_refresh_manifest.json").exists()
+    assert (tmp_path / "metadata" / "oai_pmh_refresh_manifest.json").exists()
+    assert (tmp_path / "metadata" / "bibliographic_api_refresh_manifest.json").exists()
+    report = (tmp_path / "metadata" / "metadata_refresh_report.md").read_text(encoding="utf-8")
+    assert "HathiTrust-NZ Metadata Refresh Plan" in report
+    assert "Bibliographic API refreshes known HTID enrichment" in report
 
 
 def test_write_discovery_report(tmp_path: Path) -> None:

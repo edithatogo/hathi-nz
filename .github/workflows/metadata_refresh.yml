@@ -1,0 +1,65 @@
+name: HathiTrust-NZ Metadata Refresh
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Limit records for smoke tests. Use 0 for all seed records.
+        required: false
+        default: "0"
+        type: string
+      oai_cursor:
+        description: Optional OAI-PMH cursor state to record in the manifest.
+        required: false
+        default: ""
+        type: string
+  schedule:
+    - cron: "11 2 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  metadata-refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Validate metadata refresh planner
+        run: pixi run -e dev pytest tests/test_hathitrust_nz_archive.py tests/test_collection_publish_workflow.py -q
+
+      - name: Build metadata refresh bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_DIR="$RUNNER_TEMP/hathitrust-nz-metadata-refresh"
+          mkdir -p "$BUILD_DIR/inventory" "$BUILD_DIR/metadata"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
+            --collection-export data/hathi_collection_export_71329709.tsv \
+            --output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --htids-output "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard_htids.txt" \
+            --expected-count 510 \
+            --fail-on-count-drift
+          pixi run -e dev python scripts/hathitrust_nz_archive.py metadata-refresh \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/metadata" \
+            --limit "${{ inputs.limit }}" \
+            --oai-cursor "${{ inputs.oai_cursor }}"
+          echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
+
+      - name: Upload metadata refresh artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hathitrust-nz-metadata-refresh
+          path: ${{ env.BUILD_DIR }}
+          if-no-files-found: error

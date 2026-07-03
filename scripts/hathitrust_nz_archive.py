@@ -53,6 +53,9 @@ HTRC_EF_RSYNC_MODULE = "data.analytics.hathitrust.org::features-2025.04/"
 INTERNET_ARCHIVE_SEARCH_URL = "https://archive.org/advancedsearch.php"
 INTERNET_ARCHIVE_METADATA_URL = "https://archive.org/metadata/{identifier}"
 INTERNET_ARCHIVE_DOWNLOAD_URL = "https://archive.org/download/{identifier}/{filename}"
+HATHIFILE_LIST_URL = "https://www.hathitrust.org/files/hathifiles/hathi_file_list.json"
+HATHI_BIBLIOGRAPHIC_API_URL = "https://share.hathitrust.org/api/volume/{htid}/json"
+HATHI_OAI_FEED_URL = "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/oai-feed/"
 HATHI_RESEARCH_PD_OPEN_ACCESS = "ht_text_pd_open_access"
 HATHI_RESEARCH_PD_WORLD_OPEN_ACCESS = "ht_text_pd_world_open_access"
 HATHI_RESEARCH_PD_WITH_GOOGLE = "ht_text_pd"
@@ -628,6 +631,148 @@ def source_policy_summary() -> list[dict[str, Any]]:
         }
         for source_id in sorted(registry, key=source_priority, reverse=True)
     ]
+
+
+def metadata_refresh_record(
+    volume: dict[str, Any],
+    *,
+    lane: str,
+    source_id: str,
+    refresh_url: str,
+    refresh_mode: str,
+    cursor_state: str = "",
+) -> dict[str, Any]:
+    """Build a deterministic metadata refresh record for one lane."""
+    policy = classify_publication_policy(
+        volume.get("rights_code"),
+        access_profile_code=str(volume.get("access_profile_code", "")),
+        digitization_agent_code=str(volume.get("digitization_agent_code", "")),
+        source_dataset_name=str(volume.get("source_dataset_name", "")) or None,
+    )
+    source = source_policy_entry(source_id)
+    return {
+        "htid": volume.get("htid", ""),
+        "title": volume.get("title", ""),
+        "author": volume.get("author", ""),
+        "rights_code": volume.get("rights_code", ""),
+        "rights_label": policy["rights_label"],
+        "access_class": policy["access_class"],
+        "public_full_text_allowed": policy["public_full_text_allowed"],
+        "source_lane": lane,
+        "source_id": source_id,
+        "source_display_name": source["display_name"],
+        "source_url": source["source_url"],
+        "refresh_url": refresh_url,
+        "refresh_mode": refresh_mode,
+        "cursor_state": cursor_state,
+        "source_priority": source_priority(source_id),
+    }
+
+
+def write_metadata_refresh_plan(
+    inventory: dict[str, Any],
+    output_dir: Path,
+    *,
+    limit: int = 0,
+    oai_cursor: str = "",
+) -> dict[str, Any]:
+    """Write metadata refresh manifests for the primary HathiTrust lanes."""
+    volumes = list(inventory.get("volumes", []))
+    if limit > 0:
+        volumes = volumes[:limit]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    hathifiles: list[dict[str, Any]] = []
+    oai_pmh: list[dict[str, Any]] = []
+    bibliographic_api: list[dict[str, Any]] = []
+
+    for volume in volumes:
+        hathifiles.append(
+            metadata_refresh_record(
+                volume,
+                lane="hathifiles",
+                source_id="hathifiles",
+                refresh_url=HATHIFILE_LIST_URL,
+                refresh_mode="inventory_and_rights_refresh",
+            )
+        )
+        oai_pmh.append(
+            metadata_refresh_record(
+                volume,
+                lane="oai_pmh",
+                source_id="hathitrust_oai_pmh",
+                refresh_url=HATHI_OAI_FEED_URL,
+                refresh_mode="incremental_oai_cursor_refresh",
+                cursor_state=oai_cursor,
+            )
+        )
+        bibliographic_api.append(
+            metadata_refresh_record(
+                volume,
+                lane="bibliographic_api",
+                source_id="hathitrust_bibliographic_api",
+                refresh_url=HATHI_BIBLIOGRAPHIC_API_URL.format(htid=volume.get("htid", "")),
+                refresh_mode="known_identifier_enrichment",
+            )
+        )
+
+    manifest = {
+        "meta": {
+            "generated_at": utc_now(),
+            "source_dataset_name": "HathiTrust metadata refresh lanes",
+            "record_count": len(volumes),
+            "hf_dataset_repo": HF_INVENTORY_REPO,
+            "acquisition_mode": "github_actions_metadata_refresh",
+            "source_policy_version": len(source_policy_summary()),
+        },
+        "source_policy_registry": source_policy_summary(),
+        "lanes": {
+            "hathifiles": {
+                "refresh_url": HATHIFILE_LIST_URL,
+                "record_count": len(hathifiles),
+                "records": hathifiles,
+            },
+            "oai_pmh": {
+                "refresh_url": HATHI_OAI_FEED_URL,
+                "record_count": len(oai_pmh),
+                "requested_cursor": oai_cursor,
+                "records": oai_pmh,
+            },
+            "bibliographic_api": {
+                "refresh_url": "https://share.hathitrust.org/api/volume/{htid}/json",
+                "record_count": len(bibliographic_api),
+                "records": bibliographic_api,
+            },
+        },
+    }
+    write_json(output_dir / "metadata_refresh_manifest.json", manifest)
+    write_json(
+        output_dir / "hathifiles_refresh_manifest.json",
+        {"meta": manifest["meta"], "records": hathifiles},
+    )
+    write_json(
+        output_dir / "oai_pmh_refresh_manifest.json",
+        {"meta": manifest["meta"], "records": oai_pmh},
+    )
+    write_json(
+        output_dir / "bibliographic_api_refresh_manifest.json",
+        {"meta": manifest["meta"], "records": bibliographic_api},
+    )
+    write_lines(
+        output_dir / "metadata_refresh_report.md",
+        [
+            "# HathiTrust-NZ Metadata Refresh Plan",
+            "",
+            f"- Seed record count: `{len(volumes)}`.",
+            f"- Hathifiles refresh records: `{len(hathifiles)}`.",
+            f"- OAI-PMH refresh records: `{len(oai_pmh)}`.",
+            f"- Bibliographic API refresh records: `{len(bibliographic_api)}`.",
+            "- Hathifiles refreshes inventory and rights metadata.",
+            "- OAI-PMH refreshes incremental catalog metadata using cursor state.",
+            "- Bibliographic API refreshes known HTID enrichment for catalog normalization.",
+        ],
+    )
+    return manifest
 
 
 def discovery_families() -> list[dict[str, Any]]:
@@ -1448,6 +1593,18 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     research.add_argument("--limit", type=int, default=0)
 
+    metadata_refresh = subparsers.add_parser(
+        "metadata-refresh", help="Build HathiTrust metadata refresh manifests"
+    )
+    metadata_refresh.add_argument("--inventory", type=Path, required=True)
+    metadata_refresh.add_argument("--output-dir", type=Path, required=True)
+    metadata_refresh.add_argument("--limit", type=int, default=0)
+    metadata_refresh.add_argument(
+        "--oai-cursor",
+        default="",
+        help="Optional OAI-PMH cursor state to record in the manifest.",
+    )
+
     ia = subparsers.add_parser(
         "internet-archive-plan", help="Build an Internet Archive overlap mirror plan"
     )
@@ -1498,6 +1655,15 @@ def main() -> int:
             args.output_dir,
             source_dataset_name=args.source_dataset_name,
             limit=args.limit,
+        )
+        result = 0
+    elif args.command == "metadata-refresh":
+        inventory = load_inventory(args.inventory)
+        write_metadata_refresh_plan(
+            inventory,
+            args.output_dir,
+            limit=args.limit,
+            oai_cursor=args.oai_cursor,
         )
         result = 0
     elif args.command == "internet-archive-plan":
