@@ -107,6 +107,10 @@ jobs:
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output "$BUILD_DIR/discovery/nz_discovery_manifest.json" \
             --report "$BUILD_DIR/discovery/nz_discovery_manifest.md"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py metadata-refresh \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/metadata" \
+            --limit 0
           if [ "${{ inputs.source_mode }}" = "hathi_static_host" ]; then
             pixi run -e dev python scripts/hathitrust_nz_archive.py research-rsync-plan \
               --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
@@ -125,6 +129,11 @@ jobs:
             cp "$BUILD_DIR/research_datasets/internet_archive"/internet_archive_*.json "$BUILD_DIR/reports/internet-archive/" 2>/dev/null || true
             cp "$BUILD_DIR/research_datasets/internet_archive"/internet_archive_*.txt "$BUILD_DIR/reports/internet-archive/" 2>/dev/null || true
           fi
+          pixi run -e dev python scripts/hathitrust_nz_archive.py status-report \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/reports/status" \
+            --metadata-refresh "$BUILD_DIR/metadata/metadata_refresh_manifest.json" \
+            --internet-archive "$BUILD_DIR/research_datasets/internet_archive/internet_archive_overlap_manifest.json"
           pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/htrc_ef" \

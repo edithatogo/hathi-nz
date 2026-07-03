@@ -1001,6 +1001,15 @@ def load_inventory(path: Path) -> dict[str, Any]:
     return data
 
 
+def load_json(path: Path) -> dict[str, Any]:
+    """Load a JSON object from disk."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        msg = f"JSON at {path} is not an object"
+        raise TypeError(msg)
+    return data
+
+
 def write_inventory_outputs(
     inventory: dict[str, Any],
     *,
@@ -1561,6 +1570,134 @@ def write_completeness_report(inventory: dict[str, Any], output: Path) -> None:
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _track_status_snapshot(track_path: Path) -> dict[str, Any] | None:
+    if not track_path.exists():
+        return None
+    track = load_json(track_path)
+    return {
+        "track_id": track.get("track_id", track_path.parent.name),
+        "status": track.get("status", "unknown"),
+        "description": track.get("description", ""),
+        "github_issues": track.get("github_issues", {}),
+        "blocked_until_external_access": track.get("blocked_until_external_access", []),
+        "external_blockers": track.get("external_blockers", []),
+        "recommended_improvements": track.get("recommended_improvements", []),
+        "source_families": track.get("source_families", []),
+    }
+
+
+def build_status_report(
+    inventory: dict[str, Any],
+    *,
+    metadata_refresh: dict[str, Any] | None = None,
+    internet_archive: dict[str, Any] | None = None,
+    track_metadata_paths: list[Path] | None = None,
+) -> dict[str, Any]:
+    """Build a repo-facing status snapshot for HathiTrust-NZ."""
+    repo_root = Path(__file__).resolve().parents[1]
+    summary = inventory.get("summary", {})
+    refresh_lanes = {}
+    if metadata_refresh:
+        refresh_lanes = {
+            lane: {
+                "record_count": lane_info.get("record_count", 0),
+                "refresh_url": lane_info.get("refresh_url", ""),
+            }
+            for lane, lane_info in metadata_refresh.get("lanes", {}).items()
+        }
+
+    ia_summary = {}
+    if internet_archive:
+        ia_summary = {
+            "record_count": internet_archive.get("meta", {}).get("record_count", 0),
+            "matched_count": internet_archive.get("meta", {}).get("matched_count", 0),
+            "review_queue_count": internet_archive.get("meta", {}).get("review_queue_count", 0),
+            "checksum_count": internet_archive.get("meta", {}).get("checksum_count", 0),
+        }
+
+    default_track_paths = [
+        repo_root / "conductor" / "tracks" / "hathitrust_nz_multi_source_archive_20260702" / "metadata.json",
+        repo_root / "conductor" / "tracks" / "hathitrust_nz_interim_acquisition_hardening_20260703" / "metadata.json",
+    ]
+    track_snapshots = []
+    for track_path in track_metadata_paths or default_track_paths:
+        track = _track_status_snapshot(track_path)
+        if track is not None:
+            track_snapshots.append(track)
+
+    return {
+        "meta": {
+            "generated_at": utc_now(),
+            "hf_collection": HUGGING_FACE_COLLECTION,
+            "source_collection_id": inventory.get("meta", {}).get("collection_id", ""),
+            "record_count": inventory.get("meta", {}).get("record_count", 0),
+        },
+        "inventory": {
+            "record_count": summary.get("record_count", 0),
+            "rights_counts": summary.get("rights_counts", {}),
+            "access_class_counts": summary.get("access_class_counts", {}),
+            "label_parse": summary.get("label_parse", {}),
+            "volume_number_parse": summary.get("volume_number_parse", {}),
+            "enumeration_parse": summary.get("enumeration_parse", {}),
+        },
+        "source_policy_registry_count": len(source_policy_summary()),
+        "metadata_refresh": {
+            "present": bool(metadata_refresh),
+            "lanes": refresh_lanes,
+        },
+        "internet_archive": {
+            "present": bool(internet_archive),
+            **ia_summary,
+        },
+        "tracks": track_snapshots,
+    }
+
+
+def write_status_report(
+    inventory: dict[str, Any],
+    output_dir: Path,
+    *,
+    metadata_refresh: dict[str, Any] | None = None,
+    internet_archive: dict[str, Any] | None = None,
+    track_metadata_paths: list[Path] | None = None,
+) -> dict[str, Any]:
+    """Write a status snapshot in JSON and Markdown formats."""
+    report = build_status_report(
+        inventory,
+        metadata_refresh=metadata_refresh,
+        internet_archive=internet_archive,
+        track_metadata_paths=track_metadata_paths,
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_json(output_dir / "status_report.json", report)
+    lines = [
+        "# HathiTrust-NZ Status Snapshot",
+        "",
+        f"- Generated at: `{report['meta']['generated_at']}`.",
+        f"- HF collection: `{report['meta']['hf_collection']}`.",
+        f"- Seed record count: `{report['meta']['record_count']}`.",
+        f"- Source policy entries: `{report['source_policy_registry_count']}`.",
+        f"- Metadata refresh lanes: `{', '.join(sorted(report['metadata_refresh']['lanes'].keys())) or 'none'}`.",
+        f"- Internet Archive matched count: `{report['internet_archive'].get('matched_count', 0)}`.",
+        f"- Internet Archive review queue count: `{report['internet_archive'].get('review_queue_count', 0)}`.",
+        "",
+        "## Tracks",
+        "",
+    ]
+    for track in report["tracks"]:
+        blockers = track.get("blocked_until_external_access", []) or track.get("external_blockers", [])
+        blockers_text = ", ".join(blockers) if blockers else "none"
+        lines.extend(
+            [
+                f"- `{track['track_id']}`: `{track['status']}`",
+                f"  - Blockers: {blockers_text}",
+                f"  - Issues: {track.get('github_issues', {})}",
+            ]
+        )
+    write_lines(output_dir / "status_report.md", lines)
+    return report
+
+
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1603,6 +1740,22 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--oai-cursor",
         default="",
         help="Optional OAI-PMH cursor state to record in the manifest.",
+    )
+
+    status = subparsers.add_parser("status-report", help="Build a repo-facing status snapshot")
+    status.add_argument("--inventory", type=Path, required=True)
+    status.add_argument("--output-dir", type=Path, required=True)
+    status.add_argument("--metadata-refresh", type=Path)
+    status.add_argument("--internet-archive", type=Path)
+    status.add_argument(
+        "--track-metadata",
+        type=Path,
+        action="append",
+        default=[
+            Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
+            Path("conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"),
+        ],
+        help="Optional track metadata files to include in the status snapshot.",
     )
 
     ia = subparsers.add_parser(
@@ -1664,6 +1817,24 @@ def main() -> int:
             args.output_dir,
             limit=args.limit,
             oai_cursor=args.oai_cursor,
+        )
+        result = 0
+    elif args.command == "status-report":
+        inventory = load_inventory(args.inventory)
+        metadata_refresh = (
+            load_json(args.metadata_refresh) if args.metadata_refresh is not None else None
+        )
+        internet_archive = (
+            load_json(args.internet_archive)
+            if args.internet_archive is not None and args.internet_archive.exists()
+            else None
+        )
+        write_status_report(
+            inventory,
+            args.output_dir,
+            metadata_refresh=metadata_refresh,
+            internet_archive=internet_archive,
+            track_metadata_paths=args.track_metadata,
         )
         result = 0
     elif args.command == "internet-archive-plan":

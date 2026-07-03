@@ -29,6 +29,7 @@ from scripts.hathitrust_nz_archive import (
     write_internet_archive_overlap_plan,
     write_metadata_refresh_plan,
     write_research_dataset_plan,
+    write_status_report,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -193,6 +194,36 @@ def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     report = (tmp_path / "metadata" / "metadata_refresh_report.md").read_text(encoding="utf-8")
     assert "HathiTrust-NZ Metadata Refresh Plan" in report
     assert "Bibliographic API refreshes known HTID enrichment" in report
+
+
+def test_write_status_report(tmp_path: Path) -> None:
+    volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
+    inventory = build_inventory(volumes[:2], expected_count=2)
+    metadata_refresh = write_metadata_refresh_plan(inventory, tmp_path / "metadata", limit=2)
+    internet_archive = {
+        "meta": {
+            "record_count": 2,
+            "matched_count": 1,
+            "review_queue_count": 1,
+            "checksum_count": 1,
+        }
+    }
+
+    report = write_status_report(
+        inventory,
+        tmp_path / "status",
+        metadata_refresh=metadata_refresh,
+        internet_archive=internet_archive,
+    )
+
+    assert report["meta"]["record_count"] == 2
+    assert report["metadata_refresh"]["present"] is True
+    assert report["internet_archive"]["matched_count"] == 1
+    assert report["tracks"][0]["track_id"] == "hathitrust_nz_multi_source_archive_20260702"
+    assert (tmp_path / "status" / "status_report.json").exists()
+    text = (tmp_path / "status" / "status_report.md").read_text(encoding="utf-8")
+    assert "HathiTrust-NZ Status Snapshot" in text
+    assert "hathitrust_nz_interim_acquisition_hardening_20260703" in text
 
 
 def test_write_discovery_report(tmp_path: Path) -> None:
