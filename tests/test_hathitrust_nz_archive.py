@@ -144,6 +144,7 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
     assert any(
         family["family_id"] == "maori_and_aotearoa" for family in discovery_manifest["source_families"]
     )
+    assert "HathiTrust OAI feed" in discovery_manifest["source_families"][0]["source_inputs"]
 
     persisted = json.loads((tmp_path / "research" / "research_dataset_manifest.json").read_text())
     assert persisted["static_host_contract"]["required_variables"] == [
