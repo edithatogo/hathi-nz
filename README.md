@@ -175,6 +175,8 @@ For academic citation, use the Zenodo DOI _(once available)_.
 - **Daily**: GitHub Actions `hf_sync.yml` checks for updates.
 - **Monthly**: Review validation reports and coverage metrics.
 - **Annually**: Create Zenodo archival snapshot with DOI.
+- **Publication-status reruns**: If a `collection_publish.yml` run has already produced a `hathitrust-nz-collection-publication` artifact, rerun `.github/workflows/publication_status.yml` with `workflow_run_id` set to that run ID to reuse the generated `reports/status/status_report.json` snapshot instead of recomputing from scratch.
+- **Redundancy sources**: Treat HathiFiles, OAI-PMH, and the Bibliographic API as metadata redundancy; HTRC EF/Analytics as derived-feature redundancy; and Internet Archive/Open Library as interim overlap sources only.
 
 ---
 

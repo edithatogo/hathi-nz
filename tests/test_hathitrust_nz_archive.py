@@ -22,6 +22,7 @@ from scripts.hathitrust_nz_archive import (
     htrc_stubbytree_path,
     load_collection_export_tsv,
     parse_volume_label,
+    redundancy_source_summary,
     source_policy_entry,
     source_policy_summary,
     write_discovery_report,
@@ -182,6 +183,25 @@ def test_source_policy_registry_is_stable_and_priority_sorted() -> None:
     assert source_policy_entry("internet_archive")["publication_eligibility"]["hugging_face"] == "public_domain_overlap_only"
 
 
+def test_redundancy_source_summary_groups_metadata_and_overlap_sources() -> None:
+    summary = redundancy_source_summary()
+
+    assert [entry["source_id"] for entry in summary["metadata"]] == [
+        "hathifiles",
+        "hathitrust_oai_pmh",
+        "hathitrust_bibliographic_api",
+    ]
+    assert [entry["source_id"] for entry in summary["derived_features"]] == [
+        "htrc_solr_ef20",
+        "htrc_extracted_features",
+        "htrc_analytics",
+    ]
+    assert [entry["source_id"] for entry in summary["overlap"]] == [
+        "internet_archive",
+        "open_library",
+    ]
+
+
 def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
     inventory = build_inventory(volumes[:2], expected_count=2)
@@ -223,10 +243,13 @@ def test_write_status_report(tmp_path: Path) -> None:
     assert report["meta"]["record_count"] == 2
     assert report["metadata_refresh"]["present"] is True
     assert report["internet_archive"]["matched_count"] == 1
+    assert report["redundancy"]["metadata"][0]["source_id"] == "hathifiles"
+    assert report["redundancy"]["overlap"][0]["source_id"] == "internet_archive"
     assert report["tracks"][0]["track_id"] == "hathitrust_nz_multi_source_archive_20260702"
     assert (tmp_path / "status" / "status_report.json").exists()
     text = (tmp_path / "status" / "status_report.md").read_text(encoding="utf-8")
     assert "HathiTrust-NZ Status Snapshot" in text
+    assert "Metadata redundancy sources" in text
     assert "hathitrust_nz_interim_acquisition_hardening_20260703" in text
 
 

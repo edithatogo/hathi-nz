@@ -633,6 +633,37 @@ def source_policy_summary() -> list[dict[str, Any]]:
     ]
 
 
+def redundancy_source_summary() -> dict[str, list[dict[str, Any]]]:
+    """Return source policy entries grouped by redundancy role."""
+    summary = source_policy_summary()
+    by_source = {entry["source_id"]: entry for entry in summary}
+    return {
+        "metadata": [
+            by_source[source_id]
+            for source_id in (
+                "hathifiles",
+                "hathitrust_oai_pmh",
+                "hathitrust_bibliographic_api",
+            )
+            if source_id in by_source
+        ],
+        "derived_features": [
+            by_source[source_id]
+            for source_id in (
+                "htrc_solr_ef20",
+                "htrc_extracted_features",
+                "htrc_analytics",
+            )
+            if source_id in by_source
+        ],
+        "overlap": [
+            by_source[source_id]
+            for source_id in ("internet_archive", "open_library")
+            if source_id in by_source
+        ],
+    }
+
+
 def metadata_refresh_record(
     volume: dict[str, Any],
     *,
@@ -1672,6 +1703,7 @@ def build_status_report(
     """Build a repo-facing status snapshot for HathiTrust-NZ."""
     repo_root = Path(__file__).resolve().parents[1]
     summary = inventory.get("summary", {})
+    redundancy = redundancy_source_summary()
     refresh_lanes = {}
     if metadata_refresh:
         refresh_lanes = {
@@ -1717,6 +1749,11 @@ def build_status_report(
             "enumeration_parse": summary.get("enumeration_parse", {}),
         },
         "source_policy_registry_count": len(source_policy_summary()),
+        "redundancy": {
+            "metadata": redundancy["metadata"],
+            "derived_features": redundancy["derived_features"],
+            "overlap": redundancy["overlap"],
+        },
         "metadata_refresh": {
             "present": bool(metadata_refresh),
             "lanes": refresh_lanes,
@@ -1753,6 +1790,9 @@ def write_status_report(
         f"- HF collection: `{report['meta']['hf_collection']}`.",
         f"- Seed record count: `{report['meta']['record_count']}`.",
         f"- Source policy entries: `{report['source_policy_registry_count']}`.",
+        f"- Metadata redundancy sources: `{', '.join(entry['source_id'] for entry in report['redundancy']['metadata']) or 'none'}`.",
+        f"- Derived-feature redundancy sources: `{', '.join(entry['source_id'] for entry in report['redundancy']['derived_features']) or 'none'}`.",
+        f"- Interim overlap sources: `{', '.join(entry['source_id'] for entry in report['redundancy']['overlap']) or 'none'}`.",
         f"- Metadata refresh lanes: `{', '.join(sorted(report['metadata_refresh']['lanes'].keys())) or 'none'}`.",
         f"- Internet Archive matched count: `{report['internet_archive'].get('matched_count', 0)}`.",
         f"- Internet Archive review queue count: `{report['internet_archive'].get('review_queue_count', 0)}`.",

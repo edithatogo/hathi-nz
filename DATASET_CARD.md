@@ -190,6 +190,17 @@ Use the `production` input only when you want the workflow to switch away from
 the sandbox Zenodo API. The workflow expects `ZENODO_TOKEN` to be available as a
 repository secret.
 
+If you need to re-check publication state for a specific publish run, dispatch
+`.github/workflows/publication_status.yml` with `workflow_run_id` set to the
+`collection_publish.yml` run ID. The workflow will download the
+`hathitrust-nz-collection-publication` artifact and reuse its
+`reports/status/status_report.json` snapshot.
+
+Redundancy guidance:
+- HathiFiles, OAI-PMH, and the Bibliographic API are metadata redundancy sources.
+- HTRC Extracted Features and HTRC Analytics are derived-feature redundancy sources.
+- Internet Archive and Open Library are interim overlap sources only.
+
 ## Citation
 
 ```bibtex

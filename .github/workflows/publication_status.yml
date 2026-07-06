@@ -4,15 +4,36 @@ on:
   schedule:
     - cron: "0 3 * * 1"
   workflow_dispatch:
+    inputs:
+      workflow_run_id:
+        description: Optional workflow run ID containing a published status artifact.
+        required: false
+        type: string
+      artifact_name:
+        description: Artifact name to download from the referenced run.
+        required: false
+        default: hathitrust-nz-collection-publication
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   report:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download published status artifact
+        if: ${{ inputs.workflow_run_id != '' }}
+        uses: actions/download-artifact@v5
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.workflow_run_id }}
+          name: ${{ inputs.artifact_name }}
+          path: ${{ runner.temp }}/publication-status-artifact
 
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@v0
@@ -22,4 +43,11 @@ jobs:
           environments: dev
 
       - name: Report publication status
-        run: pixi run -e dev publication-status
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARGS=(--strict)
+          if [ -n "${{ inputs.workflow_run_id }}" ]; then
+            ARGS+=(--status-report "$RUNNER_TEMP/publication-status-artifact/reports/status/status_report.json")
+          fi
+          pixi run -e dev publication-status "${ARGS[@]}"

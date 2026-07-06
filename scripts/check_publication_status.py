@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TRACKS_PATH = ROOT / "conductor" / "tracks.md"
 DATASET_CARD_PATH = ROOT / "DATASET_CARD.md"
 MANIFEST_PATH = ROOT / "manifests" / "latest_manifest.json"
+STATUS_REPORT_PATH = ROOT / "reports" / "status" / "status_report.json"
 
 get_settings: Callable[[], Any] | None = None
 try:
@@ -106,6 +107,54 @@ def _manifest_summary(text: str) -> dict[str, Any]:
     }
 
 
+def _status_report_summary(text: str) -> dict[str, Any]:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return {"exists": False, "error": str(exc), "track_count": 0, "roadmap_complete": False}
+    if not isinstance(data, dict):
+        return {"exists": False, "error": "status report is not an object", "track_count": 0, "roadmap_complete": False}
+
+    tracks = data.get("tracks", [])
+    meta = data.get("meta", {})
+    inventory = data.get("inventory", {})
+    metadata_refresh = data.get("metadata_refresh", {})
+    internet_archive = data.get("internet_archive", {})
+    track_count = len(tracks) if isinstance(tracks, list) else 0
+    complete = 0
+    in_progress = 0
+    pending = 0
+    if isinstance(tracks, list):
+        for track in tracks:
+            if not isinstance(track, dict):
+                continue
+            status = str(track.get("status") or "").strip().lower()
+            if status == "complete":
+                complete += 1
+            elif status == "in_progress":
+                in_progress += 1
+            else:
+                pending += 1
+
+    meta_record_count = meta.get("record_count", 0) if isinstance(meta, dict) else 0
+    meta_generated_at = meta.get("generated_at") if isinstance(meta, dict) else None
+    meta_hf_collection = meta.get("hf_collection") if isinstance(meta, dict) else None
+    return {
+        "exists": True,
+        "generated_at": meta_generated_at,
+        "hf_collection": meta_hf_collection,
+        "record_count": meta_record_count,
+        "track_count": track_count,
+        "complete_track_count": complete,
+        "in_progress_track_count": in_progress,
+        "pending_track_count": pending,
+        "roadmap_complete": in_progress == 0 and pending == 0,
+        "inventory_record_count": inventory.get("record_count", 0) if isinstance(inventory, dict) else 0,
+        "metadata_refresh_present": bool(metadata_refresh.get("present")) if isinstance(metadata_refresh, dict) else False,
+        "internet_archive_present": bool(internet_archive.get("present")) if isinstance(internet_archive, dict) else False,
+    }
+
+
 def _doi_resolves(doi_url: str) -> dict[str, Any]:
     try:
         response = requests.get(doi_url, timeout=30, allow_redirects=True)
@@ -186,12 +235,14 @@ def _check_zenodo(query: str = "corpus-nz-hathi") -> dict[str, Any]:
     return {"query": query, "match_count": len(matches), "matches": matches}
 
 
-def check_publication_status() -> dict[str, Any]:
+def check_publication_status(*, status_report_path: Path | None = None) -> dict[str, Any]:
     tracks = _track_summary(_text(TRACKS_PATH))
     hugging_face = _check_hugging_face(_hf_repo_id())
     zenodo = _check_zenodo()
     dataset_card = _text(DATASET_CARD_PATH)
     manifest = _manifest_summary(_text(MANIFEST_PATH)) if MANIFEST_PATH.exists() else {"exists": False, "record_count": 0}
+    status_report_file = status_report_path or STATUS_REPORT_PATH
+    status_report = _status_report_summary(_text(status_report_file)) if status_report_file.exists() else {"exists": False, "track_count": 0, "roadmap_complete": False}
     expected_volumes = _dataset_card_expected_volumes(dataset_card)
     card_doi = _dataset_card_doi(dataset_card)
     doi_status = _doi_resolves(card_doi["url"]) if card_doi is not None else None
@@ -207,16 +258,18 @@ def check_publication_status() -> dict[str, Any]:
         and doi_status.get("resolves")
         and manifest_complete
     )
-    ready = publication_ready
+    roadmap_complete = status_report["roadmap_complete"] if status_report.get("exists") else tracks["all_complete"]
+    ready = publication_ready and roadmap_complete
     return {
         "tracks": tracks,
         "hugging_face": hugging_face,
         "zenodo": zenodo,
         "manifest": manifest,
+        "status_report": status_report,
         "expected_volumes": expected_volumes,
         "dataset_card_doi": card_doi,
         "doi_status": doi_status,
-        "roadmap_complete": tracks["all_complete"],
+        "roadmap_complete": roadmap_complete,
         "publication_ready": publication_ready,
         "ready": ready,
     }
@@ -224,6 +277,12 @@ def check_publication_status() -> dict[str, Any]:
 
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Report roadmap and publication status.")
+    parser.add_argument(
+        "--status-report",
+        type=Path,
+        default=STATUS_REPORT_PATH,
+        help="Optional path to the generated status_report.json snapshot.",
+    )
     parser.add_argument(
         "--strict",
         action="store_true",
@@ -234,7 +293,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 def main(args: list[str] | None = None) -> int:
     ns = parse_args(args)
-    report = check_publication_status()
+    report = check_publication_status(status_report_path=ns.status_report)
     print(json.dumps(report, indent=2))
     if ns.strict and not report["ready"]:
         return 1

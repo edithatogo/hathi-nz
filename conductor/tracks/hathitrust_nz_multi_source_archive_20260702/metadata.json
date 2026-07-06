@@ -3,7 +3,7 @@
   "type": "feature",
   "status": "in_progress",
   "created_at": "2026-07-02T00:00:00+10:00",
-  "updated_at": "2026-07-03T16:20:00+10:00",
+  "updated_at": "2026-07-07T00:25:26+10:00",
   "external_blockers": [
     "HF_TOKEN can upload dataset repos but cannot create or update Hugging Face collections.",
     "ZENODO_SANDBOX_TOKEN is present but Zenodo sandbox deposition creation returns 403 Permission denied.",
@@ -13,6 +13,27 @@
   "github_project": "hathi-nz Conductor Roadmap",
   "github_project_url": "https://github.com/users/edithatogo/projects/12",
   "rare_insights_project_url": "https://github.com/users/edithatogo/projects/4",
+  "github_labels": [
+    "project:rare-insights",
+    "source:metadata",
+    "source:derived-features",
+    "source:interim-overlap",
+    "blocked:external-access"
+  ],
+  "github_project_fields": {
+    "status": [
+      "Todo",
+      "In Progress",
+      "Done"
+    ],
+    "redundancy_tier": [
+      "metadata",
+      "derived-features",
+      "interim-overlap",
+      "mixed",
+      "blocked"
+    ]
+  },
   "github_issues": [
     13,
     14,

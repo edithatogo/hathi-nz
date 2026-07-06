@@ -196,13 +196,85 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
 
 
 @pytest.mark.unit
+def test_check_publication_status_uses_status_report_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    status_report_path = tmp_path / "status_report.json"
+    status_report_path.write_text(
+        json.dumps(
+            {
+                "meta": {
+                    "generated_at": "2026-07-03T00:00:00Z",
+                    "hf_collection": "edithatogo/hathitrust-nz",
+                    "record_count": 510,
+                },
+                "inventory": {"record_count": 510},
+                "metadata_refresh": {"present": True},
+                "internet_archive": {"present": True},
+                "tracks": [
+                    {"track_id": "one", "status": "complete"},
+                    {"track_id": "two", "status": "in_progress"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_text",
+        lambda path: {
+            check_publication_status_module.TRACKS_PATH: """\
+## [x] Track: One
+""",
+            check_publication_status_module.MANIFEST_PATH: """\
+{"meta": {"record_count": 510}, "volumes": [{"htid": "uc1.b2889853"}]}
+""",
+            check_publication_status_module.DATASET_CARD_PATH: (
+                "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
+            ),
+            status_report_path: status_report_path.read_text(encoding="utf-8"),
+        }[path],
+    )
+    monkeypatch.setattr(check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response())  # type: ignore[assignment]
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_zenodo",
+        lambda query="corpus-nz-hathi": {
+            "query": query,
+            "match_count": 0,
+            "matches": [],
+        },
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_doi_resolves",
+        lambda doi_url: {
+            "resolves": True,
+            "status_code": 200,
+            "final_url": doi_url,
+            "redirects": 1,
+        },
+    )
+
+    report = check_publication_status(status_report_path=status_report_path)
+
+    assert report["status_report"]["exists"] is True
+    assert report["status_report"]["track_count"] == 2
+    assert report["status_report"]["roadmap_complete"] is False
+    assert report["roadmap_complete"] is False
+    assert report["ready"] is False
+
+
+@pytest.mark.unit
 def test_strict_mode_allows_publication_ready_even_when_roadmap_is_incomplete(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         check_publication_status_module,
         "check_publication_status",
-        lambda: {
+        lambda **kwargs: {
             "tracks": {"all_complete": False},
             "hugging_face": {"exists": True},
             "zenodo": {"match_count": 0},
@@ -225,11 +297,53 @@ def test_strict_mode_allows_publication_ready_even_when_roadmap_is_incomplete(
 
 
 @pytest.mark.unit
+def test_strict_mode_blocks_when_status_report_is_not_complete(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    status_report_path = tmp_path / "status_report.json"
+    status_report_path.write_text(
+        json.dumps(
+            {
+                "meta": {"record_count": 510},
+                "tracks": [{"track_id": "one", "status": "complete"}, {"track_id": "two", "status": "pending"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "check_publication_status",
+        lambda **kwargs: {
+            "tracks": {"all_complete": False},
+            "status_report": {"exists": True, "roadmap_complete": False},
+            "hugging_face": {"exists": True},
+            "zenodo": {"match_count": 0},
+            "manifest": {"record_count": 510},
+            "expected_volumes": 510,
+            "dataset_card_doi": {"doi": "10.5281/zenodo.123456"},
+            "doi_status": {"resolves": True},
+            "roadmap_complete": False,
+            "publication_ready": True,
+            "ready": False,
+        },
+    )
+    buffer = io.StringIO()
+    with redirect_stdout(buffer):
+        exit_code = check_publication_status_module.main(["--strict", "--status-report", str(status_report_path)])
+
+    payload = json.loads(buffer.getvalue())
+    assert payload["status_report"]["exists"] is True
+    assert payload["ready"] is False
+    assert exit_code == 1
+
+
+@pytest.mark.unit
 def test_main_strict_exits_nonzero_when_not_ready(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         check_publication_status_module,
         "check_publication_status",
-        lambda: {
+        lambda **kwargs: {
             "tracks": {"all_complete": False},
             "hugging_face": {"exists": True},
             "zenodo": {"match_count": 0},
