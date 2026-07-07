@@ -67,21 +67,21 @@
 
 ## Phase 7: GitHub Actions Orchestration
 
-- [ ] Task: Add or update workflows for source policy validation, metadata refresh, IA overlap smoke, HTRC EF sync, completeness reporting, and collection publication.
-- [ ] Task: Ensure every routine workflow supports dry-run execution without secrets.
-- [ ] Task: Ensure publication jobs require explicit `HF_TOKEN`, `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`, and static-host secrets where needed.
-- [ ] Task: Keep static rsync acquisition on the configured host and have Actions consume staged bundles or manifests.
-- [ ] Task: Add workflow tests and `actionlint` coverage for changed workflows.
+- [x] Task: Add or update workflows for source policy validation, metadata refresh, IA overlap smoke, HTRC EF sync, completeness reporting, and collection publication.
+- [x] Task: Ensure every routine workflow supports dry-run execution without secrets.
+- [x] Task: Ensure publication jobs require explicit `HF_TOKEN`, `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`, and static-host secrets where needed.
+- [x] Task: Keep static rsync acquisition on the configured host and have Actions consume staged bundles or manifests.
+- [x] Task: Add workflow tests and `actionlint` coverage for changed workflows.
 - [ ] Task: Create GitHub issue `Track Task: Wire interim acquisition GitHub Actions` (#27).
 - [ ] Task: Conductor - User Manual Verification 'Phase 7: GitHub Actions Orchestration' (Protocol in workflow.md)
 
 ## Phase 8: Publication Evidence And Completeness Dashboard
 
-- [ ] Task: Extend completeness reports with counts for known, public, enriched, IA-matched, IA-downloaded, HTRC EF-available, review-required, HF-published, and Zenodo-deposited records.
+- [x] Task: Extend completeness reports with counts for known, public, enriched, IA-matched, IA-downloaded, HTRC EF-available, review-required, HF-published, and Zenodo-deposited records.
 - [ ] Task: Add dataset-card sections that identify official HathiTrust, IA interim, HTRC EF, analytics-only, metadata-only, and blocked routes.
 - [ ] Task: Add DOI/HF status writeback for interim-source child dataset artifacts.
 - [x] Task: Synchronize GitHub issues, project fields, and redundancy-label taxonomy with blocker status and completion evidence.
-- [ ] Task: Add tests for completeness report counters and dataset-card status rendering.
+- [x] Task: Add tests for completeness report counters and dataset-card status rendering.
 - [ ] Task: Create GitHub issue `Track Task: Add completeness dashboard and publication evidence` (#28).
 - [ ] Task: Conductor - User Manual Verification 'Phase 8: Publication Evidence And Completeness Dashboard' (Protocol in workflow.md)
 

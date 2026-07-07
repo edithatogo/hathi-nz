@@ -123,6 +123,14 @@ jobs:
               --output-dir "$BUILD_DIR/research_datasets/internet_archive" \
               --limit 0
           fi
+          pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/htrc_ef" \
+            --limit 0
+          pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-analytics-plan \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/htrc_analytics" \
+            --limit 0
           mkdir -p "$BUILD_DIR/reports/source-policy" "$BUILD_DIR/reports/internet-archive"
           cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/reports/source-policy/collection_manifest.json"
           if [ -d "$BUILD_DIR/research_datasets/internet_archive" ]; then
@@ -133,15 +141,9 @@ jobs:
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/reports/status" \
             --metadata-refresh "$BUILD_DIR/metadata/metadata_refresh_manifest.json" \
-            --internet-archive "$BUILD_DIR/research_datasets/internet_archive/internet_archive_overlap_manifest.json"
-          pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
-            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
-            --output-dir "$BUILD_DIR/htrc_ef" \
-            --limit 0
-          pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-analytics-plan \
-            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
-            --output-dir "$BUILD_DIR/htrc_analytics" \
-            --limit 0
+            --internet-archive "$BUILD_DIR/research_datasets/internet_archive/internet_archive_overlap_manifest.json" \
+            --htrc-ef "$BUILD_DIR/htrc_ef/htrc_ef25_manifest.json" \
+            --htrc-analytics "$BUILD_DIR/htrc_analytics/htrc_analytics_manifest.json"
           echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
 
       - name: Upload collection publication artifact

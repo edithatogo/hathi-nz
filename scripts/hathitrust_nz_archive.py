@@ -2078,16 +2078,55 @@ def write_completeness_report(inventory: dict[str, Any], output: Path) -> None:
     parse = summary.get("volume_number_parse", {})
     label_parse = summary.get("label_parse", {})
     enumeration_parse = summary.get("enumeration_parse", {})
+    access_counts = summary.get("access_class_counts", {})
+    report = {
+        "meta": {
+            "generated_at": utc_now(),
+            "hf_collection": HUGGING_FACE_COLLECTION,
+            "source_collection_id": HATHITRUST_NZ_COLLECTION_ID,
+            "record_count": summary.get("record_count", 0),
+        },
+        "counts": {
+            "known": summary.get("record_count", 0),
+            "public_full_text": access_counts.get("public_full_text", 0),
+            "metadata_only": sum(
+                access_counts.get(key, 0)
+                for key in (
+                    "metadata_only_pending_source_permission",
+                    "metadata_only_restricted",
+                    "metadata_only_until_static_host_bundle_is_eligible",
+                )
+            ),
+            "enriched": label_parse.get("parsed", 0),
+            "ia_matched": 0,
+            "ia_downloaded": 0,
+            "htrc_ef_available": sum(
+                1 for volume in inventory.get("volumes", []) if volume.get("htrc_ef25_rsync_path")
+            ),
+            "review_required": label_parse.get("needs_enrichment", 0),
+            "hf_published": None,
+            "zenodo_deposited": None,
+        },
+    }
     lines = [
         "# HathiTrust-NZ Archive Completeness Report",
         "",
         f"- Source collection: HathiTrust Collection `{HATHITRUST_NZ_COLLECTION_ID}`.",
         f"- HF collection: `{HUGGING_FACE_COLLECTION}`.",
         f"- Seed record count: `{summary.get('record_count', 0)}`.",
+        f"- Public full-text records: `{report['counts']['public_full_text']}`.",
+        f"- Metadata-only records: `{report['counts']['metadata_only']}`.",
+        f"- Enriched records: `{report['counts']['enriched']}`.",
         f"- Parsed numeric volume labels: `{parse.get('parsed', 0)}`.",
         f"- Parsed enumeration labels: `{enumeration_parse.get('parsed', 0)}`.",
         f"- Fully parsed seed labels: `{label_parse.get('parsed', 0)}`.",
         f"- Needs enumeration enrichment: `{label_parse.get('needs_enrichment', 0)}`.",
+        f"- IA matched records: `{report['counts']['ia_matched']}`.",
+        f"- IA downloaded records: `{report['counts']['ia_downloaded']}`.",
+        f"- HTRC EF-available records: `{report['counts']['htrc_ef_available']}`.",
+        f"- Review-required records: `{report['counts']['review_required']}`.",
+        "- HF published records: `unknown until the publication workflow writes the release summary`.",
+        "- Zenodo deposited records: `unknown until the publication workflow writes the release summary`.",
         "- Public full-text uploads fail closed when rights, source, or access profile is ambiguous.",
         "- Internet Archive public-domain overlap is the interim full-text path while HathiTrust rsync remains unavailable.",
         "- Hathi Research Dataset full text must be staged via the approved static rsync host once access is restored.",
@@ -2100,6 +2139,7 @@ def write_completeness_report(inventory: dict[str, Any], output: Path) -> None:
         lines.append(f"- `{dataset['dataset_id']}` -> `{dataset['hf_repo_id']}`")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_json(output.with_suffix(".json"), report)
 
 
 def _track_status_snapshot(track_path: Path) -> dict[str, Any] | None:
@@ -2123,6 +2163,8 @@ def build_status_report(
     *,
     metadata_refresh: dict[str, Any] | None = None,
     internet_archive: dict[str, Any] | None = None,
+    htrc_ef: dict[str, Any] | None = None,
+    htrc_analytics: dict[str, Any] | None = None,
     track_metadata_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
     """Build a repo-facing status snapshot for HathiTrust-NZ."""
@@ -2146,6 +2188,21 @@ def build_status_report(
             "matched_count": internet_archive.get("meta", {}).get("matched_count", 0),
             "review_queue_count": internet_archive.get("meta", {}).get("review_queue_count", 0),
             "checksum_count": internet_archive.get("meta", {}).get("checksum_count", 0),
+        }
+
+    htrc_summary = {}
+    if htrc_ef or htrc_analytics:
+        htrc_summary = {
+            "ef": {
+                "present": bool(htrc_ef),
+                "record_count": htrc_ef.get("meta", {}).get("record_count", 0) if htrc_ef else 0,
+                "route": htrc_ef.get("meta", {}).get("route", "") if htrc_ef else "",
+            },
+            "analytics": {
+                "present": bool(htrc_analytics),
+                "record_count": htrc_analytics.get("meta", {}).get("record_count", 0) if htrc_analytics else 0,
+                "route": htrc_analytics.get("meta", {}).get("route", "") if htrc_analytics else "",
+            },
         }
 
     default_track_paths = [
@@ -2187,6 +2244,7 @@ def build_status_report(
             "present": bool(internet_archive),
             **ia_summary,
         },
+        "htrc": htrc_summary,
         "tracks": track_snapshots,
     }
 
@@ -2197,6 +2255,8 @@ def write_status_report(
     *,
     metadata_refresh: dict[str, Any] | None = None,
     internet_archive: dict[str, Any] | None = None,
+    htrc_ef: dict[str, Any] | None = None,
+    htrc_analytics: dict[str, Any] | None = None,
     track_metadata_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
     """Write a status snapshot in JSON and Markdown formats."""
@@ -2204,6 +2264,8 @@ def write_status_report(
         inventory,
         metadata_refresh=metadata_refresh,
         internet_archive=internet_archive,
+        htrc_ef=htrc_ef,
+        htrc_analytics=htrc_analytics,
         track_metadata_paths=track_metadata_paths,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -2221,6 +2283,8 @@ def write_status_report(
         f"- Metadata refresh lanes: `{', '.join(sorted(report['metadata_refresh']['lanes'].keys())) or 'none'}`.",
         f"- Internet Archive matched count: `{report['internet_archive'].get('matched_count', 0)}`.",
         f"- Internet Archive review queue count: `{report['internet_archive'].get('review_queue_count', 0)}`.",
+        f"- HTRC EF record count: `{report['htrc'].get('ef', {}).get('record_count', 0) if report.get('htrc') else 0}`.",
+        f"- HTRC analytics record count: `{report['htrc'].get('analytics', {}).get('record_count', 0) if report.get('htrc') else 0}`.",
         "",
         "## Tracks",
         "",
@@ -2309,6 +2373,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     status.add_argument("--output-dir", type=Path, required=True)
     status.add_argument("--metadata-refresh", type=Path)
     status.add_argument("--internet-archive", type=Path)
+    status.add_argument("--htrc-ef", type=Path)
+    status.add_argument("--htrc-analytics", type=Path)
     status.add_argument(
         "--track-metadata",
         type=Path,
@@ -2404,11 +2470,19 @@ def main() -> int:
             if args.internet_archive is not None and args.internet_archive.exists()
             else None
         )
+        htrc_ef = load_json(args.htrc_ef) if args.htrc_ef is not None and args.htrc_ef.exists() else None
+        htrc_analytics = (
+            load_json(args.htrc_analytics)
+            if args.htrc_analytics is not None and args.htrc_analytics.exists()
+            else None
+        )
         write_status_report(
             inventory,
             args.output_dir,
             metadata_refresh=metadata_refresh,
             internet_archive=internet_archive,
+            htrc_ef=htrc_ef,
+            htrc_analytics=htrc_analytics,
             track_metadata_paths=args.track_metadata,
         )
         result = 0

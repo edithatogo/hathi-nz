@@ -31,6 +31,7 @@ from scripts.hathitrust_nz_archive import (
     write_htrc_ef_plan,
     write_htrc_solr_discovery_plan,
     write_internet_archive_overlap_plan,
+    write_completeness_report,
     write_metadata_refresh_plan,
     write_ia_open_library_crosswalk_plan,
     write_nz_enrichment_plan,
@@ -263,6 +264,24 @@ def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     assert "NZ enrichment lanes provide metadata-only routing" in report
 
 
+def test_write_completeness_report_writes_json_and_metrics(tmp_path: Path) -> None:
+    volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
+    inventory = build_inventory(volumes[:2], expected_count=2)
+    out = tmp_path / "reports" / "archive_completeness.md"
+
+    write_completeness_report(inventory, out)
+
+    text = out.read_text(encoding="utf-8")
+    payload = json.loads(out.with_suffix(".json").read_text(encoding="utf-8"))
+
+    assert "Public full-text records" in text
+    assert payload["counts"]["known"] == 2
+    assert payload["counts"]["public_full_text"] == 2
+    assert payload["counts"]["htrc_ef_available"] == 2
+    assert payload["counts"]["hf_published"] is None
+    assert payload["counts"]["zenodo_deposited"] is None
+
+
 def test_write_htrc_ef_plan_routes_large_subsets_to_static_host_staging(tmp_path: Path) -> None:
     inventory = build_inventory(
         [
@@ -294,6 +313,8 @@ def test_write_status_report(tmp_path: Path) -> None:
     volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
     inventory = build_inventory(volumes[:2], expected_count=2)
     metadata_refresh = write_metadata_refresh_plan(inventory, tmp_path / "metadata", limit=2)
+    htrc_ef = write_htrc_ef_plan(inventory, tmp_path / "htrc_ef", limit=2)
+    htrc_analytics = write_htrc_analytics_plan(inventory, tmp_path / "htrc_analytics", limit=2)
     internet_archive = {
         "meta": {
             "record_count": 2,
@@ -308,11 +329,15 @@ def test_write_status_report(tmp_path: Path) -> None:
         tmp_path / "status",
         metadata_refresh=metadata_refresh,
         internet_archive=internet_archive,
+        htrc_ef=htrc_ef,
+        htrc_analytics=htrc_analytics,
     )
 
     assert report["meta"]["record_count"] == 2
     assert report["metadata_refresh"]["present"] is True
     assert report["internet_archive"]["matched_count"] == 1
+    assert report["htrc"]["ef"]["record_count"] == 2
+    assert report["htrc"]["analytics"]["record_count"] == 2
     assert report["redundancy"]["metadata"][0]["source_id"] == "hathifiles"
     assert report["redundancy"]["overlap"][0]["source_id"] == "internet_archive"
     assert report["tracks"][0]["track_id"] == "hathitrust_nz_multi_source_archive_20260702"

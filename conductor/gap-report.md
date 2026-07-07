@@ -28,11 +28,11 @@ What next:
 Status: new
 
 What remains:
-- Wire publication gates, workflows, and completeness reporting.
+- Add dataset-card route evidence and DOI/HF writeback for interim child artifacts.
 - Finish the remaining manual verification and external issue-tracking steps.
 
 What next:
-- Continue with publication gates, workflows, and completeness reporting.
+- Continue with dataset-card evidence and writeback integration.
 - Finish with workflow orchestration and tests.
 
 ### Historical Coverage Breadth Integration
