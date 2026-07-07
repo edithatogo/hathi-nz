@@ -10,11 +10,11 @@
 
 ## Phase 2: Source Policy Registry
 
-- [ ] Task: Add a machine-readable source policy registry for HathiTrust, Hathifiles, OAI-PMH, Bibliographic API, HTRC Solr EF20, HTRC Extracted Features, HTRC Analytics, Internet Archive, Open Library, DigitalNZ, National Library NZ, Papers Past, official parliamentary sources, static rsync staging, and manual evidence.
-- [ ] Task: Add policy fields for permitted artifact classes, licence evidence, access class, acquisition mode, publication eligibility, and source priority.
-- [ ] Task: Add fail-closed routing for unknown, restricted, legally ambiguous, or manual-review-only source classes.
-- [ ] Task: Add unit tests for policy loading, source priority ordering, and publication eligibility decisions.
-- [ ] Task: Create GitHub issue `Track Task: Add HathiTrust-NZ source policy registry` (#22).
+- [x] Task: Add a machine-readable source policy registry for HathiTrust, Hathifiles, OAI-PMH, Bibliographic API, HTRC Solr EF20, HTRC Extracted Features, HTRC Analytics, Internet Archive, Open Library, DigitalNZ, National Library NZ, Papers Past, official parliamentary sources, static rsync staging, and manual evidence.
+- [x] Task: Add policy fields for permitted artifact classes, licence evidence, access class, acquisition mode, publication eligibility, and source priority.
+- [x] Task: Add fail-closed routing for unknown, restricted, legally ambiguous, or manual-review-only source classes.
+- [x] Task: Add unit tests for policy loading, source priority ordering, and publication eligibility decisions.
+- [x] Task: Create GitHub issue `Track Task: Add HathiTrust-NZ source policy registry` (#22).
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Source Policy Registry' (Protocol in workflow.md)
 
 ## Phase 3: Metadata Refresh And Discovery Lanes

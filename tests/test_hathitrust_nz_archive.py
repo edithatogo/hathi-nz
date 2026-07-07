@@ -12,6 +12,7 @@ from scripts.hathitrust_nz_archive import (
     HATHI_RESEARCH_PD_OPEN_ACCESS,
     HATHI_RESEARCH_PD_WITH_GOOGLE,
     HATHITRUST_NZ_EXPECTED_COUNT,
+    SOURCE_POLICY_REGISTRY_PATH,
     assert_expected_count,
     base_title_for_internet_archive,
     build_collection_manifest,
@@ -178,9 +179,12 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
 
 def test_source_policy_registry_is_stable_and_priority_sorted() -> None:
     summary = source_policy_summary()
+    assert SOURCE_POLICY_REGISTRY_PATH.exists()
+    assert len(summary) == len(json.loads(SOURCE_POLICY_REGISTRY_PATH.read_text(encoding="utf-8")))
     assert summary[0]["source_id"] == "official_parliamentary_sources"
     assert summary[-1]["source_id"] == "manual_evidence"
     assert source_policy_entry("internet_archive")["publication_eligibility"]["hugging_face"] == "public_domain_overlap_only"
+    assert source_policy_entry("hathitrust_research_dataset")["default_acquisition_mode"] == "static_host_rsync"
 
 
 def test_redundancy_source_summary_groups_metadata_and_overlap_sources() -> None:

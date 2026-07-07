@@ -47,6 +47,7 @@ HF_INVENTORY_REPO = "edithatogo/hathitrust-nz-inventory"
 HF_RESEARCH_FULLTEXT_REPO = "edithatogo/hathitrust-nz-research-fulltext"
 HF_HTRC_EF_REPO = "edithatogo/hathitrust-nz-htrc-extracted-features"
 HF_HTRC_ANALYTICS_REPO = "edithatogo/hathitrust-nz-htrc-analytics"
+SOURCE_POLICY_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "conductor" / "source-policy-registry.json"
 
 HTRC_EF_VERSION = "2.5"
 HTRC_EF_RSYNC_MODULE = "data.analytics.hathitrust.org::features-2025.04/"
@@ -338,6 +339,8 @@ def canonical_rights_label(rights_code: str | int | None) -> str:
 
 def source_policy_registry() -> dict[str, dict[str, Any]]:
     """Return a copy of the source policy registry."""
+    if SOURCE_POLICY_REGISTRY_PATH.exists():
+        return json.loads(SOURCE_POLICY_REGISTRY_PATH.read_text(encoding="utf-8"))
     return json.loads(json.dumps(SOURCE_POLICY_REGISTRY))
 
 

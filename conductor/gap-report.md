@@ -28,14 +28,13 @@ What next:
 Status: new
 
 What remains:
-- Add the source policy registry.
 - Implement metadata refresh lanes.
 - Harden interim Internet Archive/Open Library overlap acquisition.
 - Add HTRC Extracted Features and analytics routing.
 - Wire publication gates, workflows, and completeness reporting.
 
 What next:
-- Start with the source policy registry and metadata refresh plumbing.
+- Continue with metadata refresh plumbing.
 - Then implement interim acquisition and completeness counters.
 - Finish with workflow orchestration and tests.
 
