@@ -153,10 +153,13 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
     discovery_manifest = build_discovery_manifest(inventory)
 
     assert htrc_manifest["meta"]["record_count"] == 2
+    assert htrc_manifest["meta"]["route"] == "github_actions_rsync"
     assert (tmp_path / "htrc" / "htrc_ef25_files.txt").exists()
     assert analytics_manifest["meta"]["record_count"] == 2
+    assert analytics_manifest["meta"]["route"] == "github_actions_metadata_and_reproducibility_only"
     assert (tmp_path / "analytics" / "htrc_workset_candidates.json").exists()
     assert solr_manifest["meta"]["record_count"] == 2
+    assert solr_manifest["meta"]["source_dataset_version"] == "2.0"
     assert (tmp_path / "solr" / "htrc_solr_workset_candidates.json").exists()
     assert crosswalk_manifest["meta"]["record_count"] == 2
     assert (tmp_path / "crosswalk" / "ia_open_library_crosswalk_manifest.json").exists()
@@ -175,6 +178,18 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
         for entry in collection_manifest["source_policy_registry"]
     )
     assert len(discovery_manifest["source_families"]) == 4
+    assert discovery_manifest["meta"]["htrc_versions"] == [
+        {
+            "source_id": "htrc_solr_ef20",
+            "version": "2.0",
+            "source_url": "https://solr2.htrc.illinois.edu/solr-ef20/",
+        },
+        {
+            "source_id": "htrc_extracted_features",
+            "version": "2.5",
+            "source_url": "https://htrc.atlassian.net/wiki/spaces/COM/pages/43295914/Extracted+Features+v.2.0",
+        },
+    ]
     assert any(
         family["family_id"] == "maori_and_aotearoa" for family in discovery_manifest["source_families"]
     )
@@ -246,6 +261,33 @@ def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     assert "Bibliographic API refreshes known HTID enrichment" in report
     assert "IA/Open Library crosswalk lanes provide deterministic evidence URLs" in report
     assert "NZ enrichment lanes provide metadata-only routing" in report
+
+
+def test_write_htrc_ef_plan_routes_large_subsets_to_static_host_staging(tmp_path: Path) -> None:
+    inventory = build_inventory(
+        [
+            {
+                "htid": f"uc1.large{i}",
+                "title": f"Example title {i}",
+                "author": "Example author",
+                "date": "1980",
+                "rights_code": "17",
+                "rights_label": "cc-zero",
+                "htrc_ef25_rsync_path": f"vols/uc1.large{i}/uc1.large{i}.txt",
+            }
+            for i in range(251)
+        ],
+        expected_count=251,
+    )
+
+    manifest = write_htrc_ef_plan(inventory, tmp_path / "htrc", limit=0)
+
+    assert manifest["meta"]["record_count"] == 251
+    assert manifest["meta"]["route"] == "static_host_staging"
+    assert (tmp_path / "htrc" / "static_host_staging_contract.sh").exists()
+    assert "HATHI_STATIC_HOST_STAGING_DIR" in (tmp_path / "htrc" / "static_host_staging_contract.sh").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_write_status_report(tmp_path: Path) -> None:

@@ -51,7 +51,9 @@ HF_HTRC_ANALYTICS_REPO = "edithatogo/hathitrust-nz-htrc-analytics"
 SOURCE_POLICY_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "conductor" / "source-policy-registry.json"
 
 HTRC_EF_VERSION = "2.5"
+HTRC_SOLR_EF20_VERSION = "2.0"
 HTRC_EF_RSYNC_MODULE = "data.analytics.hathitrust.org::features-2025.04/"
+HTRC_EF_GITHUB_ACTIONS_LIMIT = 250
 INTERNET_ARCHIVE_SEARCH_URL = "https://archive.org/advancedsearch.php"
 INTERNET_ARCHIVE_METADATA_URL = "https://archive.org/metadata/{identifier}"
 INTERNET_ARCHIVE_DOWNLOAD_URL = "https://archive.org/download/{identifier}/{filename}"
@@ -953,6 +955,18 @@ def build_discovery_manifest(inventory: dict[str, Any]) -> dict[str, Any]:
             "hf_collection": HUGGING_FACE_COLLECTION,
             "seed_collection_id": inventory.get("meta", {}).get("collection_id"),
             "seed_record_count": inventory.get("meta", {}).get("record_count", 0),
+            "htrc_versions": [
+                {
+                    "source_id": "htrc_solr_ef20",
+                    "version": HTRC_SOLR_EF20_VERSION,
+                    "source_url": source_policy_entry("htrc_solr_ef20")["source_url"],
+                },
+                {
+                    "source_id": "htrc_extracted_features",
+                    "version": HTRC_EF_VERSION,
+                    "source_url": source_policy_entry("htrc_extracted_features")["source_url"],
+                },
+            ],
         },
         "source_families": discovery_families(),
         "seed_summary": inventory.get("summary", {}),
@@ -1085,6 +1099,11 @@ def write_htrc_ef_plan(
     if limit > 0:
         volumes = volumes[:limit]
 
+    route = (
+        "github_actions_rsync"
+        if len(volumes) <= HTRC_EF_GITHUB_ACTIONS_LIMIT
+        else "static_host_staging"
+    )
     rsync_paths = [str(volume["htrc_ef25_rsync_path"]) for volume in volumes]
     htids = [str(volume["htid"]) for volume in volumes]
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1095,6 +1114,7 @@ def write_htrc_ef_plan(
         "meta": {
             "generated_at": utc_now(),
             "source_dataset_name": f"HTRC Extracted Features {HTRC_EF_VERSION}",
+            "source_dataset_version": HTRC_EF_VERSION,
             "source_url": "https://analytics.hathitrust.org/",
             "rsync_module": HTRC_EF_RSYNC_MODULE,
             "record_count": len(volumes),
@@ -1102,6 +1122,9 @@ def write_htrc_ef_plan(
             "license": "CC-BY-4.0",
             "hf_dataset_repo": HF_HTRC_EF_REPO,
             "acquisition_mode": "github_actions_rsync_or_static_host_staging",
+            "github_actions_limit": HTRC_EF_GITHUB_ACTIONS_LIMIT,
+            "route": route,
+            "publication_eligibility": source_policy_entry("htrc_extracted_features")["publication_eligibility"],
         },
         "files": [
             {"htid": htid, "rsync_path": path}
@@ -1119,6 +1142,20 @@ def write_htrc_ef_plan(
             (f'rsync -av --files-from="htrc_ef25_files.txt" "{HTRC_EF_RSYNC_MODULE}" "$DEST_DIR/"'),
         ],
     )
+    if route == "static_host_staging":
+        write_lines(
+            output_dir / "static_host_staging_contract.sh",
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                ': "${HATHI_RSYNC_HOST:?Set approved Hathi rsync host}"',
+                ': "${HATHI_RSYNC_MODULE:?Set approved Hathi rsync module}"',
+                ': "${HATHI_RSYNC_USER:?Set approved Hathi rsync user}"',
+                ': "${HATHI_STATIC_HOST_STAGING_DIR:?Set staging directory}"',
+                'mkdir -p "$HATHI_STATIC_HOST_STAGING_DIR/htrc_ef25_subset"',
+                'echo "Stage the allowlisted HTRC EF bundle on the approved static host."',
+            ],
+        )
     return manifest
 
 
@@ -1158,12 +1195,15 @@ def write_htrc_analytics_plan(
         "meta": {
             "generated_at": utc_now(),
             "source_dataset_name": "HTRC Analytics outputs",
+            "source_dataset_role": "analytics_only",
             "source_url": source_policy_entry("htrc_analytics")["source_url"],
             "record_count": len(volumes),
             "limited": limit > 0,
             "hf_dataset_repo": HF_HTRC_ANALYTICS_REPO,
             "acquisition_mode": "github_actions_analytics_metadata",
             "license": "CC-BY-4.0",
+            "route": "github_actions_metadata_and_reproducibility_only",
+            "publication_eligibility": source_policy_entry("htrc_analytics")["publication_eligibility"],
         },
         "source_policy": source_policy_entry("htrc_analytics"),
         "workset_candidates": workset_candidates,
@@ -1240,11 +1280,13 @@ def write_htrc_solr_discovery_plan(
         "meta": {
             "generated_at": utc_now(),
             "source_dataset_name": "HTRC Solr EF20 discovery candidates",
+            "source_dataset_version": HTRC_SOLR_EF20_VERSION,
             "source_url": source_policy_entry("htrc_solr_ef20")["source_url"],
             "record_count": len(volumes),
             "limited": limit > 0,
             "hf_dataset_repo": HF_HTRC_EF_REPO,
             "acquisition_mode": "github_actions_solr_discovery_metadata",
+            "publication_eligibility": source_policy_entry("htrc_solr_ef20")["publication_eligibility"],
         },
         "source_policy": source_policy_entry("htrc_solr_ef20"),
         "workset_candidates": workset_candidates,

@@ -28,11 +28,11 @@ What next:
 Status: new
 
 What remains:
-- Add HTRC Extracted Features and analytics routing.
 - Wire publication gates, workflows, and completeness reporting.
+- Finish the remaining manual verification and external issue-tracking steps.
 
 What next:
-- Continue with HTRC Extracted Features and analytics routing.
+- Continue with publication gates, workflows, and completeness reporting.
 - Finish with workflow orchestration and tests.
 
 ### Historical Coverage Breadth Integration

@@ -45,12 +45,12 @@
 
 ## Phase 5: HTRC Extracted Features And Analytics Outputs
 
-- [ ] Task: Add HTRC EF 2.0 and 2.5 source metadata into the source policy and discovery manifests.
-- [ ] Task: Use HTRC EF Solr candidate results to build reproducible NZ worksets.
-- [ ] Task: Acquire open HTRC Extracted Features subsets when runner size and source policy permit.
-- [ ] Task: Route large HTRC EF subsets through static-host staging when GitHub runner limits are exceeded.
-- [ ] Task: Publish HTRC Analytics outputs as scripts, aggregate results, workset definitions, and reproducibility metadata only.
-- [ ] Task: Add tests for EF path generation, workset generation, analytics-only routing, and static-host fallback decisions.
+- [x] Task: Add HTRC EF 2.0 and 2.5 source metadata into the source policy and discovery manifests.
+- [x] Task: Use HTRC EF Solr candidate results to build reproducible NZ worksets.
+- [x] Task: Acquire open HTRC Extracted Features subsets when runner size and source policy permit.
+- [x] Task: Route large HTRC EF subsets through static-host staging when GitHub runner limits are exceeded.
+- [x] Task: Publish HTRC Analytics outputs as scripts, aggregate results, workset definitions, and reproducibility metadata only.
+- [x] Task: Add tests for EF path generation, workset generation, analytics-only routing, and static-host fallback decisions.
 - [ ] Task: Create GitHub issue `Track Task: Add HTRC EF and Analytics interim outputs` (#25).
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: HTRC Extracted Features And Analytics Outputs' (Protocol in workflow.md)
 
