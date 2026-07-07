@@ -62,6 +62,10 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/](./conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/)*
 - Implements interim Internet Archive/Open Library overlap acquisition, HathiTrust metadata refresh lanes, HTRC EF/Analytics routing, source-policy gates, provenance ledgers, manual review queues, and completeness reporting while official HathiTrust rsync access is pending.
 
+## [x] Track: Shared Code-Scanning Gate Rollout
+*Link: [./conductor/archive/shared_code_scanning_gate_rollout_20260707/](./conductor/archive/shared_code_scanning_gate_rollout_20260707/)*
+- Coordinates one GitHub issue per affected repository and verifies adoption of the pinned org-level code-scanning gate action.
+
 ---
 
 ### Architecture Status (oracle, 2026-06-26)
