@@ -19,15 +19,15 @@
 
 ## Phase 3: Metadata Refresh And Discovery Lanes
 
-- [ ] Task: Add or extend Hathifiles refresh outputs for broad NZ inventory, rights, access profile, and digitization profile.
-- [ ] Task: Add OAI-PMH incremental metadata refresh with cursor state, retry/backoff, and dry-run output.
-- [ ] Task: Add Bibliographic API enrichment for known HTIDs, OCLC records, catalog IDs, creator/title/year normalization, and enumeration gaps.
-- [ ] Task: Add HTRC EF Solr discovery/workset candidate generation for NZ-relevant records.
+- [x] Task: Add or extend Hathifiles refresh outputs for broad NZ inventory, rights, access profile, and digitization profile.
+- [x] Task: Add OAI-PMH incremental metadata refresh with cursor state, retry/backoff, and dry-run output.
+- [x] Task: Add Bibliographic API enrichment for known HTIDs, OCLC records, catalog IDs, creator/title/year normalization, and enumeration gaps.
+- [x] Task: Add HTRC EF Solr discovery/workset candidate generation for NZ-relevant records.
 - [ ] Task: Add IA/Open Library crosswalk enrichment for identifiers, creators, titles, years, OCLC, and evidence URLs.
-- [ ] Task: Add optional NZ enrichment manifest lanes for DigitalNZ, National Library NZ, Papers Past, and official parliamentary sources.
-- [ ] Task: Keep the 510-record Hansard seed distinct from broad NZ discovery outputs.
-- [ ] Task: Add tests for manifest separation, cursor state, enrichment merge precedence, and discovery count drift.
-- [ ] Task: Create GitHub issue `Track Task: Add metadata refresh lanes for HathiTrust-NZ` (#23).
+- [x] Task: Add optional NZ enrichment manifest lanes for DigitalNZ, National Library NZ, Papers Past, and official parliamentary sources.
+- [x] Task: Keep the 510-record Hansard seed distinct from broad NZ discovery outputs.
+- [x] Task: Add tests for manifest separation, cursor state, enrichment merge precedence, and discovery count drift.
+- [x] Task: Create GitHub issue `Track Task: Add metadata refresh lanes for HathiTrust-NZ` (#23).
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Metadata Refresh And Discovery Lanes' (Protocol in workflow.md)
 
 ## Phase 4: Internet Archive Interim Full-Text Acquisition

@@ -28,13 +28,13 @@ What next:
 Status: new
 
 What remains:
-- Implement metadata refresh lanes.
+- Implement IA/Open Library crosswalk enrichment.
 - Harden interim Internet Archive/Open Library overlap acquisition.
 - Add HTRC Extracted Features and analytics routing.
 - Wire publication gates, workflows, and completeness reporting.
 
 What next:
-- Continue with metadata refresh plumbing.
+- Continue with IA/Open Library crosswalk enrichment.
 - Then implement interim acquisition and completeness counters.
 - Finish with workflow orchestration and tests.
 

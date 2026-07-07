@@ -750,6 +750,8 @@ def write_metadata_refresh_plan(
             )
         )
 
+    nz_enrichment = write_nz_enrichment_plan(inventory, output_dir / "nz_enrichment", limit=limit)
+
     manifest = {
         "meta": {
             "generated_at": utc_now(),
@@ -776,6 +778,11 @@ def write_metadata_refresh_plan(
                 "refresh_url": "https://share.hathitrust.org/api/volume/{htid}/json",
                 "record_count": len(bibliographic_api),
                 "records": bibliographic_api,
+            },
+            "nz_enrichment": {
+                "record_count": nz_enrichment["meta"]["record_count"],
+                "source_families": list(nz_enrichment["lanes"].keys()),
+                "manifest": nz_enrichment,
             },
         },
     }
@@ -804,6 +811,7 @@ def write_metadata_refresh_plan(
             "- Hathifiles refreshes inventory and rights metadata.",
             "- OAI-PMH refreshes incremental catalog metadata using cursor state.",
             "- Bibliographic API refreshes known HTID enrichment for catalog normalization.",
+            "- NZ enrichment lanes provide metadata-only routing for official parliamentary, DigitalNZ, National Library NZ, and Papers Past sources.",
         ],
     )
     return manifest
@@ -1176,6 +1184,161 @@ def write_htrc_analytics_plan(
             f"- Candidate count: `{len(workset_candidates)}`.",
             f"- Source policy: `{manifest['source_policy']['display_name']}`.",
             f"- Source priority: `{manifest['source_policy']['source_priority']}`.",
+        ],
+    )
+    return manifest
+
+
+def htrc_solr_workset_record(volume: dict[str, Any]) -> dict[str, Any]:
+    """Build a deterministic HTRC Solr discovery record for one volume."""
+    title = str(volume.get("title", "")).strip()
+    author = str(volume.get("author", "")).strip()
+    year = str(volume.get("date", "")).strip()
+    _, label = parse_volume_label(title)
+    query_parts = [part for part in (title, author, year, label) if part]
+    return {
+        "htid": volume.get("htid", ""),
+        "title": title,
+        "author": author,
+        "year": year,
+        "rights_code": volume.get("rights_code", ""),
+        "rights_label": volume.get("rights_label", ""),
+        "query": " ".join(query_parts),
+        "source_policy": source_policy_entry("htrc_solr_ef20"),
+        "source_priority": source_priority("htrc_solr_ef20"),
+        "workset_route": "solr_discovery_and_ef_candidate_generation",
+        "notes": (
+            "Deterministic candidate generation only; downstream retrieval remains "
+            "governed by HTRC EF and publication policy."
+        ),
+    }
+
+
+def write_htrc_solr_discovery_plan(
+    inventory: dict[str, Any],
+    output_dir: Path,
+    *,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Write HTRC Solr discovery and workset-candidate outputs."""
+    volumes = list(inventory.get("volumes", []))
+    if limit > 0:
+        volumes = volumes[:limit]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    workset_candidates = [htrc_solr_workset_record(volume) for volume in volumes]
+    manifest = {
+        "meta": {
+            "generated_at": utc_now(),
+            "source_dataset_name": "HTRC Solr EF20 discovery candidates",
+            "source_url": source_policy_entry("htrc_solr_ef20")["source_url"],
+            "record_count": len(volumes),
+            "limited": limit > 0,
+            "hf_dataset_repo": HF_HTRC_EF_REPO,
+            "acquisition_mode": "github_actions_solr_discovery_metadata",
+        },
+        "source_policy": source_policy_entry("htrc_solr_ef20"),
+        "workset_candidates": workset_candidates,
+    }
+    write_json(output_dir / "htrc_solr_discovery_manifest.json", manifest)
+    write_json(
+        output_dir / "htrc_solr_workset_candidates.json",
+        {"meta": manifest["meta"], "candidates": workset_candidates},
+    )
+    write_lines(output_dir / "htrc_solr_workset_candidates.txt", [c["htid"] for c in workset_candidates])
+    write_lines(
+        output_dir / "README.md",
+        [
+            "# HathiTrust-NZ HTRC Solr Discovery",
+            "",
+            "Deterministic discovery and candidate generation for HTRC EF and downstream",
+            "workset building. This bundle records candidate queries only.",
+            "",
+            f"- Candidate count: `{len(workset_candidates)}`.",
+            f"- Source policy: `{manifest['source_policy']['display_name']}`.",
+            f"- Source priority: `{manifest['source_policy']['source_priority']}`.",
+        ],
+    )
+    return manifest
+
+
+def nz_enrichment_record(volume: dict[str, Any], source_id: str) -> dict[str, Any]:
+    """Build a deterministic NZ enrichment record for one source."""
+    source = source_policy_entry(source_id)
+    title = str(volume.get("title", "")).strip()
+    author = str(volume.get("author", "")).strip()
+    year = str(volume.get("date", "")).strip()
+    query_parts = [part for part in (title, author, year, str(volume.get("htid", "")).strip()) if part]
+    return {
+        "htid": volume.get("htid", ""),
+        "title": title,
+        "author": author,
+        "year": year,
+        "rights_code": volume.get("rights_code", ""),
+        "rights_label": volume.get("rights_label", ""),
+        "source_id": source_id,
+        "source_display_name": source["display_name"],
+        "source_url": source["source_url"],
+        "query": " ".join(query_parts),
+        "source_priority": source_priority(source_id),
+        "acquisition_mode": source["default_acquisition_mode"],
+        "publication_eligibility": source["publication_eligibility"],
+    }
+
+
+def write_nz_enrichment_plan(
+    inventory: dict[str, Any],
+    output_dir: Path,
+    *,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Write optional NZ enrichment manifests for public NZ source families."""
+    volumes = list(inventory.get("volumes", []))
+    if limit > 0:
+        volumes = volumes[:limit]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    source_ids = [
+        "official_parliamentary_sources",
+        "digitalnz",
+        "national_library_nz",
+        "papers_past",
+    ]
+    lanes: dict[str, dict[str, Any]] = {}
+    for source_id in source_ids:
+        records = [nz_enrichment_record(volume, source_id) for volume in volumes]
+        lane_manifest = {
+            "source_id": source_id,
+            "source_policy": source_policy_entry(source_id),
+            "record_count": len(records),
+            "records": records,
+        }
+        lanes[source_id] = lane_manifest
+        write_json(output_dir / f"{source_id}_enrichment_manifest.json", lane_manifest)
+        write_lines(output_dir / f"{source_id}_enrichment_htids.txt", [r["htid"] for r in records])
+
+    manifest = {
+        "meta": {
+            "generated_at": utc_now(),
+            "source_dataset_name": "NZ enrichment lanes",
+            "record_count": len(volumes),
+            "limited": limit > 0,
+            "hf_dataset_repo": HF_INVENTORY_REPO,
+            "acquisition_mode": "github_actions_nz_enrichment_metadata",
+        },
+        "lanes": lanes,
+    }
+    write_json(output_dir / "nz_enrichment_manifest.json", manifest)
+    write_lines(
+        output_dir / "README.md",
+        [
+            "# HathiTrust-NZ NZ Enrichment Lanes",
+            "",
+            "Deterministic metadata-only enrichment lanes for additional NZ source families.",
+            "",
+            f"- Seed record count: `{len(volumes)}`.",
+            f"- Lane count: `{len(lanes)}`.",
+            "- Publication remains metadata-only; this bundle is for routing and evidence.",
         ],
     )
     return manifest
@@ -1846,6 +2009,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     htrc_analytics.add_argument("--output-dir", type=Path, required=True)
     htrc_analytics.add_argument("--limit", type=int, default=0)
 
+    htrc_solr = subparsers.add_parser(
+        "htrc-solr-plan", help="Build HTRC Solr discovery/workset candidate outputs"
+    )
+    htrc_solr.add_argument("--inventory", type=Path, required=True)
+    htrc_solr.add_argument("--output-dir", type=Path, required=True)
+    htrc_solr.add_argument("--limit", type=int, default=0)
+
     research = subparsers.add_parser("research-rsync-plan", help="Build Research Dataset plan")
     research.add_argument("--inventory", type=Path, required=True)
     research.add_argument("--output-dir", type=Path, required=True)
@@ -1930,6 +2100,10 @@ def main() -> int:
     elif args.command == "htrc-analytics-plan":
         inventory = load_inventory(args.inventory)
         write_htrc_analytics_plan(inventory, args.output_dir, limit=args.limit)
+        result = 0
+    elif args.command == "htrc-solr-plan":
+        inventory = load_inventory(args.inventory)
+        write_htrc_solr_discovery_plan(inventory, args.output_dir, limit=args.limit)
         result = 0
     elif args.command == "research-rsync-plan":
         inventory = load_inventory(args.inventory)
