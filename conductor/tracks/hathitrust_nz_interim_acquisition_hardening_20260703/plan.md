@@ -23,7 +23,7 @@
 - [x] Task: Add OAI-PMH incremental metadata refresh with cursor state, retry/backoff, and dry-run output.
 - [x] Task: Add Bibliographic API enrichment for known HTIDs, OCLC records, catalog IDs, creator/title/year normalization, and enumeration gaps.
 - [x] Task: Add HTRC EF Solr discovery/workset candidate generation for NZ-relevant records.
-- [ ] Task: Add IA/Open Library crosswalk enrichment for identifiers, creators, titles, years, OCLC, and evidence URLs.
+- [x] Task: Add IA/Open Library crosswalk enrichment for identifiers, creators, titles, years, OCLC, and evidence URLs.
 - [x] Task: Add optional NZ enrichment manifest lanes for DigitalNZ, National Library NZ, Papers Past, and official parliamentary sources.
 - [x] Task: Keep the 510-record Hansard seed distinct from broad NZ discovery outputs.
 - [x] Task: Add tests for manifest separation, cursor state, enrichment merge precedence, and discovery count drift.

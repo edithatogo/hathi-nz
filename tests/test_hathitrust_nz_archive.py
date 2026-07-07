@@ -32,6 +32,7 @@ from scripts.hathitrust_nz_archive import (
     write_htrc_solr_discovery_plan,
     write_internet_archive_overlap_plan,
     write_metadata_refresh_plan,
+    write_ia_open_library_crosswalk_plan,
     write_nz_enrichment_plan,
     write_research_dataset_plan,
     write_status_report,
@@ -140,6 +141,7 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
     htrc_manifest = write_htrc_ef_plan(inventory, tmp_path / "htrc", limit=2)
     analytics_manifest = write_htrc_analytics_plan(inventory, tmp_path / "analytics", limit=2)
     solr_manifest = write_htrc_solr_discovery_plan(inventory, tmp_path / "solr", limit=2)
+    crosswalk_manifest = write_ia_open_library_crosswalk_plan(inventory, tmp_path / "crosswalk", limit=2)
     nz_enrichment = write_nz_enrichment_plan(inventory, tmp_path / "nz", limit=2)
     research_manifest = write_research_dataset_plan(
         inventory,
@@ -156,6 +158,8 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
     assert (tmp_path / "analytics" / "htrc_workset_candidates.json").exists()
     assert solr_manifest["meta"]["record_count"] == 2
     assert (tmp_path / "solr" / "htrc_solr_workset_candidates.json").exists()
+    assert crosswalk_manifest["meta"]["record_count"] == 2
+    assert (tmp_path / "crosswalk" / "ia_open_library_crosswalk_manifest.json").exists()
     assert nz_enrichment["meta"]["record_count"] == 2
     assert (tmp_path / "nz" / "nz_enrichment_manifest.json").exists()
     assert research_manifest["meta"]["eligible_full_text_count"] == 2
@@ -223,6 +227,7 @@ def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     assert manifest["lanes"]["hathifiles"]["record_count"] == 2
     assert manifest["lanes"]["oai_pmh"]["requested_cursor"] == "cursor-123"
     assert manifest["lanes"]["bibliographic_api"]["records"][0]["refresh_mode"] == "known_identifier_enrichment"
+    assert manifest["lanes"]["ia_open_library_crosswalk"]["record_count"] == 2
     assert manifest["lanes"]["nz_enrichment"]["record_count"] == 2
     assert manifest["lanes"]["nz_enrichment"]["source_families"] == [
         "official_parliamentary_sources",
@@ -234,10 +239,12 @@ def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     assert (tmp_path / "metadata" / "hathifiles_refresh_manifest.json").exists()
     assert (tmp_path / "metadata" / "oai_pmh_refresh_manifest.json").exists()
     assert (tmp_path / "metadata" / "bibliographic_api_refresh_manifest.json").exists()
+    assert (tmp_path / "metadata" / "ia_open_library_crosswalk" / "ia_open_library_crosswalk_manifest.json").exists()
     assert (tmp_path / "metadata" / "nz_enrichment" / "nz_enrichment_manifest.json").exists()
     report = (tmp_path / "metadata" / "metadata_refresh_report.md").read_text(encoding="utf-8")
     assert "HathiTrust-NZ Metadata Refresh Plan" in report
     assert "Bibliographic API refreshes known HTID enrichment" in report
+    assert "IA/Open Library crosswalk lanes provide deterministic evidence URLs" in report
     assert "NZ enrichment lanes provide metadata-only routing" in report
 
 

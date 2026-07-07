@@ -18,6 +18,7 @@ import sys
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import quote_plus
 from typing import Any
 
 if __package__ in {None, ""}:
@@ -750,6 +751,9 @@ def write_metadata_refresh_plan(
             )
         )
 
+    ia_open_library = write_ia_open_library_crosswalk_plan(
+        inventory, output_dir / "ia_open_library_crosswalk", limit=limit
+    )
     nz_enrichment = write_nz_enrichment_plan(inventory, output_dir / "nz_enrichment", limit=limit)
 
     manifest = {
@@ -778,6 +782,10 @@ def write_metadata_refresh_plan(
                 "refresh_url": "https://share.hathitrust.org/api/volume/{htid}/json",
                 "record_count": len(bibliographic_api),
                 "records": bibliographic_api,
+            },
+            "ia_open_library_crosswalk": {
+                "record_count": ia_open_library["meta"]["record_count"],
+                "manifest": ia_open_library,
             },
             "nz_enrichment": {
                 "record_count": nz_enrichment["meta"]["record_count"],
@@ -811,6 +819,7 @@ def write_metadata_refresh_plan(
             "- Hathifiles refreshes inventory and rights metadata.",
             "- OAI-PMH refreshes incremental catalog metadata using cursor state.",
             "- Bibliographic API refreshes known HTID enrichment for catalog normalization.",
+            "- IA/Open Library crosswalk lanes provide deterministic evidence URLs for interim metadata enrichment.",
             "- NZ enrichment lanes provide metadata-only routing for official parliamentary, DigitalNZ, National Library NZ, and Papers Past sources.",
         ],
     )
@@ -1339,6 +1348,105 @@ def write_nz_enrichment_plan(
             f"- Seed record count: `{len(volumes)}`.",
             f"- Lane count: `{len(lanes)}`.",
             "- Publication remains metadata-only; this bundle is for routing and evidence.",
+        ],
+    )
+    return manifest
+
+
+def ia_open_library_crosswalk_record(volume: dict[str, Any]) -> dict[str, Any]:
+    """Build a deterministic IA/Open Library crosswalk record for one volume."""
+    title = str(volume.get("title", "")).strip()
+    author = str(volume.get("author", "")).strip()
+    year = str(volume.get("date", "")).strip()
+    oclc = str(volume.get("oclc", volume.get("oclc_number", ""))).strip()
+    catalog_url = str(volume.get("catalog_url", "")).strip()
+    htid = str(volume.get("htid", "")).strip()
+    title_query = base_title_for_internet_archive(title)
+    ia_query_terms = [part for part in (title_query, author, year) if part]
+    ol_query_terms = [part for part in (title, author, year) if part]
+    ia_query = " ".join(ia_query_terms)
+    ol_query = " ".join(ol_query_terms)
+    if title_query:
+        ia_search_url = (
+            "https://archive.org/advancedsearch.php?q="
+            + quote_plus(f'title:"{title_query}"')
+            + "&fl[]=identifier&fl[]=title&fl[]=creator&fl[]=year&fl[]=collection&fl[]=publicdate&rows=5&output=json"
+        )
+    else:
+        ia_search_url = "https://archive.org/advancedsearch.php"
+    open_library_search_url = "https://openlibrary.org/search?q=" + quote_plus(ol_query)
+    confidence = 0.0
+    if title:
+        confidence += 0.4
+    if author:
+        confidence += 0.3
+    if year:
+        confidence += 0.2
+    if oclc:
+        confidence += 0.1
+    return {
+        "htid": htid,
+        "title": title,
+        "author": author,
+        "year": year,
+        "oclc": oclc,
+        "catalog_url": catalog_url,
+        "internet_archive_query": ia_query,
+        "open_library_query": ol_query,
+        "internet_archive_search_url": ia_search_url,
+        "open_library_search_url": open_library_search_url,
+        "catalog_evidence": [value for value in (htid, oclc, catalog_url) if value],
+        "confidence": round(min(confidence, 1.0), 2),
+        "source_policy": {
+            "internet_archive": source_policy_entry("internet_archive"),
+            "open_library": source_policy_entry("open_library"),
+        },
+        "publication_eligibility": {
+            "internet_archive": source_policy_entry("internet_archive")["publication_eligibility"],
+            "open_library": source_policy_entry("open_library")["publication_eligibility"],
+        },
+    }
+
+
+def write_ia_open_library_crosswalk_plan(
+    inventory: dict[str, Any],
+    output_dir: Path,
+    *,
+    limit: int = 0,
+) -> dict[str, Any]:
+    """Write a metadata-only IA/Open Library crosswalk enrichment plan."""
+    volumes = list(inventory.get("volumes", []))
+    if limit > 0:
+        volumes = volumes[:limit]
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    records = [ia_open_library_crosswalk_record(volume) for volume in volumes]
+    manifest = {
+        "meta": {
+            "generated_at": utc_now(),
+            "source_dataset_name": "IA/Open Library crosswalk enrichment",
+            "record_count": len(volumes),
+            "limited": limit > 0,
+            "hf_dataset_repo": HF_INVENTORY_REPO,
+            "acquisition_mode": "github_actions_crosswalk_metadata",
+        },
+        "records": records,
+    }
+    write_json(output_dir / "ia_open_library_crosswalk_manifest.json", manifest)
+    write_json(
+        output_dir / "ia_open_library_crosswalk_candidates.json",
+        {"meta": manifest["meta"], "records": records},
+    )
+    write_lines(output_dir / "ia_open_library_crosswalk_htids.txt", [record["htid"] for record in records])
+    write_lines(
+        output_dir / "README.md",
+        [
+            "# HathiTrust-NZ IA/Open Library Crosswalk",
+            "",
+            "Metadata-only crosswalk evidence for Internet Archive and Open Library discovery.",
+            "",
+            f"- Record count: `{len(records)}`.",
+            "- The bundle contains evidence URLs and query parameters only; it does not download crosswalk source content.",
         ],
     )
     return manifest
@@ -2016,6 +2124,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     htrc_solr.add_argument("--output-dir", type=Path, required=True)
     htrc_solr.add_argument("--limit", type=int, default=0)
 
+    crosswalk = subparsers.add_parser(
+        "ia-open-library-crosswalk-plan", help="Build IA/Open Library crosswalk evidence"
+    )
+    crosswalk.add_argument("--inventory", type=Path, required=True)
+    crosswalk.add_argument("--output-dir", type=Path, required=True)
+    crosswalk.add_argument("--limit", type=int, default=0)
+
     research = subparsers.add_parser("research-rsync-plan", help="Build Research Dataset plan")
     research.add_argument("--inventory", type=Path, required=True)
     research.add_argument("--output-dir", type=Path, required=True)
@@ -2104,6 +2219,10 @@ def main() -> int:
     elif args.command == "htrc-solr-plan":
         inventory = load_inventory(args.inventory)
         write_htrc_solr_discovery_plan(inventory, args.output_dir, limit=args.limit)
+        result = 0
+    elif args.command == "ia-open-library-crosswalk-plan":
+        inventory = load_inventory(args.inventory)
+        write_ia_open_library_crosswalk_plan(inventory, args.output_dir, limit=args.limit)
         result = 0
     elif args.command == "research-rsync-plan":
         inventory = load_inventory(args.inventory)
