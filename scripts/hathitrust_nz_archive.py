@@ -1609,25 +1609,48 @@ def internet_archive_text_candidates(metadata: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(prioritized))
 
 
+def internet_archive_candidate_score(volume: dict[str, Any], doc: dict[str, Any]) -> tuple[float, list[str]]:
+    """Score an Internet Archive candidate against a HathiTrust volume."""
+    title = base_title_for_internet_archive(str(volume.get("title", "")).strip()).lower()
+    author = str(volume.get("author", "")).strip().lower()
+    year = str(volume.get("date", "")).strip().lower()
+    doc_title = str(doc.get("title", "")).strip().lower()
+    doc_creator = str(doc.get("creator", "")).strip().lower()
+    doc_year = str(doc.get("year", "")).strip().lower()
+    basis: list[str] = []
+    score = 0.0
+
+    if title and title in doc_title:
+        score += 0.5
+        basis.append("title")
+    if author and author in doc_creator:
+        score += 0.3
+        basis.append("creator")
+    if year and year == doc_year:
+        score += 0.2
+        basis.append("year")
+
+    return score, basis
+
+
 def internet_archive_best_match(volume: dict[str, Any], docs: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Pick a conservative Archive.org match for a HathiTrust record."""
-    title = str(volume.get("title", "")).strip()
-    author = str(volume.get("author", "")).strip()
-    title_query = base_title_for_internet_archive(title)
-    title_lower = title_query.lower()
-    author_lower = author.lower()
+    best_doc: dict[str, Any] | None = None
+    best_score = 0.0
+    tied = False
 
     for doc in docs:
-        doc_title = str(doc.get("title", "")).strip()
-        doc_creator = str(doc.get("creator", "")).strip()
-        doc_title_lower = doc_title.lower()
-        doc_creator_lower = doc_creator.lower()
-        if title_lower and title_lower not in doc_title_lower:
-            continue
-        if author_lower and author_lower not in doc_creator_lower:
-            continue
-        return doc
-    return None
+        score, _basis = internet_archive_candidate_score(volume, doc)
+        if score > best_score:
+            best_doc = doc
+            best_score = score
+            tied = False
+        elif score == best_score and score > 0:
+            tied = True
+
+    if best_doc is None or best_score < 0.8 or tied:
+        return None
+    return best_doc
 
 
 def internet_archive_review_reason(volume: dict[str, Any], doc: dict[str, Any]) -> list[str]:
@@ -1688,6 +1711,7 @@ def write_internet_archive_overlap_plan(
     output_dir: Path,
     *,
     limit: int = 0,
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     """Write an Archive.org overlap plan for interim full-text mirroring."""
     volumes = list(inventory.get("volumes", []))
@@ -1699,10 +1723,12 @@ def write_internet_archive_overlap_plan(
     provenance_ledger: list[dict[str, Any]] = []
     review_queue: list[dict[str, Any]] = []
     checksum_rows: list[dict[str, Any]] = []
+    source_evidence_rows: list[dict[str, Any]] = []
     matched: list[dict[str, Any]] = []
     unmatched: list[dict[str, Any]] = []
 
     for volume in volumes:
+        crosswalk = ia_open_library_crosswalk_record(volume)
         title_query = base_title_for_internet_archive(str(volume.get("title", "")))
         author = str(volume.get("author", "")).strip()
         query_parts = [f'title:"{title_query}"']
@@ -1721,10 +1747,36 @@ def write_internet_archive_overlap_plan(
                     "author": author,
                     "search_query": query,
                     "error": str(exc),
+                    "crosswalk": crosswalk,
+                }
+            )
+            source_evidence_rows.append(
+                {
+                    "htid": volume["htid"],
+                    "search_query": query,
+                    "match_confidence": 0.0,
+                    "match_basis": [],
+                    "candidate_count": 0,
+                    "crosswalk": crosswalk,
+                    "status": "search_error",
+                    "error": str(exc),
                 }
             )
             continue
 
+        scored_candidates = []
+        for doc in docs:
+            candidate_score, candidate_basis = internet_archive_candidate_score(volume, doc)
+            scored_candidates.append(
+                {
+                    "identifier": str(doc.get("identifier", "")).strip(),
+                    "title": str(doc.get("title", "")).strip(),
+                    "creator": str(doc.get("creator", "")).strip(),
+                    "year": str(doc.get("year", "")).strip(),
+                    "confidence": round(candidate_score, 2),
+                    "basis": candidate_basis,
+                }
+            )
         best = internet_archive_best_match(volume, docs)
         if not best:
             unmatched.append(
@@ -1734,6 +1786,8 @@ def write_internet_archive_overlap_plan(
                     "author": author,
                     "search_query": query,
                     "error": "no_match",
+                    "crosswalk": crosswalk,
+                    "candidates": scored_candidates,
                 }
             )
             if docs:
@@ -1749,6 +1803,7 @@ def write_internet_archive_overlap_plan(
                         "candidate_creator": candidate.get("creator", ""),
                         "candidate_year": candidate.get("year", ""),
                         "review_reasons": internet_archive_review_reason(volume, candidate),
+                        "crosswalk": crosswalk,
                     }
                 )
             provenance_ledger.append(
@@ -1758,11 +1813,25 @@ def write_internet_archive_overlap_plan(
                     "status": "unmatched",
                     "matched": False,
                     "candidate_count": len(docs),
+                    "crosswalk": crosswalk,
+                }
+            )
+            source_evidence_rows.append(
+                {
+                    "htid": volume["htid"],
+                    "search_query": query,
+                    "match_confidence": scored_candidates[0]["confidence"] if scored_candidates else 0.0,
+                    "match_basis": scored_candidates[0]["basis"] if scored_candidates else [],
+                    "candidate_count": len(scored_candidates),
+                    "crosswalk": crosswalk,
+                    "status": "manual_review" if docs else "unmatched",
+                    "candidates": scored_candidates,
                 }
             )
             continue
 
         identifier = str(best.get("identifier", "")).strip()
+        matched_score, matched_basis = internet_archive_candidate_score(volume, best)
         record: dict[str, Any] = {
             "htid": volume["htid"],
             "title": volume.get("title", ""),
@@ -1776,26 +1845,34 @@ def write_internet_archive_overlap_plan(
             "archive_publicdate": best.get("publicdate", ""),
             "archive_metadata_url": INTERNET_ARCHIVE_METADATA_URL.format(identifier=identifier),
             "archive_download_url": f"https://archive.org/download/{identifier}/",
+            "match_confidence": round(matched_score, 2),
+            "match_basis": matched_basis,
+            "crosswalk": crosswalk,
         }
 
         try:
             metadata = internet_archive_metadata(identifier)
             record["archive_file_candidates"] = internet_archive_text_candidates(metadata)
-            text_path = download_internet_archive_text(identifier, metadata, text_output_dir)
-            if text_path is not None:
-                record["text_path"] = text_path.as_posix()
-                checksum = sha256_file(text_path)
-                checksum_rows.append(
-                    {
-                        "htid": volume["htid"],
-                        "archive_identifier": identifier,
-                        "file_path": text_path.as_posix(),
-                        "filename": text_path.name,
-                        "size_bytes": text_path.stat().st_size,
-                        "sha256": checksum,
-                    }
-                )
-                record["sha256"] = checksum
+            if dry_run:
+                record["dry_run"] = True
+                record["text_path"] = ""
+                record["sha256"] = ""
+            else:
+                text_path = download_internet_archive_text(identifier, metadata, text_output_dir)
+                if text_path is not None:
+                    record["text_path"] = text_path.as_posix()
+                    checksum = sha256_file(text_path)
+                    checksum_rows.append(
+                        {
+                            "htid": volume["htid"],
+                            "archive_identifier": identifier,
+                            "file_path": text_path.as_posix(),
+                            "filename": text_path.name,
+                            "size_bytes": text_path.stat().st_size,
+                            "sha256": checksum,
+                        }
+                    )
+                    record["sha256"] = checksum
         except requests.RequestException as exc:
             record["error"] = str(exc)
             unmatched.append(record)
@@ -1806,6 +1883,7 @@ def write_internet_archive_overlap_plan(
                     "status": "error",
                     "matched": False,
                     "error": str(exc),
+                    "crosswalk": crosswalk,
                 }
             )
             continue
@@ -1823,10 +1901,26 @@ def write_internet_archive_overlap_plan(
                 "archive_title": record["archive_title"],
                 "archive_creator": record["archive_creator"],
                 "archive_year": record["archive_year"],
+                "match_confidence": record["match_confidence"],
+                "match_basis": record["match_basis"],
                 "evidence": {
                     "title": base_title_for_internet_archive(str(volume.get("title", ""))),
                     "creator": str(volume.get("author", "")).strip(),
                 },
+                "crosswalk": crosswalk,
+            }
+        )
+        source_evidence_rows.append(
+            {
+                "htid": volume["htid"],
+                "search_query": query,
+                "match_confidence": record["match_confidence"],
+                "match_basis": record["match_basis"],
+                "candidate_count": len(docs),
+                "crosswalk": crosswalk,
+                "status": "matched",
+                "best_candidate_identifier": identifier,
+                "candidates": scored_candidates,
             }
         )
 
@@ -1840,6 +1934,7 @@ def write_internet_archive_overlap_plan(
             "unmatched_count": len(unmatched),
             "review_queue_count": len(review_queue),
             "checksum_count": len(checksum_rows),
+            "dry_run": dry_run,
             "hf_dataset_repo": HF_RESEARCH_FULLTEXT_REPO,
             "acquisition_mode": "internet_archive_public_metadata_and_text",
         },
@@ -1850,6 +1945,20 @@ def write_internet_archive_overlap_plan(
     write_json(output_dir / "internet_archive_overlap_manifest.json", manifest)
     write_json(output_dir / "internet_archive_provenance_ledger.json", {"rows": provenance_ledger})
     write_json(output_dir / "internet_archive_checksum_manifest.json", {"files": checksum_rows})
+    write_json(
+        output_dir / "internet_archive_source_evidence_report.json",
+        {
+            "meta": {
+                "generated_at": utc_now(),
+                "source_dataset_name": "Internet Archive source evidence",
+                "record_count": len(volumes),
+                "matched_count": len(matched),
+                "review_queue_count": len(review_queue),
+                "dry_run": dry_run,
+            },
+            "rows": source_evidence_rows,
+        },
+    )
     write_lines(
         output_dir / "internet_archive_overlap_htids.txt",
         [record["htid"] for record in matched],
@@ -2175,6 +2284,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     ia.add_argument("--inventory", type=Path, required=True)
     ia.add_argument("--output-dir", type=Path, required=True)
     ia.add_argument("--limit", type=int, default=0)
+    ia.add_argument("--dry-run", action="store_true")
 
     discovery = subparsers.add_parser("discovery-manifest", help="Build broader NZ discovery manifest")
     discovery.add_argument("--inventory", type=Path, required=True)
@@ -2262,7 +2372,12 @@ def main() -> int:
         result = 0
     elif args.command == "internet-archive-plan":
         inventory = load_inventory(args.inventory)
-        write_internet_archive_overlap_plan(inventory, args.output_dir, limit=args.limit)
+        write_internet_archive_overlap_plan(
+            inventory,
+            args.output_dir,
+            limit=args.limit,
+            dry_run=args.dry_run,
+        )
         result = 0
     elif args.command == "discovery-manifest":
         inventory = load_inventory(args.inventory)

@@ -387,6 +387,9 @@ def test_write_internet_archive_overlap_plan(tmp_path: Path, monkeypatch: pytest
     assert (tmp_path / "ia" / "texts" / "parliamentarydeb1870newz.txt").read_text(encoding="utf-8") == "Debate text"
     assert (tmp_path / "ia" / "internet_archive_provenance_ledger.json").exists()
     assert (tmp_path / "ia" / "internet_archive_checksum_manifest.json").exists()
+    assert (tmp_path / "ia" / "internet_archive_source_evidence_report.json").exists()
+    assert manifest["matched"][0]["match_confidence"] == 0.8
+    assert "open_library_search_url" in manifest["matched"][0]["crosswalk"]
     checksum_manifest = json.loads((tmp_path / "ia" / "internet_archive_checksum_manifest.json").read_text())
     assert checksum_manifest["files"][0]["sha256"] == hashlib.sha256(b"Debate text").hexdigest()
 
@@ -457,3 +460,4 @@ def test_write_internet_archive_overlap_plan_routes_ambiguous_matches_to_review(
     assert (tmp_path / "ia" / "internet_archive_review_queue_htids.txt").read_text(encoding="utf-8") == "uc1.test2\n"
     review_manifest = json.loads((tmp_path / "ia" / "internet_archive_overlap_manifest.json").read_text())
     assert review_manifest["review_queue"][0]["review_reasons"]
+    assert review_manifest["unmatched"][0]["crosswalk"]["open_library_search_url"].startswith("https://openlibrary.org/search?q=")

@@ -32,15 +32,15 @@
 
 ## Phase 4: Internet Archive Interim Full-Text Acquisition
 
-- [ ] Task: Harden IA matching with confidence scores, evidence fields, and no first-result fallback.
-- [ ] Task: Add Open Library and IA metadata crosswalk evidence before full-text acquisition.
-- [ ] Task: Emit IA overlap manifest, matched HTID list, IA identifier list, provenance ledger, source evidence report, checksum/file manifest, and manual review queue.
-- [ ] Task: Download only public-domain or redistributable IA text/OCR artifacts under GitHub Actions or artifact staging paths, not git.
-- [ ] Task: Route weak, ambiguous, or conflicting matches to manual review and block publication.
-- [ ] Task: Add quality metrics for OCR/text availability, file size, checksum, source timestamp, and candidate confidence.
-- [ ] Task: Add scheduled IA smoke workflow with small record limits and dry-run defaults.
-- [ ] Task: Add tests for strict matches, title-only ambiguity, creator mismatches, checksum generation, provenance output, and review queue output.
-- [ ] Task: Create GitHub issue `Track Task: Harden Internet Archive interim acquisition` (#24).
+- [x] Task: Harden IA matching with confidence scores, evidence fields, and no first-result fallback.
+- [x] Task: Add Open Library and IA metadata crosswalk evidence before full-text acquisition.
+- [x] Task: Emit IA overlap manifest, matched HTID list, IA identifier list, provenance ledger, source evidence report, checksum/file manifest, and manual review queue.
+- [x] Task: Download only public-domain or redistributable IA text/OCR artifacts under GitHub Actions or artifact staging paths, not git.
+- [x] Task: Route weak, ambiguous, or conflicting matches to manual review and block publication.
+- [x] Task: Add quality metrics for OCR/text availability, file size, checksum, source timestamp, and candidate confidence.
+- [x] Task: Add scheduled IA smoke workflow with small record limits and dry-run defaults.
+- [x] Task: Add tests for strict matches, title-only ambiguity, creator mismatches, checksum generation, provenance output, and review queue output.
+- [x] Task: Create GitHub issue `Track Task: Harden Internet Archive interim acquisition` (#24).
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Internet Archive Interim Full-Text Acquisition' (Protocol in workflow.md)
 
 ## Phase 5: HTRC Extracted Features And Analytics Outputs

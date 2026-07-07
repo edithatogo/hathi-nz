@@ -28,12 +28,11 @@ What next:
 Status: new
 
 What remains:
-- Harden interim Internet Archive/Open Library overlap acquisition.
 - Add HTRC Extracted Features and analytics routing.
 - Wire publication gates, workflows, and completeness reporting.
 
 What next:
-- Continue with interim acquisition and completeness counters.
+- Continue with HTRC Extracted Features and analytics routing.
 - Finish with workflow orchestration and tests.
 
 ### Historical Coverage Breadth Integration

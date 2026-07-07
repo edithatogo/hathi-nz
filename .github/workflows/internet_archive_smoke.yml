@@ -48,7 +48,8 @@ jobs:
           pixi run -e dev python scripts/hathitrust_nz_archive.py internet-archive-plan \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/research_datasets/internet_archive" \
-            --limit "${{ inputs.smoke_limit }}"
+            --limit "${{ inputs.smoke_limit }}" \
+            --dry-run
           echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
 
       - name: Upload Internet Archive smoke artifact
