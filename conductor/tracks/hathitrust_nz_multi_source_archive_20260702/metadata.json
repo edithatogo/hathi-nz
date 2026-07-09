@@ -3,10 +3,8 @@
   "type": "feature",
   "status": "in_progress",
   "created_at": "2026-07-02T00:00:00+10:00",
-  "updated_at": "2026-07-07T00:25:26+10:00",
+  "updated_at": "2026-07-09T21:19:56+10:00",
   "external_blockers": [
-    "HF_TOKEN can upload dataset repos but cannot create or update Hugging Face collections.",
-    "ZENODO_SANDBOX_TOKEN is present but Zenodo sandbox deposition creation returns 403 Permission denied.",
     "Hathi Research Dataset static-host variables and SSH key are not configured in GitHub."
   ],
   "description": "Turn HathiTrust-NZ into a collection-level archive with child datasets for inventory, Hathi Research Dataset full text, HTRC Extracted Features, and HTRC Analytics outputs.",

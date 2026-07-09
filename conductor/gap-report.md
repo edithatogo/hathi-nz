@@ -1,6 +1,6 @@
 # HathiTrust-NZ Gap Report
 
-This report covers the remaining open work in this repository as of 2026-07-07.
+This report covers the remaining open work in this repository as of 2026-07-09.
 
 ## Already Archived
 
@@ -14,8 +14,8 @@ This report covers the remaining open work in this repository as of 2026-07-07.
 Status: in progress
 
 What remains:
-- Resolve external blockers for Hugging Face collection mutation, Zenodo deposition creation, and official HathiTrust rsync/static-host access.
-- Obtain or confirm the missing access items: `HF_TOKEN` collection mutation permission, `ZENODO_SANDBOX_TOKEN` deposition creation permission, and the HathiTrust rsync/static-host variables and SSH key.
+- Resolve the remaining official HathiTrust rsync/static-host access blocker.
+- Obtain or confirm the missing HathiTrust rsync/static-host variables and SSH key.
 - Finish child dataset publication and completeness evidence.
 
 What next:

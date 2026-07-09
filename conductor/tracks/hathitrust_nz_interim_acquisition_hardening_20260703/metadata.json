@@ -3,7 +3,7 @@
   "type": "feature",
   "status": "new",
   "created_at": "2026-07-03T19:50:26+10:00",
-  "updated_at": "2026-07-09T19:21:37.8458670+10:00",
+  "updated_at": "2026-07-09T21:19:56+10:00",
   "description": "Implement interim HathiTrust-NZ acquisition routes and provenance hardening while official HathiTrust rsync access is pending.",
   "parent_track": "hathitrust_nz_multi_source_archive_20260702",
   "execution_default": "github_actions",
@@ -40,9 +40,7 @@
     "issue, project, and redundancy-label synchronization"
   ],
   "blocked_until_external_access": [
-    "official HathiTrust rsync keys and static host approval",
-    "Hugging Face collection mutation permission",
-    "Zenodo deposition permission"
+    "official HathiTrust rsync keys and static host approval"
   ],
   "github_project": "hathi-nz Conductor Roadmap",
   "github_project_url": "https://github.com/users/edithatogo/projects/12",
