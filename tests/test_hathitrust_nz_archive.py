@@ -26,15 +26,16 @@ from scripts.hathitrust_nz_archive import (
     redundancy_source_summary,
     source_policy_entry,
     source_policy_summary,
+    write_completeness_report,
     write_discovery_report,
     write_htrc_analytics_plan,
     write_htrc_ef_plan,
     write_htrc_solr_discovery_plan,
-    write_internet_archive_overlap_plan,
-    write_completeness_report,
-    write_metadata_refresh_plan,
     write_ia_open_library_crosswalk_plan,
+    write_internet_archive_overlap_plan,
+    write_metadata_refresh_plan,
     write_nz_enrichment_plan,
+    write_publication_evidence_report,
     write_research_dataset_plan,
     write_status_report,
 )
@@ -280,6 +281,24 @@ def test_write_completeness_report_writes_json_and_metrics(tmp_path: Path) -> No
     assert payload["counts"]["htrc_ef_available"] == 2
     assert payload["counts"]["hf_published"] is None
     assert payload["counts"]["zenodo_deposited"] is None
+
+
+def test_write_publication_evidence_report_records_route_metadata(tmp_path: Path) -> None:
+    volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
+    inventory = build_inventory(volumes[:1], expected_count=1)
+    out = tmp_path / "reports" / "publication_evidence"
+
+    report = write_publication_evidence_report(inventory, out)
+
+    text = (out / "publication_evidence.md").read_text(encoding="utf-8")
+    payload = json.loads((out / "publication_evidence.json").read_text(encoding="utf-8"))
+
+    assert "official HathiTrust" in text
+    assert payload["meta"]["record_count"] == 1
+    assert len(payload["child_datasets"]) == 5
+    assert payload["child_datasets"][0]["publication_state"] == "metadata_only"
+    assert "Metadata-only publication route" in payload["child_datasets"][0]["route_evidence"][3]
+    assert report["child_datasets"][1]["blocked_routes"]
 
 
 def test_write_htrc_ef_plan_routes_large_subsets_to_static_host_staging(tmp_path: Path) -> None:

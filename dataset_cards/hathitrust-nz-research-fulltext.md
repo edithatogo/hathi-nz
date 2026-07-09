@@ -23,3 +23,15 @@ official HathiTrust research acquisition route.
 - HathiTrust Research Datasets
 - Static-IP rsync endpoint configured outside GitHub runners
 - Internet Archive public-domain overlap audit bundle
+
+## Route Evidence
+
+- Official HathiTrust source: approved research-dataset rsync staging only.
+- IA interim source: public-domain overlap evidence while the HathiTrust path is pending.
+- Metadata-only route: public archives carry manifests, HTID lists, and checksums unless redistribution is explicit.
+- Blocked routes: restricted research full text without approval, Google-restricted, and page-only material.
+
+## Publication Status
+
+- Hugging Face repo: `edithatogo/hathitrust-nz-research-fulltext`
+- Zenodo stream: `hathitrust-nz-research-fulltext`

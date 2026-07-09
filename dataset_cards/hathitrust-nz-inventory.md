@@ -22,3 +22,15 @@ This dataset is public metadata. It must not contain restricted full text.
 - HathiTrust Collection `71329709`
 - Catalog record `007119315`
 - Hugging Face collection target `edithatogo/hathitrust-nz`
+
+## Route Evidence
+
+- Official HathiTrust source: collection export, rights metadata, and source-policy registry.
+- IA interim source: public-domain overlap audit bundle and checksum manifests.
+- Metadata-only route: the public archive keeps the inventory and evidence, not restricted full text.
+- Blocked routes: restricted HathiTrust full text, Google/page-only content, and uncertain provenance.
+
+## Publication Status
+
+- Hugging Face repo: `edithatogo/hathitrust-nz-inventory`
+- Zenodo stream: `hathitrust-nz-inventory`

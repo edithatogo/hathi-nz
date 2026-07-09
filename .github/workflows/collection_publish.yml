@@ -92,6 +92,7 @@ jobs:
             "$BUILD_DIR/research_datasets" \
             "$BUILD_DIR/htrc_ef" \
             "$BUILD_DIR/htrc_analytics" \
+            "$BUILD_DIR/publication_evidence" \
             "$BUILD_DIR/reports"
           pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
             --collection-export data/hathi_collection_export_71329709.tsv \
@@ -131,6 +132,9 @@ jobs:
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/htrc_analytics" \
             --limit 0
+          pixi run -e dev python scripts/hathitrust_nz_archive.py publication-evidence \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output-dir "$BUILD_DIR/publication_evidence"
           mkdir -p "$BUILD_DIR/reports/source-policy" "$BUILD_DIR/reports/internet-archive"
           cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/reports/source-policy/collection_manifest.json"
           if [ -d "$BUILD_DIR/research_datasets/internet_archive" ]; then
@@ -237,9 +241,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           CARD_DIR="dataset_cards"
           if [ "${{ inputs.production }}" != "true" ]; then
-            CARD_DIR="$RUNNER_TEMP/zenodo-dataset-cards"
-            mkdir -p "$CARD_DIR"
-            cp dataset_cards/*.md "$CARD_DIR/"
+            CARD_DIR="dataset_cards"
           fi
           for DATASET in \
             hathitrust-nz-inventory \

@@ -21,3 +21,15 @@ text.
 - HTRC Analytics
 - HTRC Workset Toolkit
 - HTRC Extracted Features 2.5
+
+## Route Evidence
+
+- Official HTRC source: workset definitions, aggregate outputs, and reproducibility metadata.
+- Metadata-only route: analytics outputs remain non-consumptive and omit restricted full text.
+- Blocked routes: Data Capsule-only source material and any restricted text payloads.
+- Interim overlap routes are recorded only as provenance, not as analyzable full text.
+
+## Publication Status
+
+- Hugging Face repo: `edithatogo/hathitrust-nz-htrc-analytics`
+- Zenodo stream: `hathitrust-nz-htrc-analytics`

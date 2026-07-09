@@ -78,8 +78,8 @@
 ## Phase 8: Publication Evidence And Completeness Dashboard
 
 - [x] Task: Extend completeness reports with counts for known, public, enriched, IA-matched, IA-downloaded, HTRC EF-available, review-required, HF-published, and Zenodo-deposited records.
-- [ ] Task: Add dataset-card sections that identify official HathiTrust, IA interim, HTRC EF, analytics-only, metadata-only, and blocked routes.
-- [ ] Task: Add DOI/HF status writeback for interim-source child dataset artifacts.
+- [x] Task: Add dataset-card sections that identify official HathiTrust, IA interim, HTRC EF, analytics-only, metadata-only, and blocked routes.
+- [x] Task: Add DOI/HF status writeback for interim-source child dataset artifacts.
 - [x] Task: Synchronize GitHub issues, project fields, and redundancy-label taxonomy with blocker status and completion evidence.
 - [x] Task: Add tests for completeness report counters and dataset-card status rendering.
 - [ ] Task: Create GitHub issue `Track Task: Add completeness dashboard and publication evidence` (#28).
@@ -98,9 +98,9 @@
 
 ## Validation Plan
 
-- [ ] Run targeted unit tests for source policy, matching, routing, provenance, checksums, and completeness counters.
-- [ ] Run workflow dry-run tests for metadata refresh, IA overlap, HTRC EF sync, and collection publish.
-- [ ] Run `pixi run -e dev ruff check .`.
-- [ ] Run `pixi run -e dev pytest tests/ -q`.
-- [ ] Run `pixi run -e dev actionlint` for changed workflows.
-- [ ] Run `git diff --check`.
+- [x] Run targeted unit tests for source policy, matching, routing, provenance, checksums, and completeness counters.
+- [x] Run workflow dry-run tests for metadata refresh, IA overlap, HTRC EF sync, and collection publish.
+- [x] Run `pixi run -e dev ruff check .`.
+- [x] Run `pixi run -e dev pytest tests/ -q`.
+- [x] Run `pixi run -e dev actionlint` for changed workflows.
+- [x] Run `git diff --check`.

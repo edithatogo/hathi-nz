@@ -18,8 +18,8 @@ import sys
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
-from urllib.parse import quote_plus
 from typing import Any
+from urllib.parse import quote_plus
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -625,6 +625,125 @@ def child_datasets() -> list[dict[str, Any]]:
             "zenodo_stream": "hathitrust-nz-htrc-analytics",
         },
     ]
+
+
+def child_dataset_publication_evidence(inventory: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return child dataset publication evidence and route notes."""
+    child_dataset_map = {dataset["dataset_id"]: dataset for dataset in child_datasets()}
+    source_collection_id = inventory.get("meta", {}).get("collection_id", "")
+    return [
+        {
+            **child_dataset_map["hathitrust-nz-inventory"],
+            "publication_state": "metadata_only",
+            "route_evidence": [
+                "Official HathiTrust collection export and rights metadata",
+                "HathiTrust source-policy registry snapshot",
+                "Internet Archive interim overlap evidence and checksums",
+                "Metadata-only publication route",
+            ],
+            "blocked_routes": [
+                "restricted full text",
+                "Google/page-only full text",
+            ],
+            "source_collection_id": source_collection_id,
+        },
+        {
+            **child_dataset_map["hathitrust-nz-research-fulltext"],
+            "publication_state": "metadata_only_until_static_host_bundle_is_eligible",
+            "route_evidence": [
+                "HathiTrust Research Dataset static-host acquisition plan",
+                "Official HathiTrust rsync staging contract",
+                "Internet Archive overlap evidence as an interim source only",
+                "Metadata-only publication until the approved bundle is available",
+            ],
+            "blocked_routes": [
+                "restricted research full text without explicit approval",
+                "Google-restricted or page-only full text",
+            ],
+            "source_collection_id": source_collection_id,
+        },
+        {
+            **child_dataset_map["hathitrust-nz-htrc-extracted-features"],
+            "publication_state": "public_derived_features",
+            "route_evidence": [
+                "HTRC Solr EF20 discovery candidates",
+                "HTRC Extracted Features 2.5 rsync allowlist",
+                "GitHub Actions routing for small subsets",
+                "Static-host staging for larger subsets",
+            ],
+            "blocked_routes": [
+                "restricted full text",
+                "non-derivative page images",
+            ],
+            "source_collection_id": source_collection_id,
+        },
+        {
+            **child_dataset_map["hathitrust-nz-htrc-analytics"],
+            "publication_state": "public_scripts_aggregates_and_reproducibility_metadata",
+            "route_evidence": [
+                "HTRC Analytics workset definitions",
+                "Aggregate outputs and reproducibility metadata only",
+                "Non-consumptive analysis lane",
+                "Metadata-only and blocked full-text routes stay excluded",
+            ],
+            "blocked_routes": [
+                "restricted full text",
+                "Data Capsule-only source material",
+            ],
+            "source_collection_id": source_collection_id,
+        },
+        {
+            **child_dataset_map["corpus-nz-hathi"],
+            "publication_state": "public_full_text_where_confirmed",
+            "route_evidence": [
+                "Compatibility dataset retained for the existing public full-text corpus",
+                "Existing Zenodo DOI-backed release stream",
+                "HF collection compatibility mirror",
+            ],
+            "blocked_routes": [
+                "restricted HathiTrust research full text",
+            ],
+            "source_collection_id": source_collection_id,
+        },
+    ]
+
+
+def write_publication_evidence_report(inventory: dict[str, Any], output_dir: Path) -> dict[str, Any]:
+    """Write a publication-evidence bundle for child datasets."""
+    evidence = child_dataset_publication_evidence(inventory)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report = {
+        "meta": {
+            "generated_at": utc_now(),
+            "hf_collection": HUGGING_FACE_COLLECTION,
+            "source_collection_id": inventory.get("meta", {}).get("collection_id", ""),
+            "record_count": inventory.get("meta", {}).get("record_count", 0),
+        },
+        "child_datasets": evidence,
+    }
+    write_json(output_dir / "publication_evidence.json", report)
+    lines = [
+        "# HathiTrust-NZ Publication Evidence",
+        "",
+        "- This bundle records route evidence for the collection child datasets.",
+        "- It distinguishes official HathiTrust, IA interim, HTRC EF, analytics-only, metadata-only, and blocked routes.",
+        "",
+    ]
+    for dataset in evidence:
+        lines.extend(
+            [
+                f"## {dataset['dataset_id']}",
+                "",
+                f"- HF repo: `{dataset['hf_repo_id']}`",
+                f"- Zenodo stream: `{dataset['zenodo_stream']}`",
+                f"- Publication state: `{dataset['publication_state']}`",
+                f"- Route evidence: {', '.join(dataset['route_evidence'])}",
+                f"- Blocked routes: {', '.join(dataset['blocked_routes'])}",
+                "",
+            ]
+        )
+    write_lines(output_dir / "publication_evidence.md", lines)
+    return report
 
 
 def source_policy_summary() -> list[dict[str, Any]]:
@@ -2399,6 +2518,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     discovery.add_argument("--output", type=Path, required=True)
     discovery.add_argument("--report", type=Path)
 
+    publication_evidence = subparsers.add_parser(
+        "publication-evidence", help="Build publication evidence for child datasets"
+    )
+    publication_evidence.add_argument("--inventory", type=Path, required=True)
+    publication_evidence.add_argument("--output-dir", type=Path, required=True)
+
     return parser.parse_args(args)
 
 
@@ -2501,6 +2626,10 @@ def main() -> int:
         write_json(args.output, discovery)
         if args.report is not None:
             write_discovery_report(discovery, args.report)
+        result = 0
+    elif args.command == "publication-evidence":
+        inventory = load_inventory(args.inventory)
+        write_publication_evidence_report(inventory, args.output_dir)
         result = 0
 
     return result

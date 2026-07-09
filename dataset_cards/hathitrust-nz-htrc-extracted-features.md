@@ -20,3 +20,15 @@ and the interim source policy registry.
 - HTRC Analytics
 - HTRC Extracted Features 2.5 rsync module
   `data.analytics.hathitrust.org::features-2025.04/`
+
+## Route Evidence
+
+- Official HTRC source: extracted-features discovery and rsync allowlists.
+- GitHub Actions route: small subsets can be fetched directly by workflow.
+- Static-host route: larger subsets stage through the approved host when runner limits are exceeded.
+- Blocked routes: restricted full text and non-derivative page-image publication.
+
+## Publication Status
+
+- Hugging Face repo: `edithatogo/hathitrust-nz-htrc-extracted-features`
+- Zenodo stream: `hathitrust-nz-htrc-extracted-features`
