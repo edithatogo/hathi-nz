@@ -2277,6 +2277,17 @@ def _track_status_snapshot(track_path: Path) -> dict[str, Any] | None:
     }
 
 
+def _classify_blocker(blocker: str) -> str:
+    normalized = blocker.lower()
+    if "hugging face" in normalized or normalized.startswith("hf_token") or "collection mutation" in normalized:
+        return "hugging_face_collection"
+    if "zenodo" in normalized:
+        return "zenodo_deposition"
+    if "hathi" in normalized or "static host" in normalized or "rsync" in normalized or "ssh key" in normalized:
+        return "hathi_static_host"
+    return "other"
+
+
 def build_status_report(
     inventory: dict[str, Any],
     *,
@@ -2429,6 +2440,36 @@ def build_blocker_report(track_metadata_paths: list[Path] | None = None) -> dict
         repo_root / "conductor" / "tracks" / "hathitrust_nz_multi_source_archive_20260702" / "metadata.json",
         repo_root / "conductor" / "tracks" / "hathitrust_nz_interim_acquisition_hardening_20260703" / "metadata.json",
     ]
+    blocker_catalog = {
+        "hugging_face_collection": {
+            "title": "Hugging Face collection mutation",
+            "summary": "The workflow can upload dataset repos, but collection create/update access is still missing.",
+            "required_access": [
+                "HF_TOKEN with collection mutation permission",
+                "Hugging Face collection write access for `edithatogo/hathitrust-nz`",
+            ],
+        },
+        "zenodo_deposition": {
+            "title": "Zenodo deposition creation",
+            "summary": "Zenodo sandbox deposition creation is still returning a permission failure.",
+            "required_access": [
+                "ZENODO_SANDBOX_TOKEN with deposition creation permission",
+                "Zenodo sandbox API access that allows new deposition creation",
+            ],
+        },
+        "hathi_static_host": {
+            "title": "HathiTrust static-host rsync",
+            "summary": "Official HathiTrust Research Dataset acquisition still needs the approved static-host path and credentials.",
+            "required_access": [
+                "HATHI_RSYNC_HOST",
+                "HATHI_RSYNC_MODULE",
+                "HATHI_RSYNC_USER",
+                "HATHI_STATIC_HOST_STAGING_DIR",
+                "HATHI_STATIC_HOST_SSH_KEY",
+                "HathiTrust static-host approval for rsync acquisition",
+            ],
+        },
+    }
     track_snapshots = []
     blocker_items: list[dict[str, Any]] = []
     for track_path in track_metadata_paths or default_track_paths:
@@ -2442,6 +2483,7 @@ def build_blocker_report(track_metadata_paths: list[Path] | None = None) -> dict
                     "track_id": track["track_id"],
                     "status": track["status"],
                     "blocker": blocker,
+                    "category": _classify_blocker(blocker),
                 }
             )
         for blocker in track.get("external_blockers", []):
@@ -2450,16 +2492,39 @@ def build_blocker_report(track_metadata_paths: list[Path] | None = None) -> dict
                     "track_id": track["track_id"],
                     "status": track["status"],
                     "blocker": blocker,
+                    "category": _classify_blocker(blocker),
                 }
             )
+    blocker_groups: dict[str, dict[str, Any]] = {}
+    for category_id, catalog_entry in blocker_catalog.items():
+        items = [item for item in blocker_items if item["category"] == category_id]
+        if not items:
+            continue
+        blocker_groups[category_id] = {
+            "title": catalog_entry["title"],
+            "summary": catalog_entry["summary"],
+            "required_access": catalog_entry["required_access"],
+            "items": items,
+        }
     return {
         "meta": {
             "generated_at": utc_now(),
             "track_count": len(track_snapshots),
             "blocker_count": len(blocker_items),
+            "group_count": len(blocker_groups),
         },
         "tracks": track_snapshots,
         "blockers": blocker_items,
+        "blocker_groups": blocker_groups,
+        "required_access": [
+            {
+                "category": category_id,
+                "title": entry["title"],
+                "required_access": entry["required_access"],
+            }
+            for category_id, entry in blocker_catalog.items()
+            if any(item["category"] == category_id for item in blocker_items)
+        ],
     }
 
 
@@ -2482,13 +2547,29 @@ def write_blocker_report(
         "## Blockers",
         "",
     ]
-    for item in report["blockers"]:
+    for category_id, group in report.get("blocker_groups", {}).items():
         lines.extend(
             [
-                f"- `{item['track_id']}`: `{item['blocker']}`",
-                f"  - Status: `{item['status']}`",
+                f"### {group['title']} (`{category_id}`)",
+                "",
+                f"{group['summary']}",
+                "",
+                "Required access:",
             ]
         )
+        for access in group.get("required_access", []):
+            lines.append(f"- `{access}`")
+        lines.append("")
+        for item in group.get("items", []):
+            lines.extend(
+                [
+                    f"- `{item['track_id']}`: `{item['blocker']}`",
+                    f"  - Status: `{item['status']}`",
+                ]
+            )
+        lines.append("")
+    if not report.get("blocker_groups"):
+        lines.append("- none")
     write_lines(output_dir / "blocker_report.md", lines)
     return report
 

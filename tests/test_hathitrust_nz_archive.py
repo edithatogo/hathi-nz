@@ -311,7 +311,13 @@ def test_write_blocker_report_records_external_access_blockers(tmp_path: Path) -
     payload = json.loads((out / "blocker_report.json").read_text(encoding="utf-8"))
 
     assert "HathiTrust-NZ Blocker Report" in text
+    assert "Hugging Face collection mutation" in text
+    assert "Required access:" in text
     assert payload["meta"]["blocker_count"] >= 3
+    assert payload["meta"]["group_count"] >= 3
+    assert "blocker_groups" in payload
+    assert "required_access" in payload
+    assert any(group["category"] == "hathi_static_host" for group in payload["required_access"])
     assert any("HF_TOKEN" in item["blocker"] for item in payload["blockers"])
     assert report["meta"]["track_count"] >= 1
 
