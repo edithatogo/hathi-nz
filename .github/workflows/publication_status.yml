@@ -42,6 +42,50 @@ jobs:
           cache: true
           environments: dev
 
+      - name: Summarize blockers
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.workflow_run_id }}" ]; then
+            export BLOCKER_REPORT_PATH="$RUNNER_TEMP/publication-status-artifact/blockers/blocker_report.json"
+          else
+            export BLOCKER_REPORT_PATH="reports/blockers/blocker_report.json"
+          fi
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          import os
+          from pathlib import Path
+
+          blocker_report = Path(os.environ["BLOCKER_REPORT_PATH"])
+
+          print("## Publication blockers")
+          print("")
+          if not blocker_report.exists():
+              print("Blocker report not available.")
+              raise SystemExit(0)
+
+          data = json.loads(blocker_report.read_text(encoding="utf-8"))
+          meta = data.get("meta", {}) if isinstance(data, dict) else {}
+          print(f"- Track count: `{meta.get('track_count', 0)}`")
+          print(f"- Blocker count: `{meta.get('blocker_count', 0)}`")
+          print(f"- Required access groups: `{meta.get('group_count', 0)}`")
+          print("")
+          for category_id, group in (data.get("blocker_groups", {}) or {}).items():
+              print(f"### {group.get('title', category_id)} (`{category_id}`)")
+              summary = group.get("summary")
+              if summary:
+                  print(summary)
+              required_access = group.get("required_access", [])
+              if required_access:
+                  print("")
+                  print("Required access:")
+                  for access in required_access:
+                      print(f"- `{access}`")
+              print("")
+              for item in group.get("items", []):
+                  print(f"- `{item.get('track_id', '')}`: `{item.get('blocker', '')}`")
+          PY
+
       - name: Report publication status
         shell: bash
         run: |

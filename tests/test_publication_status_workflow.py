@@ -29,6 +29,8 @@ def test_publication_status_workflow_reports_non_blocking_status() -> None:
     assert "workflow_dispatch" in workflow
     assert "workflow_run_id" in workflow
     assert "actions/download-artifact@v5" in workflow
+    assert "Summarize blockers" in workflow
+    assert "Publication blockers" in workflow
     assert "pixi run -e dev publication-status" in workflow
     assert '--status-report "$RUNNER_TEMP/publication-status-artifact/reports/status/status_report.json"' in workflow
     assert '--publication-evidence "$RUNNER_TEMP/publication-status-artifact/publication_evidence/publication_evidence.json"' in workflow
