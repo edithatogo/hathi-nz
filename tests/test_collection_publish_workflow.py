@@ -36,6 +36,7 @@ def test_collection_publish_workflow_runs_strict_publication_status_gate() -> No
     assert 'cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/reports/source-policy/collection_manifest.json"' in workflow
     assert '--status-report "$BUILD_DIR/reports/status/status_report.json"' in workflow
     assert '--publication-evidence "$BUILD_DIR/publication_evidence/publication_evidence.json"' in workflow
+    assert '--blocker-report "$BUILD_DIR/blockers/blocker_report.json"' in workflow
     assert '--htrc-ef "$BUILD_DIR/htrc_ef/htrc_ef25_manifest.json"' in workflow
     assert '--htrc-analytics "$BUILD_DIR/htrc_analytics/htrc_analytics_manifest.json"' in workflow
     assert "publication-evidence" in workflow

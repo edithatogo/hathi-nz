@@ -112,6 +112,9 @@ def test_check_publication_status_reports_not_ready_when_zenodo_missing(
 {"meta": {"record_count": 0}, "volumes": []}
 """,
             check_publication_status_module.DATASET_CARD_PATH: "For academic citation, use the Zenodo DOI once a public release is published and recorded here.",
+            check_publication_status_module.BLOCKER_REPORT_PATH: """\
+{"meta": {"blocker_count": 2}, "blockers": [{"track_id": "one", "status": "in_progress", "blocker": "a"}]}
+""",
         }[path],
     )
 
@@ -151,6 +154,9 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
             check_publication_status_module.DATASET_CARD_PATH: (
                 "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
             ),
+            check_publication_status_module.BLOCKER_REPORT_PATH: """\
+{"meta": {"blocker_count": 0}, "blockers": []}
+""",
         }[path],
     )
 
@@ -201,6 +207,7 @@ def test_check_publication_status_uses_status_report_snapshot(
     tmp_path: Path,
 ) -> None:
     status_report_path = tmp_path / "status_report.json"
+    blocker_report_path = tmp_path / "blocker_report.json"
     status_report_path.write_text(
         json.dumps(
             {
@@ -220,6 +227,15 @@ def test_check_publication_status_uses_status_report_snapshot(
         ),
         encoding="utf-8",
     )
+    blocker_report_path.write_text(
+        json.dumps(
+            {
+                "meta": {"blocker_count": 2},
+                "blockers": [{"track_id": "one", "status": "complete", "blocker": "resolved"}],
+            }
+        ),
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(
         check_publication_status_module,
@@ -235,6 +251,7 @@ def test_check_publication_status_uses_status_report_snapshot(
                 "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
             ),
             status_report_path: status_report_path.read_text(encoding="utf-8"),
+            blocker_report_path: blocker_report_path.read_text(encoding="utf-8"),
         }[path],
     )
     monkeypatch.setattr(check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response())  # type: ignore[assignment]
@@ -258,7 +275,10 @@ def test_check_publication_status_uses_status_report_snapshot(
         },
     )
 
-    report = check_publication_status(status_report_path=status_report_path)
+    report = check_publication_status(
+        status_report_path=status_report_path,
+        blocker_report_path=blocker_report_path,
+    )
 
     assert report["status_report"]["exists"] is True
     assert report["status_report"]["track_count"] == 2
@@ -274,6 +294,7 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
 ) -> None:
     status_report_path = tmp_path / "status_report.json"
     publication_evidence_path = tmp_path / "publication_evidence.json"
+    blocker_report_path = tmp_path / "blocker_report.json"
     status_report_path.write_text(
         json.dumps(
             {
@@ -334,6 +355,15 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
         ),
         encoding="utf-8",
     )
+    blocker_report_path.write_text(
+        json.dumps(
+            {
+                "meta": {"generated_at": "2026-07-03T00:00:00Z", "track_count": 2, "blocker_count": 0},
+                "blockers": [],
+            }
+        ),
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(
         check_publication_status_module,
@@ -350,6 +380,7 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
             ),
             status_report_path: status_report_path.read_text(encoding="utf-8"),
             publication_evidence_path: publication_evidence_path.read_text(encoding="utf-8"),
+            blocker_report_path: blocker_report_path.read_text(encoding="utf-8"),
         }[path],
     )
     monkeypatch.setattr(check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response())  # type: ignore[assignment]
@@ -376,6 +407,7 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
     report = check_publication_status(
         status_report_path=status_report_path,
         publication_evidence_path=publication_evidence_path,
+        blocker_report_path=blocker_report_path,
     )
 
     assert report["publication_evidence"]["exists"] is True

@@ -93,6 +93,7 @@ jobs:
             "$BUILD_DIR/htrc_ef" \
             "$BUILD_DIR/htrc_analytics" \
             "$BUILD_DIR/publication_evidence" \
+            "$BUILD_DIR/blockers" \
             "$BUILD_DIR/reports"
           pixi run -e dev python scripts/hathitrust_nz_archive.py inventory \
             --collection-export data/hathi_collection_export_71329709.tsv \
@@ -135,6 +136,8 @@ jobs:
           pixi run -e dev python scripts/hathitrust_nz_archive.py publication-evidence \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/publication_evidence"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py blocker-report \
+            --output-dir "$BUILD_DIR/blockers"
           mkdir -p "$BUILD_DIR/reports/source-policy" "$BUILD_DIR/reports/internet-archive"
           cp "$BUILD_DIR/collection/collection_manifest.json" "$BUILD_DIR/reports/source-policy/collection_manifest.json"
           if [ -d "$BUILD_DIR/research_datasets/internet_archive" ]; then
@@ -282,4 +285,5 @@ jobs:
         run: |
           pixi run -e dev publication-status --strict \
             --status-report "$BUILD_DIR/reports/status/status_report.json" \
-            --publication-evidence "$BUILD_DIR/publication_evidence/publication_evidence.json"
+            --publication-evidence "$BUILD_DIR/publication_evidence/publication_evidence.json" \
+            --blocker-report "$BUILD_DIR/blockers/blocker_report.json"

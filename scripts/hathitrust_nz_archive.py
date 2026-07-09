@@ -2422,6 +2422,77 @@ def write_status_report(
     return report
 
 
+def build_blocker_report(track_metadata_paths: list[Path] | None = None) -> dict[str, Any]:
+    """Build a normalized blocker report from Conductor track metadata."""
+    repo_root = Path(__file__).resolve().parents[1]
+    default_track_paths = [
+        repo_root / "conductor" / "tracks" / "hathitrust_nz_multi_source_archive_20260702" / "metadata.json",
+        repo_root / "conductor" / "tracks" / "hathitrust_nz_interim_acquisition_hardening_20260703" / "metadata.json",
+    ]
+    track_snapshots = []
+    blocker_items: list[dict[str, Any]] = []
+    for track_path in track_metadata_paths or default_track_paths:
+        track = _track_status_snapshot(track_path)
+        if track is None:
+            continue
+        track_snapshots.append(track)
+        for blocker in track.get("blocked_until_external_access", []):
+            blocker_items.append(
+                {
+                    "track_id": track["track_id"],
+                    "status": track["status"],
+                    "blocker": blocker,
+                }
+            )
+        for blocker in track.get("external_blockers", []):
+            blocker_items.append(
+                {
+                    "track_id": track["track_id"],
+                    "status": track["status"],
+                    "blocker": blocker,
+                }
+            )
+    return {
+        "meta": {
+            "generated_at": utc_now(),
+            "track_count": len(track_snapshots),
+            "blocker_count": len(blocker_items),
+        },
+        "tracks": track_snapshots,
+        "blockers": blocker_items,
+    }
+
+
+def write_blocker_report(
+    output_dir: Path,
+    *,
+    track_metadata_paths: list[Path] | None = None,
+) -> dict[str, Any]:
+    """Write a blocker report in JSON and Markdown formats."""
+    report = build_blocker_report(track_metadata_paths=track_metadata_paths)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    write_json(output_dir / "blocker_report.json", report)
+    lines = [
+        "# HathiTrust-NZ Blocker Report",
+        "",
+        f"- Generated at: `{report['meta']['generated_at']}`.",
+        f"- Track count: `{report['meta']['track_count']}`.",
+        f"- Blocker count: `{report['meta']['blocker_count']}`.",
+        "",
+        "## Blockers",
+        "",
+    ]
+    for item in report["blockers"]:
+        lines.extend(
+            [
+                f"- `{item['track_id']}`: `{item['blocker']}`",
+                f"  - Status: `{item['status']}`",
+            ]
+        )
+    write_lines(output_dir / "blocker_report.md", lines)
+    return report
+
+
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -2523,6 +2594,18 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     publication_evidence.add_argument("--inventory", type=Path, required=True)
     publication_evidence.add_argument("--output-dir", type=Path, required=True)
+
+    blockers = subparsers.add_parser("blocker-report", help="Build blocker report from track metadata")
+    blockers.add_argument("--output-dir", type=Path, required=True)
+    blockers.add_argument(
+        "--track-metadata",
+        type=Path,
+        action="append",
+        default=[
+            Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
+            Path("conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"),
+        ],
+    )
 
     return parser.parse_args(args)
 
@@ -2630,6 +2713,9 @@ def main() -> int:
     elif args.command == "publication-evidence":
         inventory = load_inventory(args.inventory)
         write_publication_evidence_report(inventory, args.output_dir)
+        result = 0
+    elif args.command == "blocker-report":
+        write_blocker_report(args.output_dir, track_metadata_paths=args.track_metadata)
         result = 0
 
     return result

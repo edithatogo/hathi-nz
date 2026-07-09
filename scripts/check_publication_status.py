@@ -22,6 +22,7 @@ DATASET_CARD_PATH = ROOT / "DATASET_CARD.md"
 MANIFEST_PATH = ROOT / "manifests" / "latest_manifest.json"
 STATUS_REPORT_PATH = ROOT / "reports" / "status" / "status_report.json"
 PUBLICATION_EVIDENCE_PATH = ROOT / "reports" / "publication_evidence" / "publication_evidence.json"
+BLOCKER_REPORT_PATH = ROOT / "reports" / "blockers" / "blocker_report.json"
 
 get_settings: Callable[[], Any] | None = None
 try:
@@ -193,6 +194,24 @@ def _publication_evidence_summary(text: str) -> dict[str, Any]:
     }
 
 
+def _blocker_report_summary(text: str) -> dict[str, Any]:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return {"exists": False, "error": str(exc), "blocker_count": 0}
+    if not isinstance(data, dict):
+        return {"exists": False, "error": "blocker report is not an object", "blocker_count": 0}
+    blockers = data.get("blockers", [])
+    blocker_count = len(blockers) if isinstance(blockers, list) else 0
+    meta = data.get("meta", {}) if isinstance(data.get("meta", {}), dict) else {}
+    return {
+        "exists": True,
+        "generated_at": meta.get("generated_at"),
+        "track_count": meta.get("track_count", 0),
+        "blocker_count": blocker_count,
+    }
+
+
 def _doi_resolves(doi_url: str) -> dict[str, Any]:
     try:
         response = requests.get(doi_url, timeout=30, allow_redirects=True)
@@ -277,6 +296,7 @@ def check_publication_status(
     *,
     status_report_path: Path | None = None,
     publication_evidence_path: Path | None = None,
+    blocker_report_path: Path | None = None,
 ) -> dict[str, Any]:
     tracks = _track_summary(_text(TRACKS_PATH))
     hugging_face = _check_hugging_face(_hf_repo_id())
@@ -291,6 +311,12 @@ def check_publication_status(
         if publication_evidence_file.exists()
         else {"exists": False, "child_dataset_count": 0, "evidence_states": []}
     )
+    blocker_report_file = blocker_report_path or BLOCKER_REPORT_PATH
+    blocker_report = (
+        _blocker_report_summary(_text(blocker_report_file))
+        if blocker_report_file.exists()
+        else {"exists": False, "blocker_count": 0}
+    )
     expected_volumes = _dataset_card_expected_volumes(dataset_card)
     card_doi = _dataset_card_doi(dataset_card)
     doi_status = _doi_resolves(card_doi["url"]) if card_doi is not None else None
@@ -301,6 +327,7 @@ def check_publication_status(
     evidence_complete = True
     if publication_evidence.get("exists"):
         evidence_complete = publication_evidence.get("child_dataset_count", 0) >= 5
+    blockers_complete = bool(blocker_report.get("exists")) and blocker_report.get("blocker_count", 0) == 0
     publication_ready = bool(
         hugging_face.get("exists")
         and hf_has_files
@@ -309,6 +336,7 @@ def check_publication_status(
         and doi_status.get("resolves")
         and manifest_complete
         and evidence_complete
+        and blockers_complete
     )
     roadmap_complete = status_report["roadmap_complete"] if status_report.get("exists") else tracks["all_complete"]
     ready = publication_ready and roadmap_complete
@@ -319,6 +347,7 @@ def check_publication_status(
         "manifest": manifest,
         "status_report": status_report,
         "publication_evidence": publication_evidence,
+        "blocker_report": blocker_report,
         "expected_volumes": expected_volumes,
         "dataset_card_doi": card_doi,
         "doi_status": doi_status,
@@ -343,6 +372,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Optional path to the generated publication_evidence.json snapshot.",
     )
     parser.add_argument(
+        "--blocker-report",
+        type=Path,
+        default=BLOCKER_REPORT_PATH,
+        help="Optional path to the generated blocker_report.json snapshot.",
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="Exit nonzero when the publication is not ready for release gating.",
@@ -355,6 +390,7 @@ def main(args: list[str] | None = None) -> int:
     report = check_publication_status(
         status_report_path=ns.status_report,
         publication_evidence_path=ns.publication_evidence,
+        blocker_report_path=ns.blocker_report,
     )
     print(json.dumps(report, indent=2))
     if ns.strict and not report["ready"]:

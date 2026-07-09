@@ -26,6 +26,7 @@ from scripts.hathitrust_nz_archive import (
     redundancy_source_summary,
     source_policy_entry,
     source_policy_summary,
+    write_blocker_report,
     write_completeness_report,
     write_discovery_report,
     write_htrc_analytics_plan,
@@ -299,6 +300,20 @@ def test_write_publication_evidence_report_records_route_metadata(tmp_path: Path
     assert payload["child_datasets"][0]["publication_state"] == "metadata_only"
     assert "Metadata-only publication route" in payload["child_datasets"][0]["route_evidence"][3]
     assert report["child_datasets"][1]["blocked_routes"]
+
+
+def test_write_blocker_report_records_external_access_blockers(tmp_path: Path) -> None:
+    out = tmp_path / "reports" / "blockers"
+
+    report = write_blocker_report(out)
+
+    text = (out / "blocker_report.md").read_text(encoding="utf-8")
+    payload = json.loads((out / "blocker_report.json").read_text(encoding="utf-8"))
+
+    assert "HathiTrust-NZ Blocker Report" in text
+    assert payload["meta"]["blocker_count"] >= 3
+    assert any("HF_TOKEN" in item["blocker"] for item in payload["blockers"])
+    assert report["meta"]["track_count"] >= 1
 
 
 def test_write_htrc_ef_plan_routes_large_subsets_to_static_host_staging(tmp_path: Path) -> None:
