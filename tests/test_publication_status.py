@@ -268,6 +268,123 @@ def test_check_publication_status_uses_status_report_snapshot(
 
 
 @pytest.mark.unit
+def test_check_publication_status_uses_publication_evidence_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    status_report_path = tmp_path / "status_report.json"
+    publication_evidence_path = tmp_path / "publication_evidence.json"
+    status_report_path.write_text(
+        json.dumps(
+            {
+                "meta": {
+                    "generated_at": "2026-07-03T00:00:00Z",
+                    "hf_collection": "edithatogo/hathitrust-nz",
+                    "record_count": 510,
+                },
+                "inventory": {"record_count": 510},
+                "metadata_refresh": {"present": True},
+                "internet_archive": {"present": True},
+                "tracks": [{"track_id": "one", "status": "complete"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    publication_evidence_path.write_text(
+        json.dumps(
+            {
+                "meta": {
+                    "generated_at": "2026-07-03T00:00:00Z",
+                    "hf_collection": "edithatogo/hathitrust-nz",
+                    "record_count": 510,
+                },
+                "child_datasets": [
+                    {
+                        "dataset_id": "hathitrust-nz-inventory",
+                        "publication_state": "metadata_only",
+                        "route_evidence": ["a", "b"],
+                        "blocked_routes": ["c"],
+                    },
+                    {
+                        "dataset_id": "hathitrust-nz-research-fulltext",
+                        "publication_state": "metadata_only_until_static_host_bundle_is_eligible",
+                        "route_evidence": ["a", "b"],
+                        "blocked_routes": ["c"],
+                    },
+                    {
+                        "dataset_id": "hathitrust-nz-htrc-extracted-features",
+                        "publication_state": "public_derived_features",
+                        "route_evidence": ["a", "b"],
+                        "blocked_routes": ["c"],
+                    },
+                    {
+                        "dataset_id": "hathitrust-nz-htrc-analytics",
+                        "publication_state": "public_scripts_aggregates_and_reproducibility_metadata",
+                        "route_evidence": ["a", "b"],
+                        "blocked_routes": ["c"],
+                    },
+                    {
+                        "dataset_id": "corpus-nz-hathi",
+                        "publication_state": "public_full_text_where_confirmed",
+                        "route_evidence": ["a", "b"],
+                        "blocked_routes": ["c"],
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_text",
+        lambda path: {
+            check_publication_status_module.TRACKS_PATH: """\
+## [x] Track: One
+""",
+            check_publication_status_module.MANIFEST_PATH: """\
+{"meta": {"record_count": 510}, "volumes": [{"htid": "uc1.b2889853"}]}
+""",
+            check_publication_status_module.DATASET_CARD_PATH: (
+                "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
+            ),
+            status_report_path: status_report_path.read_text(encoding="utf-8"),
+            publication_evidence_path: publication_evidence_path.read_text(encoding="utf-8"),
+        }[path],
+    )
+    monkeypatch.setattr(check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response())  # type: ignore[assignment]
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_zenodo",
+        lambda query="corpus-nz-hathi": {
+            "query": query,
+            "match_count": 0,
+            "matches": [],
+        },
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_doi_resolves",
+        lambda doi_url: {
+            "resolves": True,
+            "status_code": 200,
+            "final_url": doi_url,
+            "redirects": 1,
+        },
+    )
+
+    report = check_publication_status(
+        status_report_path=status_report_path,
+        publication_evidence_path=publication_evidence_path,
+    )
+
+    assert report["publication_evidence"]["exists"] is True
+    assert report["publication_evidence"]["child_dataset_count"] == 5
+    assert report["publication_ready"] is True
+    assert report["ready"] is True
+
+
+@pytest.mark.unit
 def test_strict_mode_allows_publication_ready_even_when_roadmap_is_incomplete(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

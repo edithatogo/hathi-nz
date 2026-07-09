@@ -49,5 +49,6 @@ jobs:
           ARGS=(--strict)
           if [ -n "${{ inputs.workflow_run_id }}" ]; then
             ARGS+=(--status-report "$RUNNER_TEMP/publication-status-artifact/reports/status/status_report.json")
+            ARGS+=(--publication-evidence "$RUNNER_TEMP/publication-status-artifact/publication_evidence/publication_evidence.json")
           fi
           pixi run -e dev publication-status "${ARGS[@]}"

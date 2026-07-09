@@ -21,6 +21,7 @@ TRACKS_PATH = ROOT / "conductor" / "tracks.md"
 DATASET_CARD_PATH = ROOT / "DATASET_CARD.md"
 MANIFEST_PATH = ROOT / "manifests" / "latest_manifest.json"
 STATUS_REPORT_PATH = ROOT / "reports" / "status" / "status_report.json"
+PUBLICATION_EVIDENCE_PATH = ROOT / "reports" / "publication_evidence" / "publication_evidence.json"
 
 get_settings: Callable[[], Any] | None = None
 try:
@@ -155,6 +156,43 @@ def _status_report_summary(text: str) -> dict[str, Any]:
     }
 
 
+def _publication_evidence_summary(text: str) -> dict[str, Any]:
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return {"exists": False, "error": str(exc), "child_dataset_count": 0}
+    if not isinstance(data, dict):
+        return {"exists": False, "error": "publication evidence is not an object", "child_dataset_count": 0}
+    child_datasets = data.get("child_datasets", [])
+    child_dataset_count = len(child_datasets) if isinstance(child_datasets, list) else 0
+    evidence_states = []
+    if isinstance(child_datasets, list):
+        for dataset in child_datasets:
+            if not isinstance(dataset, dict):
+                continue
+            evidence_states.append(
+                {
+                    "dataset_id": dataset.get("dataset_id", ""),
+                    "publication_state": dataset.get("publication_state", ""),
+                    "route_evidence_count": len(dataset.get("route_evidence", []))
+                    if isinstance(dataset.get("route_evidence", []), list)
+                    else 0,
+                    "blocked_route_count": len(dataset.get("blocked_routes", []))
+                    if isinstance(dataset.get("blocked_routes", []), list)
+                    else 0,
+                }
+            )
+    meta = data.get("meta", {}) if isinstance(data.get("meta", {}), dict) else {}
+    return {
+        "exists": True,
+        "generated_at": meta.get("generated_at"),
+        "hf_collection": meta.get("hf_collection"),
+        "record_count": meta.get("record_count", 0),
+        "child_dataset_count": child_dataset_count,
+        "evidence_states": evidence_states,
+    }
+
+
 def _doi_resolves(doi_url: str) -> dict[str, Any]:
     try:
         response = requests.get(doi_url, timeout=30, allow_redirects=True)
@@ -235,7 +273,11 @@ def _check_zenodo(query: str = "corpus-nz-hathi") -> dict[str, Any]:
     return {"query": query, "match_count": len(matches), "matches": matches}
 
 
-def check_publication_status(*, status_report_path: Path | None = None) -> dict[str, Any]:
+def check_publication_status(
+    *,
+    status_report_path: Path | None = None,
+    publication_evidence_path: Path | None = None,
+) -> dict[str, Any]:
     tracks = _track_summary(_text(TRACKS_PATH))
     hugging_face = _check_hugging_face(_hf_repo_id())
     zenodo = _check_zenodo()
@@ -243,6 +285,12 @@ def check_publication_status(*, status_report_path: Path | None = None) -> dict[
     manifest = _manifest_summary(_text(MANIFEST_PATH)) if MANIFEST_PATH.exists() else {"exists": False, "record_count": 0}
     status_report_file = status_report_path or STATUS_REPORT_PATH
     status_report = _status_report_summary(_text(status_report_file)) if status_report_file.exists() else {"exists": False, "track_count": 0, "roadmap_complete": False}
+    publication_evidence_file = publication_evidence_path or PUBLICATION_EVIDENCE_PATH
+    publication_evidence = (
+        _publication_evidence_summary(_text(publication_evidence_file))
+        if publication_evidence_file.exists()
+        else {"exists": False, "child_dataset_count": 0, "evidence_states": []}
+    )
     expected_volumes = _dataset_card_expected_volumes(dataset_card)
     card_doi = _dataset_card_doi(dataset_card)
     doi_status = _doi_resolves(card_doi["url"]) if card_doi is not None else None
@@ -250,6 +298,9 @@ def check_publication_status(*, status_report_path: Path | None = None) -> dict[
     manifest_complete = bool(manifest.get("record_count", 0))
     if expected_volumes is not None:
         manifest_complete = manifest_complete and manifest.get("record_count") == expected_volumes
+    evidence_complete = True
+    if publication_evidence.get("exists"):
+        evidence_complete = publication_evidence.get("child_dataset_count", 0) >= 5
     publication_ready = bool(
         hugging_face.get("exists")
         and hf_has_files
@@ -257,6 +308,7 @@ def check_publication_status(*, status_report_path: Path | None = None) -> dict[
         and doi_status is not None
         and doi_status.get("resolves")
         and manifest_complete
+        and evidence_complete
     )
     roadmap_complete = status_report["roadmap_complete"] if status_report.get("exists") else tracks["all_complete"]
     ready = publication_ready and roadmap_complete
@@ -266,6 +318,7 @@ def check_publication_status(*, status_report_path: Path | None = None) -> dict[
         "zenodo": zenodo,
         "manifest": manifest,
         "status_report": status_report,
+        "publication_evidence": publication_evidence,
         "expected_volumes": expected_volumes,
         "dataset_card_doi": card_doi,
         "doi_status": doi_status,
@@ -284,6 +337,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Optional path to the generated status_report.json snapshot.",
     )
     parser.add_argument(
+        "--publication-evidence",
+        type=Path,
+        default=PUBLICATION_EVIDENCE_PATH,
+        help="Optional path to the generated publication_evidence.json snapshot.",
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="Exit nonzero when the publication is not ready for release gating.",
@@ -293,7 +352,10 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 
 def main(args: list[str] | None = None) -> int:
     ns = parse_args(args)
-    report = check_publication_status(status_report_path=ns.status_report)
+    report = check_publication_status(
+        status_report_path=ns.status_report,
+        publication_evidence_path=ns.publication_evidence,
+    )
     print(json.dumps(report, indent=2))
     if ns.strict and not report["ready"]:
         return 1

@@ -279,4 +279,7 @@ jobs:
 
       - name: Verify publication status
         if: ${{ inputs.publish_zenodo && inputs.production }}
-        run: pixi run -e dev publication-status --strict --status-report "$BUILD_DIR/reports/status/status_report.json"
+        run: |
+          pixi run -e dev publication-status --strict \
+            --status-report "$BUILD_DIR/reports/status/status_report.json" \
+            --publication-evidence "$BUILD_DIR/publication_evidence/publication_evidence.json"
