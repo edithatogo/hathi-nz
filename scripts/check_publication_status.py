@@ -202,13 +202,19 @@ def _blocker_report_summary(text: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         return {"exists": False, "error": "blocker report is not an object", "blocker_count": 0}
     blockers = data.get("blockers", [])
+    blocker_groups = data.get("blocker_groups", {})
+    required_access = data.get("required_access", [])
     blocker_count = len(blockers) if isinstance(blockers, list) else 0
+    group_count = len(blocker_groups) if isinstance(blocker_groups, dict) else 0
+    required_access_count = len(required_access) if isinstance(required_access, list) else 0
     meta = data.get("meta", {}) if isinstance(data.get("meta", {}), dict) else {}
     return {
         "exists": True,
         "generated_at": meta.get("generated_at"),
         "track_count": meta.get("track_count", 0),
         "blocker_count": blocker_count,
+        "group_count": group_count,
+        "required_access_count": required_access_count,
     }
 
 

@@ -417,6 +417,34 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
 
 
 @pytest.mark.unit
+def test_blocker_report_summary_counts_grouped_blockers() -> None:
+    summary = check_publication_status_module._blocker_report_summary(
+        json.dumps(
+            {
+                "meta": {"track_count": 2, "blocker_count": 3},
+                "blockers": [
+                    {"track_id": "a", "status": "new", "blocker": "HF"},
+                    {"track_id": "b", "status": "new", "blocker": "Zenodo"},
+                    {"track_id": "c", "status": "new", "blocker": "Hathi"},
+                ],
+                "blocker_groups": {
+                    "hugging_face_collection": {"title": "Hugging Face collection mutation"},
+                    "zenodo_deposition": {"title": "Zenodo deposition creation"},
+                },
+                "required_access": [
+                    {"category": "hugging_face_collection"},
+                    {"category": "zenodo_deposition"},
+                ],
+            }
+        )
+    )
+
+    assert summary["blocker_count"] == 3
+    assert summary["group_count"] == 2
+    assert summary["required_access_count"] == 2
+
+
+@pytest.mark.unit
 def test_strict_mode_allows_publication_ready_even_when_roadmap_is_incomplete(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
