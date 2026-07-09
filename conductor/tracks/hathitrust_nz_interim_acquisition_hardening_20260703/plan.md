@@ -5,7 +5,7 @@
 - [x] Task: Create Conductor track artifacts for interim acquisition hardening.
 - [x] Task: Create GitHub parent issue `Track: HathiTrust-NZ interim acquisition and provenance hardening` (#21).
 - [x] Task: Cross-link this track from `hathitrust_nz_multi_source_archive_20260702` without replacing the existing blocker evidence.
-- [x] Task: Define implementation issue set for source policy, metadata refresh, IA acquisition, HTRC EF, NZ enrichment, publication gates, and completeness reporting (#22-#28).
+- [x] Task: Define implementation issue set for source policy, metadata refresh, IA acquisition, HTRC EF, NZ enrichment, publication gates, and completeness reporting (#22-#30).
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Track Bootstrap And Governance' (Protocol in workflow.md)
 
 ## Phase 2: Source Policy Registry
@@ -72,7 +72,7 @@
 - [x] Task: Ensure publication jobs require explicit `HF_TOKEN`, `ZENODO_TOKEN` or `ZENODO_SANDBOX_TOKEN`, and static-host secrets where needed.
 - [x] Task: Keep static rsync acquisition on the configured host and have Actions consume staged bundles or manifests.
 - [x] Task: Add workflow tests and `actionlint` coverage for changed workflows.
-- [ ] Task: Create GitHub issue `Track Task: Wire interim acquisition GitHub Actions` (#27).
+- [x] Task: Create GitHub issue `Track Task: Wire interim acquisition GitHub Actions` (#29).
 - [ ] Task: Conductor - User Manual Verification 'Phase 7: GitHub Actions Orchestration' (Protocol in workflow.md)
 
 ## Phase 8: Publication Evidence And Completeness Dashboard
@@ -82,7 +82,7 @@
 - [x] Task: Add DOI/HF status writeback for interim-source child dataset artifacts.
 - [x] Task: Synchronize GitHub issues, project fields, and redundancy-label taxonomy with blocker status and completion evidence.
 - [x] Task: Add tests for completeness report counters and dataset-card status rendering.
-- [ ] Task: Create GitHub issue `Track Task: Add completeness dashboard and publication evidence` (#28).
+- [x] Task: Create GitHub issue `Track Task: Add completeness dashboard and publication evidence` (#30).
 - [ ] Task: Conductor - User Manual Verification 'Phase 8: Publication Evidence And Completeness Dashboard' (Protocol in workflow.md)
 
 ## Acceptance Gates
