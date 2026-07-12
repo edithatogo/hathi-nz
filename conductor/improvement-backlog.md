@@ -17,7 +17,7 @@
 - [ ] Raise coverage fail_under threshold from 60 to 75
 - [ ] Implement dynamic versioning with hatch-vcs to eliminate version drift
 - [ ] Add pydantic-settings for structured .env configuration loading
-- [ ] Verify and record a public Zenodo publication for `corpus-nz-hathi`, including DOI writeback into `DATASET_CARD.md`
+- [x] Verify and record public Zenodo publications for the HathiTrust-NZ child datasets, including DOI writeback into their dataset cards
 - [ ] Create OSF publication workflow for third publication target
 - [ ] Create Dockerfile for pixi-based reproducible pipeline execution
 - [ ] Verify and commit pixi.lock for dependency reproducibility

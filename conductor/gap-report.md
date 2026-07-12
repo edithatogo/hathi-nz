@@ -47,4 +47,4 @@ What next:
 
 ## Practical Next Step
 
-The only external blocker is HathiTrust static-host approval and credentials. HF collection access is working, and Zenodo sandbox deposition creation has been verified; production DOI streams still require an explicit Actions run.
+The only external blocker is HathiTrust static-host approval and credentials. HF collection access is working, and four production Zenodo child-dataset records are published with DOI writebacks; the release workflow's final push gate needs a small race-hardening fix before it can report success automatically.

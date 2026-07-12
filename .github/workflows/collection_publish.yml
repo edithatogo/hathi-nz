@@ -284,6 +284,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add dataset_cards
           git commit -m "docs(zenodo): record HathiTrust-NZ child dataset DOIs [skip ci]"
+          git pull --rebase origin "$DEFAULT_BRANCH"
           git push origin "HEAD:${DEFAULT_BRANCH}"
 
       - name: Verify publication status

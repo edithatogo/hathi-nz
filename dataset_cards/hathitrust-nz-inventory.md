@@ -5,7 +5,7 @@ source policy registry snapshots, HTID lists, rights classification,
 publication eligibility, Internet Archive overlap audit pointers, and archive
 completeness reports.
 
-For academic citation, use the Zenodo DOI [10.5281/zenodo.21134826](https://doi.org/10.5281/zenodo.21134826).
+For academic citation, use the Zenodo DOI [10.5281/zenodo.21322325](https://doi.org/10.5281/zenodo.21322325).
 
 ## Access
 

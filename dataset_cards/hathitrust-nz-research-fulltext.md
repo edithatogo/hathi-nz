@@ -5,7 +5,7 @@ Research Dataset full text related to HathiTrust-NZ, including interim
 Internet Archive overlap plans, provenance ledgers, checksum manifests, and
 manual review queues while static-host rsync access is pending.
 
-For academic citation, use the Zenodo DOI [10.5281/zenodo.21134830](https://doi.org/10.5281/zenodo.21134830).
+For academic citation, use the Zenodo DOI [10.5281/zenodo.21322327](https://doi.org/10.5281/zenodo.21322327).
 
 ## Access
 

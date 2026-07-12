@@ -4,7 +4,7 @@ Scripts, workset definitions, aggregate outputs, and reproducibility metadata
 for HTRC Analytics workflows related to HathiTrust-NZ, with explicit source
 policy and provenance separation from any restricted full-text routes.
 
-For academic citation, use the Zenodo DOI [10.5281/zenodo.21134834](https://doi.org/10.5281/zenodo.21134834).
+For academic citation, use the Zenodo DOI [10.5281/zenodo.21322333](https://doi.org/10.5281/zenodo.21322333).
 
 ## Access
 
