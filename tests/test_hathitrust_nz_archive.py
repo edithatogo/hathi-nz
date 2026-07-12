@@ -15,6 +15,7 @@ from scripts.hathitrust_nz_archive import (
     SOURCE_POLICY_REGISTRY_PATH,
     assert_expected_count,
     base_title_for_internet_archive,
+    build_canonical_routing_manifest,
     build_collection_manifest,
     build_discovery_manifest,
     build_inventory,
@@ -48,6 +49,23 @@ def test_htrc_cleaning_and_stubbytree_path() -> None:
     """HTRC EF paths should match the documented stubbytree convention."""
     assert clean_htrc_htid("uc2.ark:/13960/t17m0815m") == "uc2.ark+=13960=t17m0815m"
     assert htrc_stubbytree_path("nyp.33433070251792") == "nyp/33759/nyp.33433070251792.json.bz2"
+
+
+def test_canonical_routing_manifest_fails_closed_without_source_evidence() -> None:
+    inventory = {
+        "volumes": [
+            {
+                "htid": "uc1.test",
+                "title": "Test",
+                "rights_code": "17",
+                "access_profile_code": "open",
+            }
+        ]
+    }
+    manifest = build_canonical_routing_manifest(inventory)
+    assert manifest["record_count"] == 1
+    assert manifest["routes"][0]["route"] == "metadata_only_until_source_evidence"
+    assert manifest["routes"][0]["publication_eligible"] is False
 
 
 def test_htrc_path_requires_namespace() -> None:

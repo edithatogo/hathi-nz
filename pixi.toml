@@ -16,6 +16,8 @@ workflow-syntax = "actionlint .github/workflows/*.yml"
 mutmut-run = "mutmut run"
 profile-pipelines-scalene = "python scripts/profile_pipelines.py"
 publication-status = "python scripts/check_publication_status.py"
+historical-coverage-bridge = "python scripts/build_historical_coverage_bridge.py"
+routing-manifest = "python scripts/hathitrust_nz_archive.py routing-manifest"
 quality = { depends-on = ["lint", "format-check", "spell", "toml-check", "workflow-syntax"] }
 
 [dependencies]

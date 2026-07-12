@@ -1,9 +1,9 @@
 {
   "track_id": "hathitrust_nz_interim_acquisition_hardening_20260703",
   "type": "feature",
-  "status": "new",
+  "status": "in_progress",
   "created_at": "2026-07-03T19:50:26+10:00",
-  "updated_at": "2026-07-09T21:19:56+10:00",
+  "updated_at": "2026-07-12T22:10:00+10:00",
   "description": "Implement interim HathiTrust-NZ acquisition routes and provenance hardening while official HathiTrust rsync access is pending.",
   "parent_track": "hathitrust_nz_multi_source_archive_20260702",
   "execution_default": "github_actions",

@@ -105,10 +105,16 @@ jobs:
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output "$BUILD_DIR/collection/collection_manifest.json" \
             --completeness-report "$BUILD_DIR/reports/archive_completeness.md"
+          pixi run -e dev python scripts/hathitrust_nz_archive.py routing-manifest \
+            --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output "$BUILD_DIR/collection/routing_manifest.json"
           pixi run -e dev python scripts/hathitrust_nz_archive.py discovery-manifest \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output "$BUILD_DIR/discovery/nz_discovery_manifest.json" \
             --report "$BUILD_DIR/discovery/nz_discovery_manifest.md"
+          pixi run -e dev python scripts/build_historical_coverage_bridge.py \
+            --input "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
+            --output "$BUILD_DIR/discovery/historical_coverage_bridge.json"
           pixi run -e dev python scripts/hathitrust_nz_archive.py metadata-refresh \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/metadata" \

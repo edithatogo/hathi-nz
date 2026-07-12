@@ -2191,6 +2191,70 @@ def build_collection_manifest(inventory: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_canonical_routing_manifest(
+    inventory: dict[str, Any],
+    *,
+    internet_archive: dict[str, Any] | None = None,
+    htrc_ef: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Merge source evidence into a fail-closed per-HTID routing manifest."""
+    ia_matches = {
+        str(item.get("htid")): item
+        for item in (internet_archive or {}).get("matches", [])
+        if isinstance(item, dict) and item.get("htid")
+    }
+    ef_htids = {
+        str(item.get("htid"))
+        for item in (htrc_ef or {}).get("files", [])
+        if isinstance(item, dict) and item.get("htid")
+    }
+    routes = []
+    for volume in inventory.get("volumes", []):
+        htid = str(volume.get("htid", ""))
+        policy = classify_publication_policy(
+            volume.get("rights_code"),
+            access_profile_code=volume.get("access_profile_code"),
+            digitization_agent_code=volume.get("digitization_agent_code"),
+            source_dataset_name=HATHI_RESEARCH_PD_OPEN_ACCESS,
+        )
+        ia = ia_matches.get(htid)
+        if ia and ia.get("publication_eligible") is True and policy["public_full_text_allowed"]:
+            route = "internet_archive_public_domain_overlap"
+            route_source = "internet_archive"
+        elif htid in ef_htids:
+            route = "htrc_extracted_features"
+            route_source = "htrc_extracted_features"
+        else:
+            route = "metadata_only_until_source_evidence"
+            route_source = "hathitrust_research_dataset"
+        routes.append(
+            {
+                "htid": htid,
+                "title": volume.get("title", ""),
+                "rights_label": policy["rights_label"],
+                "route": route,
+                "source_priority": source_priority(route_source),
+                "public_full_text_allowed": policy["public_full_text_allowed"],
+                "publication_eligible": route != "metadata_only_until_source_evidence",
+                "evidence": {"internet_archive": ia} if ia else {},
+            }
+        )
+    return {
+        "manifest_version": 1,
+        "generated_at": utc_now(),
+        "bridge_status": "evidence-only",
+        "source_collection": HATHITRUST_NZ_COLLECTION_SLUG,
+        "source_collection_id": HATHITRUST_NZ_COLLECTION_ID,
+        "record_count": len(routes),
+        "routes": routes,
+        "guardrails": [
+            "Official HathiTrust full text supersedes interim sources when approved static-host evidence is available.",
+            "Unknown, restricted, ambiguous, and unproven source matches remain metadata-only.",
+            "This manifest is routing evidence and makes no completeness claim.",
+        ],
+    }
+
+
 def write_completeness_report(inventory: dict[str, Any], output: Path) -> None:
     """Write a concise Markdown archive completeness report."""
     summary = inventory.get("summary", {})
@@ -2591,6 +2655,12 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     collection.add_argument("--output", type=Path, required=True)
     collection.add_argument("--completeness-report", type=Path)
 
+    routing = subparsers.add_parser("routing-manifest", help="Build canonical source routing manifest")
+    routing.add_argument("--inventory", type=Path, required=True)
+    routing.add_argument("--output", type=Path, required=True)
+    routing.add_argument("--internet-archive", type=Path)
+    routing.add_argument("--htrc-ef", type=Path)
+
     htrc_ef = subparsers.add_parser("htrc-ef-plan", help="Build HTRC EF rsync plan")
     htrc_ef.add_argument("--inventory", type=Path, required=True)
     htrc_ef.add_argument("--output-dir", type=Path, required=True)
@@ -2653,6 +2723,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         default=[
             Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
             Path("conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"),
+            Path("conductor/tracks/historical_coverage_breadth_integration_20260705/metadata.json"),
         ],
         help="Optional track metadata files to include in the status snapshot.",
     )
@@ -2685,6 +2756,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         default=[
             Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
             Path("conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"),
+            Path("conductor/tracks/historical_coverage_breadth_integration_20260705/metadata.json"),
         ],
     )
 
@@ -2714,6 +2786,25 @@ def main() -> int:
         write_json(args.output, manifest)
         if args.completeness_report is not None:
             write_completeness_report(inventory, args.completeness_report)
+        result = 0
+    elif args.command == "routing-manifest":
+        inventory = load_inventory(args.inventory)
+        internet_archive = (
+            load_json(args.internet_archive)
+            if args.internet_archive is not None and args.internet_archive.exists()
+            else None
+        )
+        htrc_ef = (
+            load_json(args.htrc_ef)
+            if args.htrc_ef is not None and args.htrc_ef.exists()
+            else None
+        )
+        write_json(
+            args.output,
+            build_canonical_routing_manifest(
+                inventory, internet_archive=internet_archive, htrc_ef=htrc_ef
+            ),
+        )
         result = 0
     elif args.command == "htrc-ef-plan":
         inventory = load_inventory(args.inventory)

@@ -93,6 +93,6 @@
   - `edithatogo/hathitrust-nz-research-fulltext`: `ba1debe3fe5de591217201b6bb442a82817f9ed6`
   - `edithatogo/hathitrust-nz-htrc-extracted-features`: `dcd558640b20625f85138cbe35f57ca2e70051e0`
   - `edithatogo/hathitrust-nz-htrc-analytics`: `e61e3c3f593220e0d7b815c3bd70e09df490e7b0`
-- [2026-07-03] HF collection creation remains blocked by `HF_TOKEN` scope: Hugging Face returned `403 Forbidden` for `POST /api/collections` in https://github.com/edithatogo/hathi-nz/actions/runs/28598245910.
-- [2026-07-03] Zenodo sandbox publication remains blocked by `ZENODO_SANDBOX_TOKEN` scope or account state: Zenodo returned `403 Permission denied` for deposition creation in https://github.com/edithatogo/hathi-nz/actions/runs/28598586986.
+- [2026-07-09] Hugging Face collection sync succeeded with the fine-grained `HF_TOKEN`; collection resolved to `edithatogo/hathitrust-nz-6a472b1e3de68381856b31f9` with five linked dataset items.
+- [2026-07-09] Zenodo sandbox deposition creation and deletion smoke test succeeded with `ZENODO_SANDBOX_TOKEN`; production publication remains an explicit release action.
 - [2026-07-03] Hathi Research Dataset full-text acquisition remains blocked by missing static-host GitHub variables/secrets: `HATHI_RSYNC_HOST`, `HATHI_RSYNC_MODULE`, `HATHI_RSYNC_USER`, `HATHI_STATIC_HOST_STAGING_DIR`, and `HATHI_STATIC_HOST_SSH_KEY`.

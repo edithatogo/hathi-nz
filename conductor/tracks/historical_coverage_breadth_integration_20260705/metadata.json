@@ -1,8 +1,17 @@
 {
   "track_id": "historical_coverage_breadth_integration_20260705",
   "type": "feature",
-  "status": "new",
+  "status": "complete",
   "created_at": "2026-07-04T17:01:45.6532289Z",
-  "updated_at": "2026-07-04T17:01:45.6532289Z",
-  "description": "Build a HathiTrust-side Hansard coverage bridge that feeds cross-repo historical completeness work in corpus-nz-hansard."
+  "updated_at": "2026-07-12T22:10:00+10:00",
+  "description": "Build a HathiTrust-side Hansard coverage bridge that feeds cross-repo historical completeness work in corpus-nz-hansard.",
+  "evidence": [
+    "manifests/hathitrust-nz/historical_coverage_bridge.json",
+    "schemas/historical_coverage_bridge.schema.json",
+    "scripts/build_historical_coverage_bridge.py",
+    "tests/test_historical_coverage_bridge.py"
+  ],
+  "github_issues": {
+    "parent": 31
+  }
 }

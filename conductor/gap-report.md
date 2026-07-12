@@ -1,6 +1,6 @@
 # HathiTrust-NZ Gap Report
 
-This report covers the remaining open work in this repository as of 2026-07-09.
+This report covers the remaining open work in this repository as of 2026-07-12.
 
 ## Already Archived
 
@@ -16,7 +16,7 @@ Status: in progress
 What remains:
 - Resolve the remaining official HathiTrust rsync/static-host access blocker.
 - Obtain or confirm the missing HathiTrust rsync/static-host variables and SSH key.
-- Finish child dataset publication and completeness evidence.
+- Run the production collection publication workflow for the child dataset DOI streams.
 
 What next:
 - Validate the collection-level dataset structure.
@@ -25,22 +25,21 @@ What next:
 
 ### HathiTrust-NZ Interim Acquisition Hardening
 
-Status: new
+Status: in progress
 
 What remains:
-- Finish the remaining manual verification and external issue-tracking steps.
+- Resolve official HathiTrust rsync keys and static-host approval.
+- Validate the interim routes against live IA/HTRC evidence as those source manifests become available.
 
 What next:
 - Finish the remaining manual verification and external issue-tracking steps.
 
 ### Historical Coverage Breadth Integration
 
-Status: new
+Status: complete
 
 What remains:
-- Draft the HathiTrust-side coverage taxonomy.
-- Define the no-completeness-claim boundary rules.
-- Implement the bridge and checker coverage.
+- None. The evidence-only bridge and validator are implemented.
 
 What next:
 - Write the taxonomy and reference policy first.
@@ -48,4 +47,4 @@ What next:
 
 ## Practical Next Step
 
-If you want the shortest path to progress, start with `HathiTrust-NZ Interim Acquisition Hardening` because it unlocks the most downstream evidence for the broader archive track.
+The only external blocker is HathiTrust static-host approval and credentials. HF collection access is working, and Zenodo sandbox deposition creation has been verified; production DOI streams still require an explicit Actions run.

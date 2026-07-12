@@ -51,18 +51,18 @@
 - [x] Task: Route large HTRC EF subsets through static-host staging when GitHub runner limits are exceeded.
 - [x] Task: Publish HTRC Analytics outputs as scripts, aggregate results, workset definitions, and reproducibility metadata only.
 - [x] Task: Add tests for EF path generation, workset generation, analytics-only routing, and static-host fallback decisions.
-- [ ] Task: Create GitHub issue `Track Task: Add HTRC EF and Analytics interim outputs` (#25).
+- [x] Task: Create GitHub issue `Track Task: Add HTRC EF and Analytics interim outputs` (#25).
 - [ ] Task: Conductor - User Manual Verification 'Phase 5: HTRC Extracted Features And Analytics Outputs' (Protocol in workflow.md)
 
 ## Phase 6: Source Priority Routing And Rights Gates
 
-- [ ] Task: Merge source policy, rights classifier, IA evidence, HTRC evidence, and HathiTrust metadata into a canonical routing manifest.
-- [ ] Task: Prefer official HathiTrust Research Dataset full text when static-host rsync is available.
-- [ ] Task: Prefer IA public-domain overlap while HathiTrust full text is unavailable.
-- [ ] Task: Prefer HTRC EF or analytics-only routes when full text is restricted or unavailable.
-- [ ] Task: Preserve metadata-only routes for uncertain, restricted, page-only, or manually reviewed records.
-- [ ] Task: Add tests that publication fails closed when rights, source policy, or provenance evidence is incomplete.
-- [ ] Task: Create GitHub issue `Track Task: Add source-priority routing and rights gates` (#26).
+- [x] Task: Merge source policy, rights classifier, IA evidence, HTRC evidence, and HathiTrust metadata into a canonical routing manifest.
+- [x] Task: Prefer official HathiTrust Research Dataset full text when static-host rsync is available.
+- [x] Task: Prefer IA public-domain overlap while HathiTrust full text is unavailable.
+- [x] Task: Prefer HTRC EF or analytics-only routes when full text is restricted or unavailable.
+- [x] Task: Preserve metadata-only routes for uncertain, restricted, page-only, or manually reviewed records.
+- [x] Task: Add tests that publication fails closed when rights, source policy, or provenance evidence is incomplete.
+- [x] Task: Create GitHub issue `Track Task: Add source-priority routing and rights gates` (#26).
 - [ ] Task: Conductor - User Manual Verification 'Phase 6: Source Priority Routing And Rights Gates' (Protocol in workflow.md)
 
 ## Phase 7: GitHub Actions Orchestration
@@ -104,3 +104,9 @@
 - [x] Run `pixi run -e dev pytest tests/ -q`.
 - [x] Run `pixi run -e dev actionlint` for changed workflows.
 - [x] Run `git diff --check`.
+
+## Current External Gate
+
+- Official HathiTrust Research Dataset full-text acquisition remains blocked until
+  the approved static-host endpoint, module, user, staging directory, and SSH key
+  are supplied. Interim metadata and fail-closed routing remain operational.
