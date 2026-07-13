@@ -157,7 +157,7 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
 {"meta": {"record_count": 510}, "volumes": [{"htid": "uc1.b2889853"}]}
 """,
             check_publication_status_module.DATASET_CARD_PATH: (
-                "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
+                "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456).\n\n**Expected volumes** | 510"
             ),
             check_publication_status_module.BLOCKER_REPORT_PATH: """\
 {"meta": {"blocker_count": 0}, "blockers": []}
@@ -715,6 +715,22 @@ def test_child_zenodo_gate_fails_closed_for_missing_doi(monkeypatch: pytest.Monk
     result = check_publication_status_module._check_child_zenodo_records()
     assert result["complete"] is False
     assert result["published_count"] == 0
+
+
+def test_child_zenodo_gate_handles_missing_card(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "CHILD_DATASET_CARDS",
+        {"child": Path("missing.md")},
+    )
+
+    def missing_card(path: Path) -> str:
+        raise OSError("missing card")
+
+    monkeypatch.setattr(check_publication_status_module, "_text", missing_card)
+    result = check_publication_status_module._check_child_zenodo_records()
+    assert result["complete"] is False
+    assert result["records"][0]["card_exists"] is False
 
 
 def test_publication_status_network_checks_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:
