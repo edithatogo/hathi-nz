@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.build_historical_coverage_bridge import build_bridge, validate_bridge
+from scripts.build_historical_coverage_bridge import build_bridge, main, validate_bridge
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -39,3 +39,28 @@ def test_bridge_rejects_completeness_posture() -> None:
     bridge["bridge_status"] = "complete"
     with pytest.raises(ValueError, match="validation failed"):
         validate_bridge(bridge)
+
+
+def test_bridge_cli_builds_and_checks_manifest(tmp_path: Path) -> None:
+    inventory_path = tmp_path / "inventory.json"
+    output_path = tmp_path / "bridge.json"
+    inventory_path.write_text(
+        json.dumps(
+            {
+                "meta": {
+                    "collection_id": "71329709",
+                    "collection_slug": "nz_parliamentary_debates_hansard",
+                },
+                "volumes": [
+                    {
+                        "htid": "uc1.test",
+                        "source_url": "https://hdl.handle.net/2027/uc1.test",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert main(["--input", str(inventory_path), "--output", str(output_path)]) == 0
+    assert output_path.exists()
+    assert main(["--input", str(output_path), "--check"]) == 0

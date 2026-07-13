@@ -440,7 +440,7 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
 
     assert report["publication_evidence"]["exists"] is True
     assert report["publication_evidence"]["child_dataset_count"] == 5
-    assert report["publication_ready"] is True
+    assert report["publication_ready"] is True, report
     assert report["ready"] is True
 
 
@@ -590,6 +590,20 @@ For academic citation, use the Zenodo DOI 10.5281/zenodo.987654.
     assert manifest["record_count"] == 0
 
 
+def test_publication_status_helpers_fail_closed_on_invalid_snapshots() -> None:
+    assert check_publication_status_module._status_report_summary("not-json")["exists"] is False
+    assert check_publication_status_module._status_report_summary("[]")["exists"] is False
+    assert check_publication_status_module._publication_evidence_summary("[]")["exists"] is False
+    assert check_publication_status_module._blocker_report_summary("not-json")["exists"] is False
+    assert check_publication_status_module._blocker_report_summary("[]")["exists"] is False
+    assert (
+        check_publication_status_module._manifest_summary(
+            '{"meta": {"record_count": 3, "generated_at": "now", "source": "test"}}'
+        )["record_count"]
+        == 3
+    )
+
+
 @pytest.mark.unit
 def test_check_hugging_face_and_zenodo_error_paths(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_get(url: str, timeout: int, params: dict[str, object] | None = None):  # type: ignore[no-untyped-def]
@@ -642,3 +656,28 @@ def test_child_zenodo_gate_requires_all_cards(monkeypatch: pytest.MonkeyPatch) -
     result = check_publication_status_module._check_child_zenodo_records()
     assert result["complete"] is True
     assert result["published_count"] == 1
+
+
+def test_child_zenodo_gate_fails_closed_for_missing_doi(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "CHILD_DATASET_CARDS",
+        {"child": Path("child.md")},
+    )
+    monkeypatch.setattr(check_publication_status_module, "_text", lambda path: "No DOI")
+    result = check_publication_status_module._check_child_zenodo_records()
+    assert result["complete"] is False
+    assert result["published_count"] == 0
+
+
+def test_publication_status_network_checks_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fail_get(*args: object, **kwargs: object) -> object:
+        raise requests.RequestException("offline")
+
+    monkeypatch.setattr(check_publication_status_module.requests, "get", fail_get)
+    assert check_publication_status_module._check_hugging_face("owner/repo")["exists"] is False
+    assert check_publication_status_module._check_zenodo()["match_count"] == 0
+    assert (
+        check_publication_status_module._doi_resolves("https://doi.org/example")["resolves"]
+        is False
+    )

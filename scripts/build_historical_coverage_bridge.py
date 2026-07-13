@@ -94,28 +94,30 @@ def validate_bridge(bridge: dict[str, object]) -> None:
         raise ValueError("bridge record_count does not match records")
 
 
-def main() -> int:
+def main(args: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--check", action="store_true", help="Validate an existing bridge")
-    args = parser.parse_args()
+    namespace = parser.parse_args(args)
     bridge = (
-        json.loads(args.input.read_text(encoding="utf-8"))
-        if args.check
+        json.loads(namespace.input.read_text(encoding="utf-8"))
+        if namespace.check
         else build_bridge(
-            json.loads(args.input.read_text(encoding="utf-8")),
+            json.loads(namespace.input.read_text(encoding="utf-8")),
             datetime.now(UTC).replace(microsecond=0).isoformat(),
         )
     )
     validate_bridge(bridge)
-    if not args.check:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
+    if not namespace.check:
+        namespace.output.parent.mkdir(parents=True, exist_ok=True)
+        namespace.output.write_text(
             json.dumps(bridge, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
     record_count = len(cast("list[object]", bridge.get("records", [])))
-    print(json.dumps({"valid": True, "record_count": record_count, "output": str(args.output)}))
+    print(
+        json.dumps({"valid": True, "record_count": record_count, "output": str(namespace.output)})
+    )
     return 0
 
 

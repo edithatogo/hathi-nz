@@ -110,8 +110,10 @@ source = ["scripts"]
 omit = [
     "*/tests/*",
     "scripts/cli.py",
+    "scripts/build_historical_coverage_bridge.py",
     "scripts/profile_pipelines.py",
     "scripts/record_learning_candidate.py",
+    "scripts/sitecustomize.py",
 ]
 branch = true
 
