@@ -29,7 +29,7 @@ CHILD_DATASET_CARDS = {
     / "hathitrust-nz-htrc-extracted-features.md",
     "hathitrust-nz-htrc-analytics": ROOT / "dataset_cards" / "hathitrust-nz-htrc-analytics.md",
 }
-MANIFEST_PATH = ROOT / "manifests" / "latest_manifest.json"
+MANIFEST_PATH = ROOT / "manifests" / "hathitrust-nz" / "collection_manifest.json"
 STATUS_REPORT_PATH = ROOT / "reports" / "status" / "status_report.json"
 PUBLICATION_EVIDENCE_PATH = ROOT / "reports" / "publication_evidence" / "publication_evidence.json"
 BLOCKER_REPORT_PATH = ROOT / "reports" / "blockers" / "blocker_report.json"
