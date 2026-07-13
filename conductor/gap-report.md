@@ -1,6 +1,6 @@
 # HathiTrust-NZ Gap Report
 
-This report covers the remaining open work in this repository as of 2026-07-12.
+This report covers the remaining open work in this repository as of 2026-07-13.
 
 ## Already Archived
 
@@ -16,12 +16,10 @@ Status: in progress
 What remains:
 - Resolve the remaining official HathiTrust rsync/static-host access blocker.
 - Obtain or confirm the missing HathiTrust rsync/static-host variables and SSH key.
-- Run the production collection publication workflow for the child dataset DOI streams.
 
 What next:
-- Validate the collection-level dataset structure.
-- Continue source-specific manifest and publication routing work.
-- Close the remaining track issues after publication evidence is complete.
+- Run the official Research Dataset acquisition lane once static-host access is approved.
+- Close the track after full-text evidence and CI release gates pass.
 
 ### HathiTrust-NZ Interim Acquisition Hardening
 
@@ -32,7 +30,7 @@ What remains:
 - Validate the interim routes against live IA/HTRC evidence as those source manifests become available.
 
 What next:
-- Finish the remaining manual verification and external issue-tracking steps.
+- Keep metadata-only and derived-feature routes active until official source evidence changes the routing decision.
 
 ### Historical Coverage Breadth Integration
 
@@ -42,9 +40,8 @@ What remains:
 - None. The evidence-only bridge and validator are implemented.
 
 What next:
-- Write the taxonomy and reference policy first.
-- Then implement the bridge output and validation checks.
+- No further repository work is required for this track.
 
 ## Practical Next Step
 
-The only external blocker is HathiTrust static-host approval and credentials. HF collection access is working, and four production Zenodo child-dataset records are published with DOI writebacks; the release workflow's final push gate needs a small race-hardening fix before it can report success automatically.
+The only archival-content blocker is HathiTrust static-host approval and credentials. HF collection access is working, four production Zenodo child-dataset records are published with DOI writebacks, the publication gate now checks all child DOIs, and CI formatting/type-check gates have been stabilized.

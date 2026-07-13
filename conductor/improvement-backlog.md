@@ -5,21 +5,21 @@
 - [ ] Add repository-scoped script to append learning candidates without automatic commit in CI failure paths.
 - [ ] Capture registry/review/skills-feedback events into the backlog from failing submission workflows.
 - [ ] Add phase-level retrospective notes for each Phase 1/2/3/4 run and record reviewer sign-off.
-- [ ] Migrate all scripts from stdlib logging to loguru (loguru is already a core dep but unused)
-- [ ] Create .pre-commit-config.yaml to match declared pre-commit dev dependency
-- [ ] Add pyright directly as dev dependency alongside ty for IDE integration
-- [ ] Add mutmut for mutation testing to validate test quality
+- [x] Migrate all scripts from stdlib logging to loguru (loguru is already a core dep but unused)
+- [x] Create .pre-commit-config.yaml to match declared pre-commit dev dependency
+- [x] Add pyright directly as dev dependency alongside ty for IDE integration
+- [x] Add mutmut for mutation testing to validate test quality
 - [ ] Add scalene for pipeline profiling (replace cProfile in profile_pipelines.py)
-- [ ] Integrate Codecov for coverage visibility (pytest-cov runs but results go nowhere)
-- [ ] Add tenacity for HTTP retry/backoff on HathiTrust and HF Hub calls
-- [ ] Remove orphaned PYTHON_VERSION: 3.14 env var from CI workflows
-- [ ] Align Python version config across requires-python, target-version, ty, and pixi
-- [ ] Raise coverage fail_under threshold from 60 to 75
-- [ ] Implement dynamic versioning with hatch-vcs to eliminate version drift
-- [ ] Add pydantic-settings for structured .env configuration loading
+- [x] Integrate Codecov for coverage visibility (pytest-cov runs but results go nowhere)
+- [x] Add tenacity for HTTP retry/backoff on HathiTrust and HF Hub calls
+- [x] Remove orphaned PYTHON_VERSION: 3.14 env var from CI workflows
+- [x] Align Python version config across requires-python, target-version, ty, and pixi
+- [x] Raise coverage fail_under threshold from 60 to 75
+- [x] Implement dynamic versioning with hatch-vcs to eliminate version drift
+- [x] Add pydantic-settings for structured .env configuration loading
 - [x] Verify and record public Zenodo publications for the HathiTrust-NZ child datasets, including DOI writeback into their dataset cards
-- [ ] Create OSF publication workflow for third publication target
-- [ ] Create Dockerfile for pixi-based reproducible pipeline execution
+- [x] Create OSF publication workflow for third publication target
+- [x] Create Dockerfile for pixi-based reproducible pipeline execution
 - [ ] Verify and commit pixi.lock for dependency reproducibility
 - [ ] Populate `manifests/latest_manifest.json` and `data/` from the current HathiFile dump so the corpus reaches the full 510-volume archive target
 - [ ] Harvest the 510 collection HTIDs from the HathiTrust collection page and feed them into the new HTID allowlist filter so the manifest matches the curated corpus exactly
@@ -37,14 +37,7 @@
 - [ ] For each future workspace-level lesson that affects agent behavior, add a repo-local note here and promote only after review.
 - [ ] Continue using local notes instead of writing into global skill directories unless explicitly approved.
 
-## Comprehensive Audit Findings (2026-06-26)
-- **OSF integration**: Missing entirely - no code, workflow, or metadata for OSF
-- **Zenodo release workflow**: Implemented - the workflow exists, but public publication proof for `corpus-nz-hathi` still needs confirmation
-- **Pre-commit config**: Missing - dep declared but no .pre-commit-config.yaml
-- **Loguru usage**: Not actually used - all scripts use stdlib logging
-- **Versioning drift**: Hardcoded in 4 places with no single source of truth
-- **Coverage threshold**: Only 60% - should be raised to 75%+
-- **HTTP resilience**: No retry/backoff on any HTTP calls
-- **CI dead config**: PYTHON_VERSION: 3.14 env var set but never consumed
-- **No Codecov**: Coverage generated but not uploaded or tracked
-- **No Docker**: No containerization for reproducible deployment
+## Historical Audit Findings (2026-06-26)
+
+The following findings drove completed Conductor tracks and are retained as historical audit evidence, not active blockers:
+- OSF integration, Zenodo workflow, pre-commit, Loguru, versioning, coverage, retry/backoff, Codecov, and containerization are implemented.

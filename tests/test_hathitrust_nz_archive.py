@@ -162,7 +162,9 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
     htrc_manifest = write_htrc_ef_plan(inventory, tmp_path / "htrc", limit=2)
     analytics_manifest = write_htrc_analytics_plan(inventory, tmp_path / "analytics", limit=2)
     solr_manifest = write_htrc_solr_discovery_plan(inventory, tmp_path / "solr", limit=2)
-    crosswalk_manifest = write_ia_open_library_crosswalk_plan(inventory, tmp_path / "crosswalk", limit=2)
+    crosswalk_manifest = write_ia_open_library_crosswalk_plan(
+        inventory, tmp_path / "crosswalk", limit=2
+    )
     nz_enrichment = write_nz_enrichment_plan(inventory, tmp_path / "nz", limit=2)
     research_manifest = write_research_dataset_plan(
         inventory,
@@ -193,9 +195,13 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
         source["source_id"] == "internet_archive_public_domain_overlap"
         for source in collection_manifest["sources"]
     )
-    assert collection_manifest["source_policy_registry"][0]["source_id"] == "official_parliamentary_sources"
+    assert (
+        collection_manifest["source_policy_registry"][0]["source_id"]
+        == "official_parliamentary_sources"
+    )
     assert any(
-        entry["source_id"] == "internet_archive" and entry["access_class"] == "public_domain_overlap_only"
+        entry["source_id"] == "internet_archive"
+        and entry["access_class"] == "public_domain_overlap_only"
         for entry in collection_manifest["source_policy_registry"]
     )
     assert len(discovery_manifest["source_families"]) == 4
@@ -212,7 +218,8 @@ def test_plan_writers_emit_required_manifests(tmp_path: Path) -> None:
         },
     ]
     assert any(
-        family["family_id"] == "maori_and_aotearoa" for family in discovery_manifest["source_families"]
+        family["family_id"] == "maori_and_aotearoa"
+        for family in discovery_manifest["source_families"]
     )
     assert "HathiTrust OAI feed" in discovery_manifest["source_families"][0]["source_inputs"]
 
@@ -231,8 +238,14 @@ def test_source_policy_registry_is_stable_and_priority_sorted() -> None:
     assert len(summary) == len(json.loads(SOURCE_POLICY_REGISTRY_PATH.read_text(encoding="utf-8")))
     assert summary[0]["source_id"] == "official_parliamentary_sources"
     assert summary[-1]["source_id"] == "manual_evidence"
-    assert source_policy_entry("internet_archive")["publication_eligibility"]["hugging_face"] == "public_domain_overlap_only"
-    assert source_policy_entry("hathitrust_research_dataset")["default_acquisition_mode"] == "static_host_rsync"
+    assert (
+        source_policy_entry("internet_archive")["publication_eligibility"]["hugging_face"]
+        == "public_domain_overlap_only"
+    )
+    assert (
+        source_policy_entry("hathitrust_research_dataset")["default_acquisition_mode"]
+        == "static_host_rsync"
+    )
 
 
 def test_redundancy_source_summary_groups_metadata_and_overlap_sources() -> None:
@@ -257,12 +270,17 @@ def test_redundancy_source_summary_groups_metadata_and_overlap_sources() -> None
 def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     volumes = load_collection_export_tsv(ROOT / "data" / "hathi_collection_export_71329709.tsv")
     inventory = build_inventory(volumes[:2], expected_count=2)
-    manifest = write_metadata_refresh_plan(inventory, tmp_path / "metadata", limit=2, oai_cursor="cursor-123")
+    manifest = write_metadata_refresh_plan(
+        inventory, tmp_path / "metadata", limit=2, oai_cursor="cursor-123"
+    )
 
     assert manifest["meta"]["record_count"] == 2
     assert manifest["lanes"]["hathifiles"]["record_count"] == 2
     assert manifest["lanes"]["oai_pmh"]["requested_cursor"] == "cursor-123"
-    assert manifest["lanes"]["bibliographic_api"]["records"][0]["refresh_mode"] == "known_identifier_enrichment"
+    assert (
+        manifest["lanes"]["bibliographic_api"]["records"][0]["refresh_mode"]
+        == "known_identifier_enrichment"
+    )
     assert manifest["lanes"]["ia_open_library_crosswalk"]["record_count"] == 2
     assert manifest["lanes"]["nz_enrichment"]["record_count"] == 2
     assert manifest["lanes"]["nz_enrichment"]["source_families"] == [
@@ -275,7 +293,12 @@ def test_write_metadata_refresh_plan(tmp_path: Path) -> None:
     assert (tmp_path / "metadata" / "hathifiles_refresh_manifest.json").exists()
     assert (tmp_path / "metadata" / "oai_pmh_refresh_manifest.json").exists()
     assert (tmp_path / "metadata" / "bibliographic_api_refresh_manifest.json").exists()
-    assert (tmp_path / "metadata" / "ia_open_library_crosswalk" / "ia_open_library_crosswalk_manifest.json").exists()
+    assert (
+        tmp_path
+        / "metadata"
+        / "ia_open_library_crosswalk"
+        / "ia_open_library_crosswalk_manifest.json"
+    ).exists()
     assert (tmp_path / "metadata" / "nz_enrichment" / "nz_enrichment_manifest.json").exists()
     report = (tmp_path / "metadata" / "metadata_refresh_report.md").read_text(encoding="utf-8")
     assert "HathiTrust-NZ Metadata Refresh Plan" in report
@@ -336,7 +359,10 @@ def test_write_blocker_report_records_external_access_blockers(tmp_path: Path) -
     assert "blocker_groups" in payload
     assert "required_access" in payload
     assert any(group["category"] == "hathi_static_host" for group in payload["required_access"])
-    assert any("static-host" in item["blocker"] or "Hathi" in item["blocker"] for item in payload["blockers"])
+    assert any(
+        "static-host" in item["blocker"] or "Hathi" in item["blocker"]
+        for item in payload["blockers"]
+    )
     assert report["meta"]["track_count"] >= 1
 
 
@@ -362,9 +388,9 @@ def test_write_htrc_ef_plan_routes_large_subsets_to_static_host_staging(tmp_path
     assert manifest["meta"]["record_count"] == 251
     assert manifest["meta"]["route"] == "static_host_staging"
     assert (tmp_path / "htrc" / "static_host_staging_contract.sh").exists()
-    assert "HATHI_STATIC_HOST_STAGING_DIR" in (tmp_path / "htrc" / "static_host_staging_contract.sh").read_text(
-        encoding="utf-8"
-    )
+    assert "HATHI_STATIC_HOST_STAGING_DIR" in (
+        tmp_path / "htrc" / "static_host_staging_contract.sh"
+    ).read_text(encoding="utf-8")
 
 
 def test_write_status_report(tmp_path: Path) -> None:
@@ -436,7 +462,9 @@ def test_base_title_for_internet_archive() -> None:
     assert base_title_for_internet_archive("Parliamentary debates 291") == "Parliamentary debates"
 
 
-def test_write_internet_archive_overlap_plan(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_write_internet_archive_overlap_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     volumes = [
         {
             "htid": "uc1.test1",
@@ -509,13 +537,17 @@ def test_write_internet_archive_overlap_plan(tmp_path: Path, monkeypatch: pytest
     assert manifest["meta"]["review_queue_count"] == 0
     assert manifest["meta"]["checksum_count"] == 1
     assert (tmp_path / "ia" / "internet_archive_overlap_manifest.json").exists()
-    assert (tmp_path / "ia" / "texts" / "parliamentarydeb1870newz.txt").read_text(encoding="utf-8") == "Debate text"
+    assert (tmp_path / "ia" / "texts" / "parliamentarydeb1870newz.txt").read_text(
+        encoding="utf-8"
+    ) == "Debate text"
     assert (tmp_path / "ia" / "internet_archive_provenance_ledger.json").exists()
     assert (tmp_path / "ia" / "internet_archive_checksum_manifest.json").exists()
     assert (tmp_path / "ia" / "internet_archive_source_evidence_report.json").exists()
     assert manifest["matched"][0]["match_confidence"] == 0.8
     assert "open_library_search_url" in manifest["matched"][0]["crosswalk"]
-    checksum_manifest = json.loads((tmp_path / "ia" / "internet_archive_checksum_manifest.json").read_text())
+    checksum_manifest = json.loads(
+        (tmp_path / "ia" / "internet_archive_checksum_manifest.json").read_text()
+    )
     assert checksum_manifest["files"][0]["sha256"] == hashlib.sha256(b"Debate text").hexdigest()
 
 
@@ -582,7 +614,13 @@ def test_write_internet_archive_overlap_plan_routes_ambiguous_matches_to_review(
     assert manifest["meta"]["matched_count"] == 0
     assert manifest["meta"]["review_queue_count"] == 1
     assert manifest["meta"]["checksum_count"] == 0
-    assert (tmp_path / "ia" / "internet_archive_review_queue_htids.txt").read_text(encoding="utf-8") == "uc1.test2\n"
-    review_manifest = json.loads((tmp_path / "ia" / "internet_archive_overlap_manifest.json").read_text())
+    assert (tmp_path / "ia" / "internet_archive_review_queue_htids.txt").read_text(
+        encoding="utf-8"
+    ) == "uc1.test2\n"
+    review_manifest = json.loads(
+        (tmp_path / "ia" / "internet_archive_overlap_manifest.json").read_text()
+    )
     assert review_manifest["review_queue"][0]["review_reasons"]
-    assert review_manifest["unmatched"][0]["crosswalk"]["open_library_search_url"].startswith("https://openlibrary.org/search?q=")
+    assert review_manifest["unmatched"][0]["crosswalk"]["open_library_search_url"].startswith(
+        "https://openlibrary.org/search?q="
+    )

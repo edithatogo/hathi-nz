@@ -19,6 +19,16 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 TRACKS_PATH = ROOT / "conductor" / "tracks.md"
 DATASET_CARD_PATH = ROOT / "DATASET_CARD.md"
+CHILD_DATASET_CARDS = {
+    "hathitrust-nz-inventory": ROOT / "dataset_cards" / "hathitrust-nz-inventory.md",
+    "hathitrust-nz-research-fulltext": ROOT
+    / "dataset_cards"
+    / "hathitrust-nz-research-fulltext.md",
+    "hathitrust-nz-htrc-extracted-features": ROOT
+    / "dataset_cards"
+    / "hathitrust-nz-htrc-extracted-features.md",
+    "hathitrust-nz-htrc-analytics": ROOT / "dataset_cards" / "hathitrust-nz-htrc-analytics.md",
+}
 MANIFEST_PATH = ROOT / "manifests" / "latest_manifest.json"
 STATUS_REPORT_PATH = ROOT / "reports" / "status" / "status_report.json"
 PUBLICATION_EVIDENCE_PATH = ROOT / "reports" / "publication_evidence" / "publication_evidence.json"
@@ -115,7 +125,12 @@ def _status_report_summary(text: str) -> dict[str, Any]:
     except json.JSONDecodeError as exc:
         return {"exists": False, "error": str(exc), "track_count": 0, "roadmap_complete": False}
     if not isinstance(data, dict):
-        return {"exists": False, "error": "status report is not an object", "track_count": 0, "roadmap_complete": False}
+        return {
+            "exists": False,
+            "error": "status report is not an object",
+            "track_count": 0,
+            "roadmap_complete": False,
+        }
 
     tracks = data.get("tracks", [])
     meta = data.get("meta", {})
@@ -151,9 +166,15 @@ def _status_report_summary(text: str) -> dict[str, Any]:
         "in_progress_track_count": in_progress,
         "pending_track_count": pending,
         "roadmap_complete": in_progress == 0 and pending == 0,
-        "inventory_record_count": inventory.get("record_count", 0) if isinstance(inventory, dict) else 0,
-        "metadata_refresh_present": bool(metadata_refresh.get("present")) if isinstance(metadata_refresh, dict) else False,
-        "internet_archive_present": bool(internet_archive.get("present")) if isinstance(internet_archive, dict) else False,
+        "inventory_record_count": inventory.get("record_count", 0)
+        if isinstance(inventory, dict)
+        else 0,
+        "metadata_refresh_present": bool(metadata_refresh.get("present"))
+        if isinstance(metadata_refresh, dict)
+        else False,
+        "internet_archive_present": bool(internet_archive.get("present"))
+        if isinstance(internet_archive, dict)
+        else False,
     }
 
 
@@ -163,7 +184,11 @@ def _publication_evidence_summary(text: str) -> dict[str, Any]:
     except json.JSONDecodeError as exc:
         return {"exists": False, "error": str(exc), "child_dataset_count": 0}
     if not isinstance(data, dict):
-        return {"exists": False, "error": "publication evidence is not an object", "child_dataset_count": 0}
+        return {
+            "exists": False,
+            "error": "publication evidence is not an object",
+            "child_dataset_count": 0,
+        }
     child_datasets = data.get("child_datasets", [])
     child_dataset_count = len(child_datasets) if isinstance(child_datasets, list) else 0
     evidence_states = []
@@ -298,6 +323,33 @@ def _check_zenodo(query: str = "corpus-nz-hathi") -> dict[str, Any]:
     return {"query": query, "match_count": len(matches), "matches": matches}
 
 
+def _check_child_zenodo_records() -> dict[str, Any]:
+    """Verify every child dataset card points to a resolving Zenodo record."""
+    records: list[dict[str, Any]] = []
+    for dataset_id, card_path in CHILD_DATASET_CARDS.items():
+        try:
+            card = _text(card_path)
+        except OSError:
+            card = ""
+        doi = _dataset_card_doi(card)
+        status = _doi_resolves(doi["url"]) if doi is not None else {"resolves": False}
+        records.append(
+            {
+                "dataset_id": dataset_id,
+                "doi": doi["doi"] if doi else None,
+                "card_exists": card_path.exists(),
+                **status,
+            }
+        )
+    return {
+        "expected_count": len(CHILD_DATASET_CARDS),
+        "published_count": sum(1 for record in records if record.get("resolves")),
+        "complete": len(records) == len(CHILD_DATASET_CARDS)
+        and all(record.get("resolves") is True for record in records),
+        "records": records,
+    }
+
+
 def check_publication_status(
     *,
     status_report_path: Path | None = None,
@@ -307,10 +359,19 @@ def check_publication_status(
     tracks = _track_summary(_text(TRACKS_PATH))
     hugging_face = _check_hugging_face(_hf_repo_id())
     zenodo = _check_zenodo()
+    child_zenodo = _check_child_zenodo_records()
     dataset_card = _text(DATASET_CARD_PATH)
-    manifest = _manifest_summary(_text(MANIFEST_PATH)) if MANIFEST_PATH.exists() else {"exists": False, "record_count": 0}
+    manifest = (
+        _manifest_summary(_text(MANIFEST_PATH))
+        if MANIFEST_PATH.exists()
+        else {"exists": False, "record_count": 0}
+    )
     status_report_file = status_report_path or STATUS_REPORT_PATH
-    status_report = _status_report_summary(_text(status_report_file)) if status_report_file.exists() else {"exists": False, "track_count": 0, "roadmap_complete": False}
+    status_report = (
+        _status_report_summary(_text(status_report_file))
+        if status_report_file.exists()
+        else {"exists": False, "track_count": 0, "roadmap_complete": False}
+    )
     publication_evidence_file = publication_evidence_path or PUBLICATION_EVIDENCE_PATH
     publication_evidence = (
         _publication_evidence_summary(_text(publication_evidence_file))
@@ -333,7 +394,9 @@ def check_publication_status(
     evidence_complete = True
     if publication_evidence.get("exists"):
         evidence_complete = publication_evidence.get("child_dataset_count", 0) >= 5
-    blockers_complete = bool(blocker_report.get("exists")) and blocker_report.get("blocker_count", 0) == 0
+    blockers_complete = (
+        bool(blocker_report.get("exists")) and blocker_report.get("blocker_count", 0) == 0
+    )
     publication_ready = bool(
         hugging_face.get("exists")
         and hf_has_files
@@ -343,13 +406,17 @@ def check_publication_status(
         and manifest_complete
         and evidence_complete
         and blockers_complete
+        and child_zenodo["complete"]
     )
-    roadmap_complete = status_report["roadmap_complete"] if status_report.get("exists") else tracks["all_complete"]
+    roadmap_complete = (
+        status_report["roadmap_complete"] if status_report.get("exists") else tracks["all_complete"]
+    )
     ready = publication_ready and roadmap_complete
     return {
         "tracks": tracks,
         "hugging_face": hugging_face,
         "zenodo": zenodo,
+        "child_zenodo": child_zenodo,
         "manifest": manifest,
         "status_report": status_report,
         "publication_evidence": publication_evidence,

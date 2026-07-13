@@ -305,7 +305,9 @@ def _sign_hathi_url(url: str, consumer_key: str, consumer_secret: str, method: s
     params = query_params + list(oauth_params.items())
     normalized = "&".join(
         f"{_oauth_escape(key)}={_oauth_escape(value)}"
-        for key, value in sorted(params, key=lambda item: (_oauth_escape(item[0]), _oauth_escape(item[1])))
+        for key, value in sorted(
+            params, key=lambda item: (_oauth_escape(item[0]), _oauth_escape(item[1]))
+        )
     )
     base_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
     base_string = "&".join(

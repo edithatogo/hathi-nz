@@ -211,10 +211,13 @@ class TestParseHathifileLine:
         assert parse_hathifile_line(sample_hathifile_line, collection_code="MIU") is None
 
     def test_filters_nonmatching_htid_allowlist(self, sample_hathifile_line: str) -> None:
-        assert parse_hathifile_line(
-            sample_hathifile_line,
-            htid_allowlist={"other.id"},
-        ) is None
+        assert (
+            parse_hathifile_line(
+                sample_hathifile_line,
+                htid_allowlist={"other.id"},
+            )
+            is None
+        )
 
 
 class TestRightsCode:
@@ -585,10 +588,20 @@ class TestRoundTrip:
 
 
 class TestRemoteHathifile:
-    def test_latest_full_hathifile_url_picks_full_file(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_latest_full_hathifile_url_picks_full_file(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         payload = [
-            {"filename": "hathi_upd_20260701.txt.gz", "full": False, "url": "https://example.com/upd"},
-            {"filename": "hathi_full_20260701.txt.gz", "full": True, "url": "https://example.com/full"},
+            {
+                "filename": "hathi_upd_20260701.txt.gz",
+                "full": False,
+                "url": "https://example.com/upd",
+            },
+            {
+                "filename": "hathi_full_20260701.txt.gz",
+                "full": True,
+                "url": "https://example.com/full",
+            },
         ]
 
         class Response:
@@ -867,7 +880,9 @@ class TestRemoteHathifile:
         assert enriched["year"] == 1855
         assert enriched["source"] == "UC"
 
-    def test_main_hathifile_branch(self, monkeypatch: pytest.MonkeyPatch, temp_hathifile_txt: Path, tmp_path: Path) -> None:
+    def test_main_hathifile_branch(
+        self, monkeypatch: pytest.MonkeyPatch, temp_hathifile_txt: Path, tmp_path: Path
+    ) -> None:
         output = tmp_path / "manifest.json"
 
         monkeypatch.setattr(
@@ -896,34 +911,38 @@ class TestRemoteHathifile:
         tmp_path: Path,
     ) -> None:
         output = tmp_path / "manifest.json"
-        rows = [T.join([
-            "uc1.b2889853",
-            "pd",
-            "pd",
-            "uc1.31175035194995",
-            "Parliamentary debates.",
-            "uc1",
-            "",
-            "01149942",
-            "",
-            "",
-            "",
-            "Parliamentary debates (Hansard) v.1",
-            "Wellington, 1886",
-            "",
-            "n",
-            "",
-            "",
-            "Wellington",
-            "eng",
-            "txt",
-            "NJP",
-            "UC1",
-            "UC1",
-            "Google",
-            "pd",
-            "New Zealand. Parliament.",
-        ])]
+        rows = [
+            T.join(
+                [
+                    "uc1.b2889853",
+                    "pd",
+                    "pd",
+                    "uc1.31175035194995",
+                    "Parliamentary debates.",
+                    "uc1",
+                    "",
+                    "01149942",
+                    "",
+                    "",
+                    "",
+                    "Parliamentary debates (Hansard) v.1",
+                    "Wellington, 1886",
+                    "",
+                    "n",
+                    "",
+                    "",
+                    "Wellington",
+                    "eng",
+                    "txt",
+                    "NJP",
+                    "UC1",
+                    "UC1",
+                    "Google",
+                    "pd",
+                    "New Zealand. Parliament.",
+                ]
+            )
+        ]
 
         monkeypatch.setattr(
             "scripts.fetch_hathitrust.parse_args",

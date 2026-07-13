@@ -175,8 +175,13 @@ def parse_hathifile_line(
     record: dict[str, Any] = {
         "htid": htid,
         "category": category,
-        "year": _extract_year(imprint) or _extract_year_from_title(title) or _extract_year_from_title(description),
-        "volume": _normalize_volume(title) or _normalize_volume(description) or _normalize_volume(imprint) or title,
+        "year": _extract_year(imprint)
+        or _extract_year_from_title(title)
+        or _extract_year_from_title(description),
+        "volume": _normalize_volume(title)
+        or _normalize_volume(description)
+        or _normalize_volume(imprint)
+        or title,
         "title": title or description,
         "oclc_num": _field(parts, "oclc_num"),
         "rights": rights,
@@ -305,7 +310,9 @@ def _load_collection_export_rows(export_file: Path) -> list[dict[str, str]]:
         reader = csv.DictReader(fh, delimiter="\t")
         for row in reader:
             normalized = {key: (value or "").strip() for key, value in row.items()}
-            htid = normalized.get("htitem_id") or normalized.get("htid") or normalized.get("id") or ""
+            htid = (
+                normalized.get("htitem_id") or normalized.get("htid") or normalized.get("id") or ""
+            )
             if htid:
                 rows.append(normalized)
     if not rows:
@@ -317,11 +324,14 @@ def _iter_remote_hathifile_lines(url: str):
     with requests.get(url, timeout=300, stream=True, headers=HATHI_REQUEST_HEADERS) as resp:
         resp.raise_for_status()
         resp.raw.decode_content = False
-        with gzip.GzipFile(fileobj=resp.raw) as gz, io.TextIOWrapper(
-            gz,
-            encoding="utf-8",
-            errors="replace",
-        ) as fh:
+        with (
+            gzip.GzipFile(fileobj=resp.raw) as gz,
+            io.TextIOWrapper(
+                gz,
+                encoding="utf-8",
+                errors="replace",
+            ) as fh,
+        ):
             yield from fh
 
 
@@ -431,7 +441,11 @@ def build_manifest_from_collection_export(
     export_file: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Build a volume manifest from a HathiTrust collection export TSV."""
-    rows = _load_collection_export_rows(export_file) if export_file else _download_collection_export_rows(collection_id)
+    rows = (
+        _load_collection_export_rows(export_file)
+        if export_file
+        else _download_collection_export_rows(collection_id)
+    )
     allowlist = htid_allowlist if htid_allowlist is not None else None
     volumes: list[dict[str, Any]] = []
     for row in rows:

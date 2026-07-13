@@ -128,6 +128,11 @@ def test_check_publication_status_reports_not_ready_when_zenodo_missing(
         raise AssertionError(f"Unexpected URL: {url}")
 
     monkeypatch.setattr(check_publication_status_module.requests, "get", fake_get)
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_child_zenodo_records",
+        lambda: {"complete": False, "published_count": 0, "records": []},
+    )
 
     report = check_publication_status()
 
@@ -188,6 +193,11 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
             "final_url": doi_url,
             "redirects": 1,
         },
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_child_zenodo_records",
+        lambda: {"complete": True, "published_count": 4, "records": []},
     )
 
     report = check_publication_status()
@@ -254,7 +264,9 @@ def test_check_publication_status_uses_status_report_snapshot(
             blocker_report_path: blocker_report_path.read_text(encoding="utf-8"),
         }[path],
     )
-    monkeypatch.setattr(check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response())  # type: ignore[assignment]
+    monkeypatch.setattr(
+        check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response()
+    )  # type: ignore[assignment]
     monkeypatch.setattr(
         check_publication_status_module,
         "_check_zenodo",
@@ -273,6 +285,11 @@ def test_check_publication_status_uses_status_report_snapshot(
             "final_url": doi_url,
             "redirects": 1,
         },
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_child_zenodo_records",
+        lambda: {"complete": True, "published_count": 4, "records": []},
     )
 
     report = check_publication_status(
@@ -358,7 +375,11 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
     blocker_report_path.write_text(
         json.dumps(
             {
-                "meta": {"generated_at": "2026-07-03T00:00:00Z", "track_count": 2, "blocker_count": 0},
+                "meta": {
+                    "generated_at": "2026-07-03T00:00:00Z",
+                    "track_count": 2,
+                    "blocker_count": 0,
+                },
                 "blockers": [],
             }
         ),
@@ -383,7 +404,9 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
             blocker_report_path: blocker_report_path.read_text(encoding="utf-8"),
         }[path],
     )
-    monkeypatch.setattr(check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response())  # type: ignore[assignment]
+    monkeypatch.setattr(
+        check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response()
+    )  # type: ignore[assignment]
     monkeypatch.setattr(
         check_publication_status_module,
         "_check_zenodo",
@@ -402,6 +425,11 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
             "final_url": doi_url,
             "redirects": 1,
         },
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_child_zenodo_records",
+        lambda: {"complete": True, "published_count": 4, "records": []},
     )
 
     report = check_publication_status(
@@ -483,7 +511,10 @@ def test_strict_mode_blocks_when_status_report_is_not_complete(
         json.dumps(
             {
                 "meta": {"record_count": 510},
-                "tracks": [{"track_id": "one", "status": "complete"}, {"track_id": "two", "status": "pending"}],
+                "tracks": [
+                    {"track_id": "one", "status": "complete"},
+                    {"track_id": "two", "status": "pending"},
+                ],
             }
         ),
         encoding="utf-8",
@@ -507,7 +538,9 @@ def test_strict_mode_blocks_when_status_report_is_not_complete(
     )
     buffer = io.StringIO()
     with redirect_stdout(buffer):
-        exit_code = check_publication_status_module.main(["--strict", "--status-report", str(status_report_path)])
+        exit_code = check_publication_status_module.main(
+            ["--strict", "--status-report", str(status_report_path)]
+        )
 
     payload = json.loads(buffer.getvalue())
     assert payload["status_report"]["exists"] is True
@@ -586,3 +619,26 @@ def test_check_hugging_face_and_zenodo_error_paths(monkeypatch: pytest.MonkeyPat
     zenodo = check_publication_status_module._check_zenodo("corpus-nz-hathi")
     assert zenodo["match_count"] == 1
     assert zenodo["matches"][0]["doi"] == "10.5281/zenodo.123456"
+
+
+def test_child_zenodo_gate_requires_all_cards(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "CHILD_DATASET_CARDS",
+        {"child": Path("child.md")},
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_text",
+        lambda path: (
+            "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
+        ),
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_doi_resolves",
+        lambda url: {"resolves": True, "status_code": 200, "final_url": url, "redirects": 1},
+    )
+    result = check_publication_status_module._check_child_zenodo_records()
+    assert result["complete"] is True
+    assert result["published_count"] == 1

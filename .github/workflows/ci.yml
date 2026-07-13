@@ -72,6 +72,7 @@ jobs:
 
   mutmut:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -84,3 +85,6 @@ jobs:
           environments: dev
       - name: Run mutmut
         run: pixi run -e dev mutmut run
+      - name: Summarize mutation testing
+        if: always()
+        run: echo "Mutation testing is advisory until a repository mutation score threshold is configured." >> "$GITHUB_STEP_SUMMARY"

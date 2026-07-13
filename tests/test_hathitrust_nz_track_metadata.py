@@ -45,8 +45,8 @@ def test_hathitrust_track_metadata_declare_redundancy_label_taxonomy() -> None:
 
 
 def test_interim_track_plan_mentions_redundancy_label_sync() -> None:
-    plan = (ROOT / "conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/plan.md").read_text(
-        encoding="utf-8"
-    )
+    plan = (
+        ROOT / "conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/plan.md"
+    ).read_text(encoding="utf-8")
 
     assert "redundancy-label taxonomy" in plan

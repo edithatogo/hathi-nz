@@ -48,7 +48,9 @@ HF_INVENTORY_REPO = "edithatogo/hathitrust-nz-inventory"
 HF_RESEARCH_FULLTEXT_REPO = "edithatogo/hathitrust-nz-research-fulltext"
 HF_HTRC_EF_REPO = "edithatogo/hathitrust-nz-htrc-extracted-features"
 HF_HTRC_ANALYTICS_REPO = "edithatogo/hathitrust-nz-htrc-analytics"
-SOURCE_POLICY_REGISTRY_PATH = Path(__file__).resolve().parents[1] / "conductor" / "source-policy-registry.json"
+SOURCE_POLICY_REGISTRY_PATH = (
+    Path(__file__).resolve().parents[1] / "conductor" / "source-policy-registry.json"
+)
 
 HTRC_EF_VERSION = "2.5"
 HTRC_SOLR_EF20_VERSION = "2.0"
@@ -59,7 +61,9 @@ INTERNET_ARCHIVE_METADATA_URL = "https://archive.org/metadata/{identifier}"
 INTERNET_ARCHIVE_DOWNLOAD_URL = "https://archive.org/download/{identifier}/{filename}"
 HATHIFILE_LIST_URL = "https://www.hathitrust.org/files/hathifiles/hathi_file_list.json"
 HATHI_BIBLIOGRAPHIC_API_URL = "https://share.hathitrust.org/api/volume/{htid}/json"
-HATHI_OAI_FEED_URL = "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/oai-feed/"
+HATHI_OAI_FEED_URL = (
+    "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/oai-feed/"
+)
 HATHI_RESEARCH_PD_OPEN_ACCESS = "ht_text_pd_open_access"
 HATHI_RESEARCH_PD_WORLD_OPEN_ACCESS = "ht_text_pd_world_open_access"
 HATHI_RESEARCH_PD_WITH_GOOGLE = "ht_text_pd"
@@ -518,7 +522,9 @@ def normalize_collection_export_row(
         "date": row.get("date", "").strip(),
         "volume_number": volume_number,
         "enumeration": enumeration,
-        "enumeration_status": "parsed" if (volume_number is not None or enumeration is not None) else "needs_enrichment",
+        "enumeration_status": "parsed"
+        if (volume_number is not None or enumeration is not None)
+        else "needs_enrichment",
         "rights_code": rights_code,
         "rights_label": policy["rights_label"],
         "oclc": row.get("OCLC", "").strip(),
@@ -552,13 +558,13 @@ def summarize_inventory(volumes: list[dict[str, Any]]) -> dict[str, Any]:
     """Return count summaries used by acceptance gates."""
     rights_counts = Counter(str(volume.get("rights_label", "")) for volume in volumes)
     access_counts = Counter(str(volume.get("access_class", "")) for volume in volumes)
-    parsed_volume_numbers = sum(1 for volume in volumes if isinstance(volume.get("volume_number"), int))
-    parsed_enumerations = sum(1 for volume in volumes if str(volume.get("enumeration") or "").strip())
-    parsed_labels = sum(
-        1
-        for volume in volumes
-        if volume.get("enumeration_status") == "parsed"
+    parsed_volume_numbers = sum(
+        1 for volume in volumes if isinstance(volume.get("volume_number"), int)
     )
+    parsed_enumerations = sum(
+        1 for volume in volumes if str(volume.get("enumeration") or "").strip()
+    )
+    parsed_labels = sum(1 for volume in volumes if volume.get("enumeration_status") == "parsed")
     needs_enrichment_count = len(volumes) - parsed_labels
     volume_numbers = [
         int(volume["volume_number"])
@@ -708,7 +714,9 @@ def child_dataset_publication_evidence(inventory: dict[str, Any]) -> list[dict[s
     ]
 
 
-def write_publication_evidence_report(inventory: dict[str, Any], output_dir: Path) -> dict[str, Any]:
+def write_publication_evidence_report(
+    inventory: dict[str, Any], output_dir: Path
+) -> dict[str, Any]:
     """Write a publication-evidence bundle for child datasets."""
     evidence = child_dataset_publication_evidence(inventory)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1243,7 +1251,9 @@ def write_htrc_ef_plan(
             "acquisition_mode": "github_actions_rsync_or_static_host_staging",
             "github_actions_limit": HTRC_EF_GITHUB_ACTIONS_LIMIT,
             "route": route,
-            "publication_eligibility": source_policy_entry("htrc_extracted_features")["publication_eligibility"],
+            "publication_eligibility": source_policy_entry("htrc_extracted_features")[
+                "publication_eligibility"
+            ],
         },
         "files": [
             {"htid": htid, "rsync_path": path}
@@ -1322,7 +1332,9 @@ def write_htrc_analytics_plan(
             "acquisition_mode": "github_actions_analytics_metadata",
             "license": "CC-BY-4.0",
             "route": "github_actions_metadata_and_reproducibility_only",
-            "publication_eligibility": source_policy_entry("htrc_analytics")["publication_eligibility"],
+            "publication_eligibility": source_policy_entry("htrc_analytics")[
+                "publication_eligibility"
+            ],
         },
         "source_policy": source_policy_entry("htrc_analytics"),
         "workset_candidates": workset_candidates,
@@ -1405,7 +1417,9 @@ def write_htrc_solr_discovery_plan(
             "limited": limit > 0,
             "hf_dataset_repo": HF_HTRC_EF_REPO,
             "acquisition_mode": "github_actions_solr_discovery_metadata",
-            "publication_eligibility": source_policy_entry("htrc_solr_ef20")["publication_eligibility"],
+            "publication_eligibility": source_policy_entry("htrc_solr_ef20")[
+                "publication_eligibility"
+            ],
         },
         "source_policy": source_policy_entry("htrc_solr_ef20"),
         "workset_candidates": workset_candidates,
@@ -1415,7 +1429,9 @@ def write_htrc_solr_discovery_plan(
         output_dir / "htrc_solr_workset_candidates.json",
         {"meta": manifest["meta"], "candidates": workset_candidates},
     )
-    write_lines(output_dir / "htrc_solr_workset_candidates.txt", [c["htid"] for c in workset_candidates])
+    write_lines(
+        output_dir / "htrc_solr_workset_candidates.txt", [c["htid"] for c in workset_candidates]
+    )
     write_lines(
         output_dir / "README.md",
         [
@@ -1438,7 +1454,9 @@ def nz_enrichment_record(volume: dict[str, Any], source_id: str) -> dict[str, An
     title = str(volume.get("title", "")).strip()
     author = str(volume.get("author", "")).strip()
     year = str(volume.get("date", "")).strip()
-    query_parts = [part for part in (title, author, year, str(volume.get("htid", "")).strip()) if part]
+    query_parts = [
+        part for part in (title, author, year, str(volume.get("htid", "")).strip()) if part
+    ]
     return {
         "htid": volume.get("htid", ""),
         "title": title,
@@ -1598,7 +1616,9 @@ def write_ia_open_library_crosswalk_plan(
         output_dir / "ia_open_library_crosswalk_candidates.json",
         {"meta": manifest["meta"], "records": records},
     )
-    write_lines(output_dir / "ia_open_library_crosswalk_htids.txt", [record["htid"] for record in records])
+    write_lines(
+        output_dir / "ia_open_library_crosswalk_htids.txt", [record["htid"] for record in records]
+    )
     write_lines(
         output_dir / "README.md",
         [
@@ -1770,7 +1790,9 @@ def internet_archive_text_candidates(metadata: dict[str, Any]) -> list[str]:
     return list(dict.fromkeys(prioritized))
 
 
-def internet_archive_candidate_score(volume: dict[str, Any], doc: dict[str, Any]) -> tuple[float, list[str]]:
+def internet_archive_candidate_score(
+    volume: dict[str, Any], doc: dict[str, Any]
+) -> tuple[float, list[str]]:
     """Score an Internet Archive candidate against a HathiTrust volume."""
     title = base_title_for_internet_archive(str(volume.get("title", "")).strip()).lower()
     author = str(volume.get("author", "")).strip().lower()
@@ -1794,7 +1816,9 @@ def internet_archive_candidate_score(volume: dict[str, Any], doc: dict[str, Any]
     return score, basis
 
 
-def internet_archive_best_match(volume: dict[str, Any], docs: list[dict[str, Any]]) -> dict[str, Any] | None:
+def internet_archive_best_match(
+    volume: dict[str, Any], docs: list[dict[str, Any]]
+) -> dict[str, Any] | None:
     """Pick a conservative Archive.org match for a HathiTrust record."""
     best_doc: dict[str, Any] | None = None
     best_score = 0.0
@@ -1981,7 +2005,9 @@ def write_internet_archive_overlap_plan(
                 {
                     "htid": volume["htid"],
                     "search_query": query,
-                    "match_confidence": scored_candidates[0]["confidence"] if scored_candidates else 0.0,
+                    "match_confidence": scored_candidates[0]["confidence"]
+                    if scored_candidates
+                    else 0.0,
                     "match_basis": scored_candidates[0]["basis"] if scored_candidates else [],
                     "candidate_count": len(scored_candidates),
                     "crosswalk": crosswalk,
@@ -2343,11 +2369,20 @@ def _track_status_snapshot(track_path: Path) -> dict[str, Any] | None:
 
 def _classify_blocker(blocker: str) -> str:
     normalized = blocker.lower()
-    if "hugging face" in normalized or normalized.startswith("hf_token") or "collection mutation" in normalized:
+    if (
+        "hugging face" in normalized
+        or normalized.startswith("hf_token")
+        or "collection mutation" in normalized
+    ):
         return "hugging_face_collection"
     if "zenodo" in normalized:
         return "zenodo_deposition"
-    if "hathi" in normalized or "static host" in normalized or "rsync" in normalized or "ssh key" in normalized:
+    if (
+        "hathi" in normalized
+        or "static host" in normalized
+        or "rsync" in normalized
+        or "ssh key" in normalized
+    ):
         return "hathi_static_host"
     return "other"
 
@@ -2394,14 +2429,24 @@ def build_status_report(
             },
             "analytics": {
                 "present": bool(htrc_analytics),
-                "record_count": htrc_analytics.get("meta", {}).get("record_count", 0) if htrc_analytics else 0,
+                "record_count": htrc_analytics.get("meta", {}).get("record_count", 0)
+                if htrc_analytics
+                else 0,
                 "route": htrc_analytics.get("meta", {}).get("route", "") if htrc_analytics else "",
             },
         }
 
     default_track_paths = [
-        repo_root / "conductor" / "tracks" / "hathitrust_nz_multi_source_archive_20260702" / "metadata.json",
-        repo_root / "conductor" / "tracks" / "hathitrust_nz_interim_acquisition_hardening_20260703" / "metadata.json",
+        repo_root
+        / "conductor"
+        / "tracks"
+        / "hathitrust_nz_multi_source_archive_20260702"
+        / "metadata.json",
+        repo_root
+        / "conductor"
+        / "tracks"
+        / "hathitrust_nz_interim_acquisition_hardening_20260703"
+        / "metadata.json",
     ]
     track_snapshots = []
     for track_path in track_metadata_paths or default_track_paths:
@@ -2484,7 +2529,9 @@ def write_status_report(
         "",
     ]
     for track in report["tracks"]:
-        blockers = track.get("blocked_until_external_access", []) or track.get("external_blockers", [])
+        blockers = track.get("blocked_until_external_access", []) or track.get(
+            "external_blockers", []
+        )
         blockers_text = ", ".join(blockers) if blockers else "none"
         lines.extend(
             [
@@ -2501,8 +2548,16 @@ def build_blocker_report(track_metadata_paths: list[Path] | None = None) -> dict
     """Build a normalized blocker report from Conductor track metadata."""
     repo_root = Path(__file__).resolve().parents[1]
     default_track_paths = [
-        repo_root / "conductor" / "tracks" / "hathitrust_nz_multi_source_archive_20260702" / "metadata.json",
-        repo_root / "conductor" / "tracks" / "hathitrust_nz_interim_acquisition_hardening_20260703" / "metadata.json",
+        repo_root
+        / "conductor"
+        / "tracks"
+        / "hathitrust_nz_multi_source_archive_20260702"
+        / "metadata.json",
+        repo_root
+        / "conductor"
+        / "tracks"
+        / "hathitrust_nz_interim_acquisition_hardening_20260703"
+        / "metadata.json",
     ]
     blocker_catalog = {
         "hugging_face_collection": {
@@ -2655,7 +2710,9 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     collection.add_argument("--output", type=Path, required=True)
     collection.add_argument("--completeness-report", type=Path)
 
-    routing = subparsers.add_parser("routing-manifest", help="Build canonical source routing manifest")
+    routing = subparsers.add_parser(
+        "routing-manifest", help="Build canonical source routing manifest"
+    )
     routing.add_argument("--inventory", type=Path, required=True)
     routing.add_argument("--output", type=Path, required=True)
     routing.add_argument("--internet-archive", type=Path)
@@ -2722,7 +2779,9 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         action="append",
         default=[
             Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
-            Path("conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"),
+            Path(
+                "conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"
+            ),
             Path("conductor/tracks/historical_coverage_breadth_integration_20260705/metadata.json"),
         ],
         help="Optional track metadata files to include in the status snapshot.",
@@ -2736,7 +2795,9 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     ia.add_argument("--limit", type=int, default=0)
     ia.add_argument("--dry-run", action="store_true")
 
-    discovery = subparsers.add_parser("discovery-manifest", help="Build broader NZ discovery manifest")
+    discovery = subparsers.add_parser(
+        "discovery-manifest", help="Build broader NZ discovery manifest"
+    )
     discovery.add_argument("--inventory", type=Path, required=True)
     discovery.add_argument("--output", type=Path, required=True)
     discovery.add_argument("--report", type=Path)
@@ -2747,7 +2808,9 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     publication_evidence.add_argument("--inventory", type=Path, required=True)
     publication_evidence.add_argument("--output-dir", type=Path, required=True)
 
-    blockers = subparsers.add_parser("blocker-report", help="Build blocker report from track metadata")
+    blockers = subparsers.add_parser(
+        "blocker-report", help="Build blocker report from track metadata"
+    )
     blockers.add_argument("--output-dir", type=Path, required=True)
     blockers.add_argument(
         "--track-metadata",
@@ -2755,7 +2818,9 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         action="append",
         default=[
             Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
-            Path("conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"),
+            Path(
+                "conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"
+            ),
             Path("conductor/tracks/historical_coverage_breadth_integration_20260705/metadata.json"),
         ],
     )
@@ -2795,9 +2860,7 @@ def main() -> int:
             else None
         )
         htrc_ef = (
-            load_json(args.htrc_ef)
-            if args.htrc_ef is not None and args.htrc_ef.exists()
-            else None
+            load_json(args.htrc_ef) if args.htrc_ef is not None and args.htrc_ef.exists() else None
         )
         write_json(
             args.output,
@@ -2850,7 +2913,9 @@ def main() -> int:
             if args.internet_archive is not None and args.internet_archive.exists()
             else None
         )
-        htrc_ef = load_json(args.htrc_ef) if args.htrc_ef is not None and args.htrc_ef.exists() else None
+        htrc_ef = (
+            load_json(args.htrc_ef) if args.htrc_ef is not None and args.htrc_ef.exists() else None
+        )
         htrc_analytics = (
             load_json(args.htrc_analytics)
             if args.htrc_analytics is not None and args.htrc_analytics.exists()

@@ -28,7 +28,13 @@ def test_bridge_preserves_curated_seed_and_no_claim() -> None:
 
 
 def test_bridge_rejects_completeness_posture() -> None:
-    inventory = {"meta": {"collection_id": "71329709", "collection_slug": "nz_parliamentary_debates_hansard"}, "volumes": [{"htid": "uc1.test", "source_url": "https://hdl.handle.net/2027/uc1.test"}]}
+    inventory = {
+        "meta": {
+            "collection_id": "71329709",
+            "collection_slug": "nz_parliamentary_debates_hansard",
+        },
+        "volumes": [{"htid": "uc1.test", "source_url": "https://hdl.handle.net/2027/uc1.test"}],
+    }
     bridge = build_bridge(inventory, "2026-07-12T00:00:00+00:00")
     bridge["bridge_status"] = "complete"
     with pytest.raises(ValueError, match="validation failed"):

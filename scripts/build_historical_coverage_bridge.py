@@ -42,9 +42,7 @@ def build_bridge(inventory: dict[str, object], generated_at: str) -> dict[str, o
                     and volume.get("requires_static_host") is False
                     else "metadata_only"
                 ),
-                "source_url": volume.get(
-                    "source_url", f"https://hdl.handle.net/2027/{htid}"
-                ),
+                "source_url": volume.get("source_url", f"https://hdl.handle.net/2027/{htid}"),
                 "rights_label": volume.get("rights_label", "und"),
                 "fulltext_evidence": "not_claimed",
             }
@@ -102,15 +100,22 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--check", action="store_true", help="Validate an existing bridge")
     args = parser.parse_args()
-    bridge = json.loads(args.input.read_text(encoding="utf-8")) if args.check else build_bridge(
-        json.loads(args.input.read_text(encoding="utf-8")),
-        datetime.now(UTC).replace(microsecond=0).isoformat(),
+    bridge = (
+        json.loads(args.input.read_text(encoding="utf-8"))
+        if args.check
+        else build_bridge(
+            json.loads(args.input.read_text(encoding="utf-8")),
+            datetime.now(UTC).replace(microsecond=0).isoformat(),
+        )
     )
     validate_bridge(bridge)
     if not args.check:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(bridge, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"valid": True, "record_count": len(bridge["records"]), "output": str(args.output)}))
+        args.output.write_text(
+            json.dumps(bridge, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+    record_count = len(cast("list[object]", bridge.get("records", [])))
+    print(json.dumps({"valid": True, "record_count": record_count, "output": str(args.output)}))
     return 0
 
 

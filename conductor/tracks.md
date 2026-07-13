@@ -70,9 +70,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ### Architecture Status (oracle, 2026-06-26)
 - **core_pipeline**: ✅ All 4 phases complete (143 tests, 0 errors, 76% coverage)
-- **code_quality_enhancement**: [ ] New - Tooling improvements identified in comprehensive audit
-- **ci_infrastructure**: [ ] New - Resilience and CI/CD enhancements
-- **versioning_config**: [ ] New - Dynamic versioning and config management
+- **code_quality_enhancement**: ✅ Complete - Tooling improvements implemented and archived
+- **ci_infrastructure**: ✅ Complete - Resilience and CI/CD enhancements implemented and archived
+- **versioning_config**: ✅ Complete - Dynamic versioning and config management implemented and archived
 - **loguru_migration**: ✅ Complete - Align logging implementation with declared dependency
 - **osf_integration**: ✅ Complete - Third publication target
 - **zenodo_release_workflow**: ✅ Complete - GHA workflow for existing Zenodo scripts
