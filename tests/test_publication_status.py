@@ -455,6 +455,7 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
 
     assert report["publication_evidence"]["exists"] is True
     assert report["publication_evidence"]["child_dataset_count"] == 5
+    assert all(report["publication_checks"].values()), report["publication_checks"]
     assert report["publication_ready"] is True, report
     assert report["ready"] is True
 
