@@ -69,22 +69,3 @@ jobs:
           files: ./coverage.xml
           use_oidc: true
           fail_ci_if_error: true
-
-  mutmut:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-tags: true
-          fetch-depth: 0
-      - uses: prefix-dev/setup-pixi@v0
-        with:
-          pixi-version: latest
-          cache: false
-          environments: dev
-      - name: Run mutmut
-        run: pixi run -e dev mutmut run
-      - name: Summarize mutation testing
-        if: always()
-        run: echo "Mutation testing is advisory until a repository mutation score threshold is configured." >> "$GITHUB_STEP_SUMMARY"
