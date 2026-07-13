@@ -44,4 +44,4 @@ What next:
 
 ## Practical Next Step
 
-The only archival-content blocker is HathiTrust static-host approval and credentials. HF collection access is working, four production Zenodo child-dataset records are published with DOI writebacks, the publication gate now checks all child DOIs, and CI formatting/type-check gates have been stabilized.
+The only archival-content blocker is HathiTrust static-host approval and credentials. HF collection access is working, the committed archive registry records all five public Hugging Face datasets and five DOI-backed Zenodo streams, the publication gate checks all child DOIs, and CI formatting/type-check/archive-registry gates have been stabilized. Publication endpoint health is 1000/1000; this does not claim that restricted or unacquired full text is complete.

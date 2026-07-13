@@ -1,0 +1,101 @@
+{
+  "registry_version": "1.0",
+  "generated_at": "2026-07-13T00:00:00Z",
+  "verification": {
+    "verified_against": [
+      "https://huggingface.co/api/collections/edithatogo/hathitrust-nz",
+      "https://huggingface.co/api/datasets/edithatogo/corpus-nz-hathi",
+      "https://huggingface.co/api/datasets/edithatogo/hathitrust-nz-inventory",
+      "https://huggingface.co/api/datasets/edithatogo/hathitrust-nz-research-fulltext",
+      "https://huggingface.co/api/datasets/edithatogo/hathitrust-nz-htrc-extracted-features",
+      "https://huggingface.co/api/datasets/edithatogo/hathitrust-nz-htrc-analytics",
+      "https://zenodo.org/api/records?q=doi:%2210.5281/zenodo.21107389%22",
+      "https://zenodo.org/api/records?q=doi:%2210.5281/zenodo.21322325%22",
+      "https://zenodo.org/api/records?q=doi:%2210.5281/zenodo.21322327%22",
+      "https://zenodo.org/api/records?q=doi:%2210.5281/zenodo.21322329%22",
+      "https://zenodo.org/api/records?q=doi:%2210.5281/zenodo.21322333%22"
+    ],
+    "publication_health_score": 1000,
+    "publication_health_basis": "All registered public endpoints resolved, were public/open, and had at least one published artifact at verification time.",
+    "content_completeness_is_separate": true
+  },
+  "collection": {
+    "collection_id": "hathitrust-nz",
+    "hf_collection": "edithatogo/hathitrust-nz",
+    "hf_collection_url": "https://huggingface.co/collections/edithatogo/hathitrust-nz",
+    "source_collection_id": "71329709",
+    "source_catalog_record_id": "007119315",
+    "curated_seed_record_count": 510,
+    "rights_counts": {"cc-zero": 510},
+    "enumeration_complete": true,
+    "full_text_rehost_status": "fail_closed_until_source_evidence",
+    "official_hathi_static_host_status": "pending_credentials"
+  },
+  "datasets": [
+    {
+      "dataset_id": "corpus-nz-hathi",
+      "role": "compatibility_dataset",
+      "access_class": "public_full_text_where_confirmed",
+      "hf_repo": "edithatogo/corpus-nz-hathi",
+      "hf_url": "https://huggingface.co/datasets/edithatogo/corpus-nz-hathi",
+      "zenodo_doi": "10.5281/zenodo.21107389",
+      "zenodo_url": "https://doi.org/10.5281/zenodo.21107389",
+      "zenodo_access": "open",
+      "zenodo_version": "0.1.0",
+      "zenodo_file_count": 1,
+      "content_status": "legacy_release_retained"
+    },
+    {
+      "dataset_id": "hathitrust-nz-inventory",
+      "role": "collection_inventory",
+      "access_class": "public_metadata",
+      "hf_repo": "edithatogo/hathitrust-nz-inventory",
+      "hf_url": "https://huggingface.co/datasets/edithatogo/hathitrust-nz-inventory",
+      "zenodo_doi": "10.5281/zenodo.21322325",
+      "zenodo_url": "https://doi.org/10.5281/zenodo.21322325",
+      "zenodo_access": "open",
+      "zenodo_version": "0.1.0",
+      "zenodo_file_count": 1,
+      "content_status": "published_metadata_and_manifests"
+    },
+    {
+      "dataset_id": "hathitrust-nz-research-fulltext",
+      "role": "research_dataset_fulltext",
+      "access_class": "metadata_only_until_static_host_bundle_is_eligible",
+      "hf_repo": "edithatogo/hathitrust-nz-research-fulltext",
+      "hf_url": "https://huggingface.co/datasets/edithatogo/hathitrust-nz-research-fulltext",
+      "zenodo_doi": "10.5281/zenodo.21322327",
+      "zenodo_url": "https://doi.org/10.5281/zenodo.21322327",
+      "zenodo_access": "open",
+      "zenodo_version": "0.1.0",
+      "zenodo_file_count": 1,
+      "content_status": "published_manifest_metadata_only"
+    },
+    {
+      "dataset_id": "hathitrust-nz-htrc-extracted-features",
+      "role": "htrc_extracted_features_2_5_subset",
+      "access_class": "public_derived_features",
+      "hf_repo": "edithatogo/hathitrust-nz-htrc-extracted-features",
+      "hf_url": "https://huggingface.co/datasets/edithatogo/hathitrust-nz-htrc-extracted-features",
+      "zenodo_doi": "10.5281/zenodo.21322329",
+      "zenodo_url": "https://doi.org/10.5281/zenodo.21322329",
+      "zenodo_access": "open",
+      "zenodo_version": "0.1.0",
+      "zenodo_file_count": 1,
+      "content_status": "published_derived_feature_subset"
+    },
+    {
+      "dataset_id": "hathitrust-nz-htrc-analytics",
+      "role": "htrc_analytics_outputs",
+      "access_class": "public_scripts_aggregates_and_reproducibility_metadata",
+      "hf_repo": "edithatogo/hathitrust-nz-htrc-analytics",
+      "hf_url": "https://huggingface.co/datasets/edithatogo/hathitrust-nz-htrc-analytics",
+      "zenodo_doi": "10.5281/zenodo.21322333",
+      "zenodo_url": "https://doi.org/10.5281/zenodo.21322333",
+      "zenodo_access": "open",
+      "zenodo_version": "0.1.0",
+      "zenodo_file_count": 1,
+      "content_status": "published_scripts_aggregates_and_metadata"
+    }
+  ]
+}

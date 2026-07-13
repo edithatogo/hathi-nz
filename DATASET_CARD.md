@@ -213,7 +213,7 @@ Redundancy guidance:
 }
 ```
 
-For live use, cite the Hugging Face repository with access date. For academic citation, use the Zenodo DOI [10.5281/zenodo.21107389](https://doi.org/10.5281/zenodo.21107389).
+For live use, cite the Hugging Face repository with access date. For academic citation, use the Zenodo DOI [10.5281/zenodo.21107389](https://doi.org/10.5281/zenodo.21107389). The collection-level publication map is in the [HathiTrust-NZ archive registry](manifests/hathitrust-nz/archive_registry.json).
 
 ## Licensing
 

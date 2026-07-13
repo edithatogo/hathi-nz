@@ -2,6 +2,7 @@
 
 - Source collection: HathiTrust Collection `71329709`.
 - HF collection: `edithatogo/hathitrust-nz`.
+- Publication map: [`archive_registry.json`](./archive_registry.json).
 - Seed record count: `510`.
 - Parsed numeric volume labels: `369`.
 - Parsed enumeration labels: `510`.
@@ -19,3 +20,9 @@
 - `hathitrust-nz-research-fulltext` -> `edithatogo/hathitrust-nz-research-fulltext`
 - `hathitrust-nz-htrc-extracted-features` -> `edithatogo/hathitrust-nz-htrc-extracted-features`
 - `hathitrust-nz-htrc-analytics` -> `edithatogo/hathitrust-nz-htrc-analytics`
+
+The registry records the verified Hugging Face and Zenodo endpoints, access
+class, DOI, release version, and content status for every child. Publication
+health is scored separately from content completeness: the public endpoints
+are healthy, while Research Dataset full text remains metadata-only until the
+official HathiTrust static-host route is approved.

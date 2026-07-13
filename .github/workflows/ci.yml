@@ -5,6 +5,9 @@
 
 name: CI
 
+# mutmut mutation testing runs in the advisory .github/workflows/mutation.yml workflow;
+# this required workflow keeps the deterministic quality gates fast and stable.
+
 on:
   push:
     branches: [main, master]
@@ -47,6 +50,9 @@ jobs:
           environments: dev
       - name: Type check
         run: pixi run -e dev typecheck
+
+      - name: Validate archive registry
+        run: pixi run -e dev python scripts/validate_archive_registry.py
 
   test:
     runs-on: ubuntu-latest

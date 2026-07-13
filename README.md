@@ -24,8 +24,8 @@ The corpus is published across three platforms:
 |----------|------|-----|
 | **Hugging Face Hub** | Live, queryable dataset (Parquet + raw files) | [`edithatogo/corpus-nz-hathi`](https://huggingface.co/edithatogo/corpus-nz-hathi) |
 | **GitHub** | Pipeline code, schemas, metadata, workflows | [`edithatogo/hathi-nz`](https://github.com/edithatogo/hathi-nz) |
-| **Zenodo** | DOI-backed annual snapshots for academic citation | _(future)_ |
-| **OSF** | Secondary release mirror that reuses the Zenodo DOI-backed snapshot metadata | _(configured via `OSF_PROJECT_ID`)_ |
+| **Zenodo** | DOI-backed release snapshots for academic citation | [Archive registry](manifests/hathitrust-nz/archive_registry.json) |
+| **OSF** | Secondary release mirror that reuses Zenodo DOI-backed snapshot metadata | Configured via `OSF_PROJECT_ID` |
 
 
 ## Architecture
@@ -168,13 +168,19 @@ Edith A. Togo. (2026). corpus-nz-hathi: NZ Parliamentary Debates (1854–1990)
 from HathiTrust [Data set]. Hugging Face. https://huggingface.co/edithatogo/corpus-nz-hathi
 ```
 
-For academic citation, use the Zenodo DOI _(once available)_.
+For academic citation, use the DOI recorded in the applicable dataset card or
+the [archive registry](manifests/hathitrust-nz/archive_registry.json).
 
 ## Maintenance
 
 - **Daily**: GitHub Actions `hf_sync.yml` checks for updates.
 - **Monthly**: Review validation reports and coverage metrics.
 - **Annually**: Create Zenodo archival snapshot with DOI.
+- **Archive registry**: The committed [archive registry](manifests/hathitrust-nz/archive_registry.json)
+  maps every collection child to its source, access class, Hugging Face repo,
+  Zenodo DOI, and current content status. Its publication-health score is
+  separate from content completeness so metadata-only releases cannot be
+  mistaken for full-text acquisition.
 - **Publication-status reruns**: If a `collection_publish.yml` run has already produced a `hathitrust-nz-collection-publication` artifact, rerun `.github/workflows/publication_status.yml` with `workflow_run_id` set to that run ID to reuse the generated `reports/status/status_report.json` snapshot instead of recomputing from scratch.
 - **Redundancy sources**: Treat HathiFiles, OAI-PMH, and the Bibliographic API as metadata redundancy; HTRC EF/Analytics as derived-feature redundancy; and Internet Archive/Open Library as interim overlap sources only.
 
