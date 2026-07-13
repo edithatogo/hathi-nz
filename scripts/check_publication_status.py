@@ -397,17 +397,17 @@ def check_publication_status(
     blockers_complete = (
         bool(blocker_report.get("exists")) and blocker_report.get("blocker_count", 0) == 0
     )
-    publication_ready = bool(
-        hugging_face.get("exists")
-        and hf_has_files
-        and card_doi is not None
-        and doi_status is not None
-        and doi_status.get("resolves")
-        and manifest_complete
-        and evidence_complete
-        and blockers_complete
-        and child_zenodo["complete"]
-    )
+    publication_checks = {
+        "hugging_face_exists": bool(hugging_face.get("exists")),
+        "hugging_face_has_files": hf_has_files,
+        "dataset_card_doi_present": card_doi is not None,
+        "dataset_card_doi_resolves": bool(doi_status and doi_status.get("resolves")),
+        "manifest_complete": manifest_complete,
+        "publication_evidence_complete": evidence_complete,
+        "blocker_report_complete": blockers_complete,
+        "child_zenodo_complete": bool(child_zenodo.get("complete")),
+    }
+    publication_ready = all(publication_checks.values())
     roadmap_complete = (
         status_report["roadmap_complete"] if status_report.get("exists") else tracks["all_complete"]
     )
@@ -426,6 +426,7 @@ def check_publication_status(
         "doi_status": doi_status,
         "roadmap_complete": roadmap_complete,
         "publication_ready": publication_ready,
+        "publication_checks": publication_checks,
         "ready": ready,
     }
 
