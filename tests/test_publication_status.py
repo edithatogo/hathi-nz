@@ -599,6 +599,8 @@ For academic citation, use the Zenodo DOI 10.5281/zenodo.987654.
         "url": "https://doi.org/10.5281/zenodo.987654",
     }
     assert check_publication_status_module._dataset_card_expected_volumes(card_text) == 510
+    assert check_publication_status_module._dataset_card_doi("No DOI") is None
+    assert check_publication_status_module._dataset_card_expected_volumes("No volumes") is None
 
     manifest = check_publication_status_module._manifest_summary("{not-json")
     assert manifest["exists"] is False
@@ -617,6 +619,24 @@ def test_publication_status_helpers_fail_closed_on_invalid_snapshots() -> None:
         )["record_count"]
         == 3
     )
+
+
+def test_publication_status_helpers_normalize_malformed_shapes() -> None:
+    status = check_publication_status_module._status_report_summary(
+        json.dumps({"tracks": [{"status": "pending"}, "invalid"], "inventory": "invalid"})
+    )
+    assert status["pending_track_count"] == 1
+    assert status["inventory_record_count"] == 0
+    evidence = check_publication_status_module._publication_evidence_summary(
+        json.dumps({"child_datasets": ["invalid", {"route_evidence": "invalid"}]})
+    )
+    assert evidence["child_dataset_count"] == 2
+    assert evidence["evidence_states"][0]["dataset_id"] == ""
+    blockers = check_publication_status_module._blocker_report_summary(
+        json.dumps({"blockers": "invalid", "blocker_groups": [], "required_access": "invalid"})
+    )
+    assert blockers["blocker_count"] == 0
+    assert blockers["group_count"] == 0
 
 
 @pytest.mark.unit
