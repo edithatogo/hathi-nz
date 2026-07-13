@@ -670,6 +670,18 @@ def test_check_hugging_face_and_zenodo_error_paths(monkeypatch: pytest.MonkeyPat
     assert zenodo["matches"][0]["doi"] == "10.5281/zenodo.123456"
 
 
+def test_check_hugging_face_success_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        check_publication_status_module.requests,
+        "get",
+        lambda *args, **kwargs: _hf_response(),
+    )
+    result = check_publication_status_module._check_hugging_face("owner/repo")
+    assert result["exists"] is True
+    assert result["data_file_count"] == 2
+    assert result["sibling_count"] == 3
+
+
 def test_child_zenodo_gate_requires_all_cards(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         check_publication_status_module,
