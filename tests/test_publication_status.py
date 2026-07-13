@@ -186,6 +186,11 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
     )
     monkeypatch.setattr(
         check_publication_status_module,
+        "_check_hugging_face",
+        lambda repo_id: {"repo_id": repo_id, "exists": True, "data_file_count": 2},
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
         "_doi_resolves",
         lambda doi_url: {
             "resolves": True,
@@ -267,6 +272,11 @@ def test_check_publication_status_uses_status_report_snapshot(
     monkeypatch.setattr(
         check_publication_status_module.requests, "get", lambda *args, **kwargs: _hf_response()
     )  # type: ignore[assignment]
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_hugging_face",
+        lambda repo_id: {"repo_id": repo_id, "exists": True, "data_file_count": 2},
+    )
     monkeypatch.setattr(
         check_publication_status_module,
         "_check_zenodo",
@@ -432,6 +442,11 @@ def test_check_publication_status_uses_publication_evidence_snapshot(
         lambda: {"complete": True, "published_count": 4, "records": []},
     )
 
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_hugging_face",
+        lambda repo_id: {"repo_id": repo_id, "exists": True, "data_file_count": 2},
+    )
     report = check_publication_status(
         status_report_path=status_report_path,
         publication_evidence_path=publication_evidence_path,
