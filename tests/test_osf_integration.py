@@ -202,6 +202,92 @@ def test_resolve_credentials_honors_custom_token_env(
     assert project_id == "custom-project"
 
 
+def test_osf_metadata_and_path_helpers_fail_closed(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        publish_osf.load_osf_metadata(tmp_path / "missing.json")
+
+    invalid = tmp_path / "invalid.json"
+    invalid.write_text("[]", encoding="utf-8")
+    with pytest.raises(TypeError):
+        publish_osf.load_osf_metadata(invalid)
+
+    incomplete = tmp_path / "incomplete.json"
+    incomplete.write_text(json.dumps({"title": "x"}), encoding="utf-8")
+    with pytest.raises(ValueError, match="missing required"):
+        publish_osf.load_osf_metadata(incomplete)
+
+    bad_tags = tmp_path / "bad-tags.json"
+    bad_tags.write_text(
+        json.dumps({"title": "x", "description": "x", "tags": [""], "category": "data"}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="tags"):
+        publish_osf.load_osf_metadata(bad_tags)
+
+    assert publish_osf._relative_remote_path(tmp_path / "file.txt", tmp_path) == Path("file.txt")
+    assert publish_osf._relative_remote_path(tmp_path / "other" / "file.txt", tmp_path) == Path(
+        "other/file.txt"
+    )
+    assert publish_osf._inject_zenodo_doi({"tags": []}, None) == {"tags": []}
+    with pytest.raises(ValueError, match="related_identifiers"):
+        publish_osf._inject_zenodo_doi({"related_identifiers": {}}, "10.5281/zenodo.1")
+    with pytest.raises(FileNotFoundError):
+        publish_osf.collect_release_files(tmp_path / "missing")
+
+    card = tmp_path / "fallback-card.md"
+    card.write_text("DOI: 10.5281/zenodo.123\n", encoding="utf-8")
+    assert publish_osf._extract_zenodo_doi(card) == "10.5281/zenodo.123"
+    assert publish_osf.prepare_osf_metadata(OSF_METADATA_PATH, card)[1] == "10.5281/zenodo.123"
+
+    previous = publish_osf.OSF
+    publish_osf.OSF = None
+    try:
+        with pytest.raises(RuntimeError, match="not installed"):
+            publish_osf._get_osf_client("token")
+    finally:
+        publish_osf.OSF = previous
+
+
+def test_osf_main_requires_credentials(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    metadata = tmp_path / "metadata.json"
+    metadata.write_text(
+        json.dumps({"title": "x", "description": "x", "tags": ["x"], "category": "data"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        publish_osf,
+        "parse_args",
+        lambda: argparse.Namespace(
+            source_dir=tmp_path,
+            metadata=metadata,
+            dataset_card=None,
+            project_id=None,
+            token_env="MISSING_OSF_TOKEN",
+            remote_dir="releases",
+            storage_provider="osfstorage",
+            dry_run=False,
+        ),
+    )
+    monkeypatch.delenv("MISSING_OSF_TOKEN", raising=False)
+    assert publish_osf.main() == 2
+
+    monkeypatch.setattr(
+        publish_osf,
+        "parse_args",
+        lambda: argparse.Namespace(
+            source_dir=tmp_path,
+            metadata=metadata,
+            dataset_card=None,
+            project_id="project",
+            token_env="MISSING_OSF_TOKEN",
+            remote_dir="releases",
+            storage_provider="osfstorage",
+            dry_run=False,
+        ),
+    )
+    assert publish_osf.main() == 2
+
+
 def test_osf_docs_and_dependency_declarations() -> None:
     readme = README_PATH.read_text(encoding="utf-8")
     dataset_card = DATASET_CARD_PATH.read_text(encoding="utf-8")

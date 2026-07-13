@@ -885,7 +885,7 @@ def write_metadata_refresh_plan(
     )
     nz_enrichment = write_nz_enrichment_plan(inventory, output_dir / "nz_enrichment", limit=limit)
 
-    manifest = {
+    manifest: dict[str, Any] = {
         "meta": {
             "generated_at": utc_now(),
             "source_dataset_name": "HathiTrust metadata refresh lanes",
@@ -1237,7 +1237,7 @@ def write_htrc_ef_plan(
     write_lines(output_dir / "htrc_ef25_htids.txt", htids)
     write_lines(output_dir / "htrc_ef25_files.txt", rsync_paths)
 
-    manifest = {
+    manifest: dict[str, Any] = {
         "meta": {
             "generated_at": utc_now(),
             "source_dataset_name": f"HTRC Extracted Features {HTRC_EF_VERSION}",
@@ -1320,7 +1320,7 @@ def write_htrc_analytics_plan(
             }
         )
 
-    manifest = {
+    manifest: dict[str, Any] = {
         "meta": {
             "generated_at": utc_now(),
             "source_dataset_name": "HTRC Analytics outputs",
@@ -1407,7 +1407,7 @@ def write_htrc_solr_discovery_plan(
 
     output_dir.mkdir(parents=True, exist_ok=True)
     workset_candidates = [htrc_solr_workset_record(volume) for volume in volumes]
-    manifest = {
+    manifest: dict[str, Any] = {
         "meta": {
             "generated_at": utc_now(),
             "source_dataset_name": "HTRC Solr EF20 discovery candidates",

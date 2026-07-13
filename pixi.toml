@@ -5,8 +5,9 @@ channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 
 [tasks]
-test = "pytest tests/ --cov --cov-report=term-missing"
+test = "pytest tests/ --cov --cov-report=term-missing --cov-fail-under=90"
 lint = "ruff check ."
+lint-strict = "ruff check ."
 format-check = "ruff format --check ."
 typecheck = "pyright scripts/"
 pyright-check = "pyright scripts/"
@@ -18,7 +19,7 @@ profile-pipelines-scalene = "python scripts/profile_pipelines.py"
 publication-status = "python scripts/check_publication_status.py"
 historical-coverage-bridge = "python scripts/build_historical_coverage_bridge.py"
 routing-manifest = "python scripts/hathitrust_nz_archive.py routing-manifest"
-quality = { depends-on = ["lint", "format-check", "spell", "toml-check", "workflow-syntax"] }
+quality = { depends-on = ["lint-strict", "format-check", "spell", "toml-check", "workflow-syntax", "pyright-check", "test"] }
 
 [dependencies]
 python = ">=3.11"

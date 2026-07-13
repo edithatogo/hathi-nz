@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import zipfile
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from scripts import package_release, publish_zenodo
 from scripts.package_release import (
     build_manifest,
     collect_assets,
@@ -51,6 +53,32 @@ def test_validate_zenodo_json_rejects_invalid_orcid(tmp_path: Path) -> None:
     errors = validate_zenodo_json(metadata)
 
     assert any("invalid Zenodo creator ORCID" in error for error in errors)
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("{", "invalid JSON"),
+        ("{}", "missing Zenodo field"),
+        ('{"creators": []}', "non-empty list"),
+        ('{"creators": [{}]}', "must include a name"),
+    ],
+)
+def test_validate_zenodo_json_rejects_malformed_metadata(
+    tmp_path: Path, content: str, expected: str
+) -> None:
+    metadata = tmp_path / ".zenodo.json"
+    metadata.write_text(content, encoding="utf-8")
+
+    assert any(expected in error for error in validate_zenodo_json(metadata))
+
+
+def test_validate_zenodo_json_handles_missing_and_file_collection_edges(tmp_path: Path) -> None:
+    assert validate_zenodo_json(tmp_path / "missing.json")
+    single = tmp_path / "single.txt"
+    single.write_text("x", encoding="utf-8")
+    assert package_release._iter_files(single) == [single]
+    assert package_release._iter_files(tmp_path / "missing") == []
 
 
 def test_collect_assets_excludes_state_files(tmp_path: Path) -> None:
@@ -215,3 +243,228 @@ def test_main_honors_custom_token_env(monkeypatch: pytest.MonkeyPatch, tmp_path:
     assert publish_zenodo.main() == 0
     assert captured["token"] == custom_token
     assert session.calls[0] == ("post", "https://sandbox.example/api/deposit/depositions")
+
+
+def test_main_uses_configured_default_token_and_deposit_without_card(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    archive = tmp_path / "release.zip"
+    metadata = tmp_path / ".zenodo.json"
+    archive.write_bytes(b"zip")
+    metadata.write_text("{}", encoding="utf-8")
+
+    class Secret:
+        def get_secret_value(self) -> str:
+            return "configured-token"
+
+    monkeypatch.delenv("ZENODO_TOKEN", raising=False)
+    monkeypatch.setattr(
+        publish_zenodo,
+        "get_settings",
+        lambda: argparse.Namespace(ZENODO_TOKEN=Secret()),
+    )
+    monkeypatch.setattr(
+        publish_zenodo,
+        "parse_args",
+        lambda: argparse.Namespace(
+            archive=archive,
+            metadata=metadata,
+            dataset_card=None,
+            token_env="ZENODO_TOKEN",
+            production=False,
+            publish=False,
+            dry_run=False,
+        ),
+    )
+    monkeypatch.setattr(
+        publish_zenodo,
+        "deposit",
+        lambda **kwargs: {"token": kwargs["token"], "published": False},
+    )
+    assert publish_zenodo.main() == 0
+
+    monkeypatch.setattr(publish_zenodo, "get_zenodo_api", lambda **kwargs: _Session())
+    result = deposit(archive, {}, token="token", publish=True, dataset_card_path=None)
+    assert result["published"] is True
+
+
+def test_zenodo_helpers_cover_doi_and_api_error_paths() -> None:
+    assert publish_zenodo._extract_publication_doi({"doi": " 10.1/test "}) == "10.1/test"
+    assert (
+        publish_zenodo._extract_publication_doi(
+            {"metadata": {"prereserve_doi": {"doi": "10.2/test"}}}
+        )
+        == "10.2/test"
+    )
+    with pytest.raises(ValueError, match="did not include a DOI"):
+        publish_zenodo._extract_publication_doi({})
+
+    class ErrorResponse:
+        status_code = 400
+        url = "https://zenodo.test"
+        text = "bad request"
+
+        def raise_for_status(self) -> None:
+            import requests
+
+            raise requests.HTTPError("bad")
+
+        def json(self) -> dict[str, str]:
+            return {"message": "invalid"}
+
+    with pytest.raises(Exception, match="Zenodo test failed"):
+        publish_zenodo._raise_for_status(ErrorResponse(), "test")
+
+
+def test_zenodo_defensive_response_paths(tmp_path: Path) -> None:
+    session = publish_zenodo.get_zenodo_api("token", sandbox=False)
+    assert session.base_url == publish_zenodo.ZENODO_API
+    assert session.headers["Authorization"] == "Bearer token"
+
+    class BareErrorResponse:
+        status_code = 500
+        url = "https://zenodo.test"
+        text = ""
+
+        def raise_for_status(self) -> None:
+            import requests
+
+            raise requests.HTTPError("failed")
+
+        def json(self) -> object:
+            raise ValueError("not json")
+
+    with pytest.raises(Exception, match="Zenodo test failed"):
+        publish_zenodo._raise_for_status(BareErrorResponse(), "test")
+
+    class ListResponse:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> list[object]:
+            return []
+
+    class Api:
+        base_url = "https://zenodo.test/api"
+
+        def __init__(self, response: object) -> None:
+            self.response = response
+
+        def post(self, *args: object, **kwargs: object) -> object:
+            return self.response
+
+        def get(self, *args: object, **kwargs: object) -> object:
+            return self.response
+
+        def put(self, *args: object, **kwargs: object) -> object:
+            return self.response
+
+    with pytest.raises(TypeError, match="create deposition"):
+        publish_zenodo.create_deposition(Api(ListResponse()), {})
+    with pytest.raises(TypeError, match="publish response"):
+        publish_zenodo.publish_deposition(Api(ListResponse()), "1")
+
+    class NoBucket:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> dict[str, object]:
+            return {"links": {}}
+
+    archive_path = tmp_path / "release.zip"
+    archive_path.write_bytes(b"zip")
+    with pytest.raises(ValueError, match="upload bucket"):
+        publish_zenodo.upload_file(Api(NoBucket()), "1", archive_path)
+
+    class UploadList:
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> list[object]:
+            return []
+
+    class UploadApi(Api):
+        def get(self, *args: object, **kwargs: object) -> object:
+            return NoBucketWithBucket()
+
+        def put(self, *args: object, **kwargs: object) -> object:
+            return UploadList()
+
+    class NoBucketWithBucket(NoBucket):
+        def json(self) -> dict[str, object]:
+            return {"links": {"bucket": "https://bucket"}}
+
+    with pytest.raises(TypeError, match="upload response"):
+        publish_zenodo.upload_file(UploadApi(UploadList()), "1", archive_path)
+
+    card = tmp_path / "card.md"
+    card.write_text("# Dataset", encoding="utf-8")
+    assert publish_zenodo.update_dataset_card_doi(card, "10.1/new")
+    assert "10.1/new" in card.read_text(encoding="utf-8")
+
+
+def test_zenodo_dry_run_and_missing_token(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    archive = tmp_path / "release.zip"
+    metadata = tmp_path / "metadata.json"
+    archive.write_bytes(b"zip")
+    metadata.write_text(json.dumps({"title": "test"}), encoding="utf-8")
+
+    monkeypatch.setattr(
+        publish_zenodo,
+        "parse_args",
+        lambda: argparse.Namespace(
+            archive=archive,
+            metadata=metadata,
+            dataset_card=tmp_path / "card.md",
+            token_env="MISSING_TOKEN",
+            production=True,
+            publish=True,
+            dry_run=True,
+        ),
+    )
+    assert publish_zenodo.main() == 0
+    monkeypatch.setattr(
+        publish_zenodo,
+        "parse_args",
+        lambda: argparse.Namespace(
+            archive=archive,
+            metadata=metadata,
+            dataset_card=None,
+            token_env="MISSING_TOKEN",
+            production=False,
+            publish=False,
+            dry_run=False,
+        ),
+    )
+    monkeypatch.delenv("MISSING_TOKEN", raising=False)
+    assert publish_zenodo.main() == 2
+
+
+def test_package_builds_archive_and_main_delegates(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".zenodo.json").write_text("{}", encoding="utf-8")
+    stage_dir = tmp_path / "stage"
+    metadata_dir = tmp_path / "metadata"
+    stage_dir.mkdir()
+    metadata_dir.mkdir()
+    (stage_dir / "metadata.parquet").write_bytes(b"data")
+    monkeypatch.setattr(package_release, "validate_zenodo_json", lambda path: [])
+
+    result = package_release.package("0.1.0", stage_dir, metadata_dir, tmp_path / "dist")
+
+    assert result["file_count"] >= 1
+    assert Path(result["archive"]["path"]).exists()
+
+    monkeypatch.setattr(
+        package_release,
+        "parse_args",
+        lambda: argparse.Namespace(
+            version="0.1.0",
+            stage_dir=stage_dir,
+            metadata_dir=metadata_dir,
+            output_dir=tmp_path / "dist2",
+        ),
+    )
+    assert package_release.main() == 0

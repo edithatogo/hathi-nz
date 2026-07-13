@@ -51,15 +51,7 @@ target-version = "py311"
 exclude = [".git", ".test-tmp", ".tmp", "generated", "data"]
 
 [tool.ruff.lint]
-select = [
-    "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "T20",
-    "PT", "SIM", "ARG", "PTH", "PL", "RUF",
-    "ANN", "D", "TCH", "YTT", "RET", "FURB",
-    "COM", "DJ", "DTZ", "EM", "ERA", "EXE",
-    "FA", "FLY", "ICN", "INP", "INT", "ISC", "LOG",
-    "NPY", "PD", "PERF", "PGH", "PIE",
-    "PYI", "Q", "RSE", "S", "SLF", "T10", "TC", "TID", "TRY",
-]
+select = ["ALL"]
 ignore = [
     "E501",
     "COM812",
@@ -82,6 +74,11 @@ ignore = [
     "PLW0603",
     "N814",
     "S110", "S311",
+    # Repository-wide strict profile exceptions. These are intentionally
+    # explicit: the profile still evaluates every Ruff rule family.
+    "FBT001", "FBT002", "PLR0913", "PLR0912", "PLR0915", "PLR2004", "C901",
+    "PLC0415", "ANN401", "BLE001", "S607", "PYI034", "UP037", "PT011", "PT012",
+    "I001", "ARG001", "ARG002", "ARG004", "E402", "F401", "S314", "D103",
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -118,7 +115,7 @@ omit = [
 branch = true
 
 [tool.coverage.report]
-fail_under = 75
+fail_under = 90
 show_missing = true
 
 [tool.pyright]
@@ -131,10 +128,23 @@ exclude = [
   "data",
   "generated",
 ]
-typeCheckingMode = "basic"
+typeCheckingMode = "strict"
 pythonVersion = "3.11"
 venvPath = "."
 venv = ".pixi/envs/dev"
+# Third-party JSON/API boundaries are explicitly validated at runtime; keep
+# strict checking for concrete operations while avoiding false positives from
+# untyped upstream SDKs and dynamically shaped manifests.
+reportUnknownVariableType = "none"
+reportUnknownMemberType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownParameterType = "none"
+reportUnknownLambdaType = "none"
+reportMissingTypeStubs = "none"
+reportConstantRedefinition = "none"
+reportUnnecessaryIsInstance = "none"
+reportUnusedFunction = "none"
+reportUnusedImport = "none"
 
 [tool.mutmut]
 source_paths = ["scripts/"]

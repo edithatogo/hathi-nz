@@ -1,0 +1,29 @@
+name: Security Gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  security-events: read
+
+jobs:
+  high-critical-code-scanning:
+    name: Fail on high or critical alerts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query open code-scanning alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          count="$(gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/code-scanning/alerts?state=open&per_page=100" \
+            --jq '[.[] | select(.rule.security_severity_level == "high" or .rule.security_severity_level == "critical")] | length' \
+            | awk '{ total += $1 } END { print total + 0 }')"
+          echo "Open high/critical code-scanning alerts: ${count}"
+          test "${count}" -eq 0

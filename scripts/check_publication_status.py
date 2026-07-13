@@ -61,7 +61,7 @@ def _hf_repo_id() -> str:
 
 
 def _track_summary(text: str) -> dict[str, Any]:
-    summary = {"complete": 0, "in_progress": 0, "pending": 0, "titles": []}
+    summary: dict[str, Any] = {"complete": 0, "in_progress": 0, "pending": 0, "titles": []}
     for line in text.splitlines():
         match = TRACK_LINE.match(line)
         if not match:
@@ -393,7 +393,8 @@ def check_publication_status(
         manifest_complete = manifest_complete and manifest.get("record_count") == expected_volumes
     evidence_complete = True
     if publication_evidence.get("exists"):
-        evidence_complete = publication_evidence.get("child_dataset_count", 0) >= 5
+        child_dataset_count = publication_evidence.get("child_dataset_count", 0)
+        evidence_complete = isinstance(child_dataset_count, int) and child_dataset_count >= 5
     blockers_complete = (
         bool(blocker_report.get("exists")) and blocker_report.get("blocker_count", 0) == 0
     )

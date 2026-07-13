@@ -16,6 +16,7 @@ ROOT = _repo_root(Path(__file__).resolve())
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 PIXI_PATH = ROOT / "pixi.toml"
 CI_PATH = ROOT / ".github/workflows/ci.yml"
+SECURITY_GATE_PATH = ROOT / ".github/workflows/security_gate.yml"
 HF_SYNC_PATH = ROOT / ".github/workflows/hf_sync.yml"
 CODECOV_PATH = ROOT / "codecov.yml"
 PROFILE_PATH = ROOT / "scripts/profile_pipelines.py"
@@ -29,7 +30,7 @@ def test_pyproject_declares_quality_tooling() -> None:
     assert "mutmut" in content
     assert "[tool.mutmut]" in content
     assert "tenacity" in content
-    assert "fail_under = 75" in content
+    assert "fail_under = 90" in content
 
 
 def test_pixi_declares_quality_tooling_tasks() -> None:
@@ -41,6 +42,7 @@ def test_pixi_declares_quality_tooling_tasks() -> None:
     assert "scalene" in content
     assert "tenacity" in content
     assert "profile-pipelines-scalene" in content
+    assert "lint-strict" in content
 
 
 def test_ci_runs_mutmutation_and_enforces_coverage() -> None:
@@ -50,7 +52,18 @@ def test_ci_runs_mutmutation_and_enforces_coverage() -> None:
     assert "codecov/codecov-action@v5" in content
     assert "use_oidc: true" in content
     assert "--cov-report=xml" in content
-    assert "--cov-fail-under=75" in content
+    assert "--cov-fail-under=90" in content or "--cov-fail-under=90" in PIXI_PATH.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_security_gate_fails_on_high_or_critical_alerts() -> None:
+    content = SECURITY_GATE_PATH.read_text(encoding="utf-8")
+
+    assert "security-events: read" in content
+    assert 'security_severity_level == "high"' in content
+    assert 'security_severity_level == "critical"' in content
+    assert 'test "${count}" -eq 0' in content
 
 
 def test_hf_sync_uploads_coverage_and_has_no_dead_python_env() -> None:
@@ -65,7 +78,7 @@ def test_hf_sync_uploads_coverage_and_has_no_dead_python_env() -> None:
 def test_codecov_configuration_sets_project_target() -> None:
     content = CODECOV_PATH.read_text(encoding="utf-8")
 
-    assert "target: 75%" in content
+    assert "target: 90%" in content
     assert "comment:" in content
 
 

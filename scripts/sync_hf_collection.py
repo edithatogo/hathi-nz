@@ -75,7 +75,7 @@ def sync_hf_collection(
     if len(description) > HF_COLLECTION_DESCRIPTION_LIMIT:
         description = description[:HF_COLLECTION_DESCRIPTION_LIMIT].rstrip()
     items = _dataset_items(manifest)
-    payload = {
+    payload: dict[str, Any] = {
         "title": title,
         "namespace": namespace,
         "collection_slug": collection_slug or HUGGING_FACE_COLLECTION,
