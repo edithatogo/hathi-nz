@@ -110,3 +110,7 @@
 - Official HathiTrust Research Dataset full-text acquisition remains blocked until
   the approved static-host endpoint, module, user, staging directory, and SSH key
   are supplied. Interim metadata and fail-closed routing remain operational.
+- Repository-side status, publication-evidence, and blocker reports are now
+  materialized under `reports/`; no new source credentials were used.
+- No-secret smoke workflows passed on 2026-07-15 for inventory, IA fallback,
+  HTRC EF planning, and Internet Archive matching.

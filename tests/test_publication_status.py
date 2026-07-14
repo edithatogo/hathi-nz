@@ -113,8 +113,10 @@ def test_check_publication_status_reports_not_ready_when_zenodo_missing(
 """,
             check_publication_status_module.DATASET_CARD_PATH: "For academic citation, use the Zenodo DOI once a public release is published and recorded here.",
             check_publication_status_module.BLOCKER_REPORT_PATH: """\
-{"meta": {"blocker_count": 2}, "blockers": [{"track_id": "one", "status": "in_progress", "blocker": "a"}]}
-""",
+    {"meta": {"blocker_count": 2}, "blockers": [{"track_id": "one", "status": "in_progress", "blocker": "a"}]}
+    """,
+            check_publication_status_module.STATUS_REPORT_PATH: "",
+            check_publication_status_module.PUBLICATION_EVIDENCE_PATH: "",
         }[path],
     )
 
@@ -160,8 +162,10 @@ def test_check_publication_status_reports_ready_when_doi_resolves(
                 "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456).\n\n**Expected volumes** | 510"
             ),
             check_publication_status_module.BLOCKER_REPORT_PATH: """\
-{"meta": {"blocker_count": 0}, "blockers": []}
-""",
+    {"meta": {"blocker_count": 0}, "blockers": []}
+    """,
+            check_publication_status_module.STATUS_REPORT_PATH: "",
+            check_publication_status_module.PUBLICATION_EVIDENCE_PATH: "",
         }[path],
     )
 
@@ -265,6 +269,7 @@ def test_check_publication_status_uses_status_report_snapshot(
             check_publication_status_module.DATASET_CARD_PATH: (
                 "For academic citation, use the Zenodo DOI [10.5281/zenodo.123456](https://doi.org/10.5281/zenodo.123456)."
             ),
+            check_publication_status_module.PUBLICATION_EVIDENCE_PATH: "",
             status_report_path: status_report_path.read_text(encoding="utf-8"),
             blocker_report_path: blocker_report_path.read_text(encoding="utf-8"),
         }[path],

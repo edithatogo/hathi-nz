@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "generated_at": "2026-07-14T15:12:59.773407+00:00",
+    "hf_collection": "edithatogo/hathitrust-nz",
+    "source_collection_id": "hathitrust-nz",
+    "record_count": 510
+  },
+  "child_datasets": [
+    {
+      "dataset_id": "hathitrust-nz-inventory",
+      "hf_repo_id": "edithatogo/hathitrust-nz-inventory",
+      "role": "collection_inventory",
+      "access_class": "public_metadata",
+      "zenodo_stream": "hathitrust-nz-inventory",
+      "publication_state": "metadata_only",
+      "route_evidence": [
+        "Official HathiTrust collection export and rights metadata",
+        "HathiTrust source-policy registry snapshot",
+        "Internet Archive interim overlap evidence and checksums",
+        "Metadata-only publication route"
+      ],
+      "blocked_routes": [
+        "restricted full text",
+        "Google/page-only full text"
+      ],
+      "source_collection_id": "hathitrust-nz"
+    },
+    {
+      "dataset_id": "hathitrust-nz-research-fulltext",
+      "hf_repo_id": "edithatogo/hathitrust-nz-research-fulltext",
+      "role": "research_dataset_fulltext",
+      "access_class": "metadata_only_until_static_host_bundle_is_eligible",
+      "zenodo_stream": "hathitrust-nz-research-fulltext",
+      "publication_state": "metadata_only_until_static_host_bundle_is_eligible",
+      "route_evidence": [
+        "HathiTrust Research Dataset static-host acquisition plan",
+        "Official HathiTrust rsync staging contract",
+        "Internet Archive overlap evidence as an interim source only",
+        "Metadata-only publication until the approved bundle is available"
+      ],
+      "blocked_routes": [
+        "restricted research full text without explicit approval",
+        "Google-restricted or page-only full text"
+      ],
+      "source_collection_id": "hathitrust-nz"
+    },
+    {
+      "dataset_id": "hathitrust-nz-htrc-extracted-features",
+      "hf_repo_id": "edithatogo/hathitrust-nz-htrc-extracted-features",
+      "role": "htrc_extracted_features_2_5_subset",
+      "access_class": "public_derived_features",
+      "zenodo_stream": "hathitrust-nz-htrc-extracted-features",
+      "publication_state": "public_derived_features",
+      "route_evidence": [
+        "HTRC Solr EF20 discovery candidates",
+        "HTRC Extracted Features 2.5 rsync allowlist",
+        "GitHub Actions routing for small subsets",
+        "Static-host staging for larger subsets"
+      ],
+      "blocked_routes": [
+        "restricted full text",
+        "non-derivative page images"
+      ],
+      "source_collection_id": "hathitrust-nz"
+    },
+    {
+      "dataset_id": "hathitrust-nz-htrc-analytics",
+      "hf_repo_id": "edithatogo/hathitrust-nz-htrc-analytics",
+      "role": "htrc_analytics_outputs",
+      "access_class": "public_scripts_aggregates_and_reproducibility_metadata",
+      "zenodo_stream": "hathitrust-nz-htrc-analytics",
+      "publication_state": "public_scripts_aggregates_and_reproducibility_metadata",
+      "route_evidence": [
+        "HTRC Analytics workset definitions",
+        "Aggregate outputs and reproducibility metadata only",
+        "Non-consumptive analysis lane",
+        "Metadata-only and blocked full-text routes stay excluded"
+      ],
+      "blocked_routes": [
+        "restricted full text",
+        "Data Capsule-only source material"
+      ],
+      "source_collection_id": "hathitrust-nz"
+    },
+    {
+      "dataset_id": "corpus-nz-hathi",
+      "hf_repo_id": "edithatogo/corpus-nz-hathi",
+      "role": "compatibility_dataset",
+      "access_class": "public_full_text_where_confirmed",
+      "zenodo_stream": "corpus-nz-hathi",
+      "publication_state": "public_full_text_where_confirmed",
+      "route_evidence": [
+        "Compatibility dataset retained for the existing public full-text corpus",
+        "Existing Zenodo DOI-backed release stream",
+        "HF collection compatibility mirror"
+      ],
+      "blocked_routes": [
+        "restricted HathiTrust research full text"
+      ],
+      "source_collection_id": "hathitrust-nz"
+    }
+  ]
+}

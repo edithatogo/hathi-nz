@@ -2591,27 +2591,38 @@ def build_blocker_report(track_metadata_paths: list[Path] | None = None) -> dict
     }
     track_snapshots = []
     blocker_items: list[dict[str, Any]] = []
+    seen_blockers: set[tuple[str, str, str]] = set()
     for track_path in track_metadata_paths or default_track_paths:
         track = _track_status_snapshot(track_path)
         if track is None:
             continue
         track_snapshots.append(track)
         for blocker in track.get("blocked_until_external_access", []):
+            category = _classify_blocker(blocker)
+            key = (track["track_id"], blocker, category)
+            if key in seen_blockers:
+                continue
+            seen_blockers.add(key)
             blocker_items.append(
                 {
                     "track_id": track["track_id"],
                     "status": track["status"],
                     "blocker": blocker,
-                    "category": _classify_blocker(blocker),
+                    "category": category,
                 }
             )
         for blocker in track.get("external_blockers", []):
+            category = _classify_blocker(blocker)
+            key = (track["track_id"], blocker, category)
+            if key in seen_blockers:
+                continue
+            seen_blockers.add(key)
             blocker_items.append(
                 {
                     "track_id": track["track_id"],
                     "status": track["status"],
                     "blocker": blocker,
-                    "category": _classify_blocker(blocker),
+                    "category": category,
                 }
             )
     blocker_groups: dict[str, dict[str, Any]] = {}
@@ -2777,13 +2788,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--track-metadata",
         type=Path,
         action="append",
-        default=[
-            Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
-            Path(
-                "conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"
-            ),
-            Path("conductor/tracks/historical_coverage_breadth_integration_20260705/metadata.json"),
-        ],
+        default=None,
         help="Optional track metadata files to include in the status snapshot.",
     )
 
@@ -2816,13 +2821,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         "--track-metadata",
         type=Path,
         action="append",
-        default=[
-            Path("conductor/tracks/hathitrust_nz_multi_source_archive_20260702/metadata.json"),
-            Path(
-                "conductor/tracks/hathitrust_nz_interim_acquisition_hardening_20260703/metadata.json"
-            ),
-            Path("conductor/tracks/historical_coverage_breadth_integration_20260705/metadata.json"),
-        ],
+        default=None,
     )
 
     return parser.parse_args(args)

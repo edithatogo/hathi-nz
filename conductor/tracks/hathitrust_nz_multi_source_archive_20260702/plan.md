@@ -96,3 +96,5 @@
 - [2026-07-09] Hugging Face collection sync succeeded with the fine-grained `HF_TOKEN`; collection resolved to `edithatogo/hathitrust-nz-6a472b1e3de68381856b31f9` with five linked dataset items.
 - [2026-07-09] Zenodo sandbox deposition creation and deletion smoke test succeeded with `ZENODO_SANDBOX_TOKEN`; production publication remains an explicit release action.
 - [2026-07-03] Hathi Research Dataset full-text acquisition remains blocked by missing static-host GitHub variables/secrets: `HATHI_RSYNC_HOST`, `HATHI_RSYNC_MODULE`, `HATHI_RSYNC_USER`, `HATHI_STATIC_HOST_STAGING_DIR`, and `HATHI_STATIC_HOST_SSH_KEY`.
+- [2026-07-15] Generated repository-facing status, publication-evidence, and blocker reports under `reports/`; the reports cover 510 inventory records, five child datasets, and two unique static-host blockers.
+- [2026-07-15] No-secret GitHub Actions smoke runs passed for inventory (`29344390265`), Research Dataset fallback (`29344435895`), HTRC EF (`29344440107`), and Internet Archive (`29344442622`).
