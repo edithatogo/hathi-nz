@@ -16,10 +16,10 @@
 - GitLab repository: `https://gitlab.com/edithatogo/hathi-nz`.
 - GitLab deploy key registered with push access; private key stored in the
   `GITLAB_MIRROR_SSH_PRIVATE_KEY` GitHub secret.
-- GitHub Actions run `29318249571` completed successfully with
+- GitHub Actions run `29318445717` completed successfully with
   `mirror_targets_pushed=2`.
 - GitLab and Codeberg both expose the branch
-  `codex/hathi-structured-extraction-plan` at `5d8f73ec`, `master` at
+  `codex/hathi-structured-extraction-plan` at `7ae6986`, `master` at
   `74bc97fa`, and tag `v0.1.0` at `5e52d4dc`.
 
 ## Evidence
