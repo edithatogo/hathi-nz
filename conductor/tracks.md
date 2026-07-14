@@ -66,8 +66,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./conductor/archive/shared_code_scanning_gate_rollout_20260707/](./conductor/archive/shared_code_scanning_gate_rollout_20260707/)*
 - Coordinates one GitHub issue per affected repository and verifies adoption of the pinned org-level code-scanning gate action.
 
-## [~] Track: Multi-Git Mirroring Follow-up
-*Link: [./conductor/tracks/multi_git_archive_mirroring_followup_20260714/](./conductor/tracks/multi_git_archive_mirroring_followup_20260714/)*
+## [x] Track: Multi-Git Mirroring Follow-up
+*Link: [./conductor/archive/multi_git_archive_mirroring_followup_20260714/](./conductor/archive/multi_git_archive_mirroring_followup_20260714/)*
 - Resolves the residual Track 5 gap by supporting independent GitLab and Codeberg targets, pinned SSH host keys, all-ref mirroring, and explicit external verification state.
 
 ---
