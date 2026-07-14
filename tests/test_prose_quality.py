@@ -127,6 +127,12 @@ def test_typos_config_has_nz_exceptions() -> None:
     assert found_any, f"None of the NZ terms {terms} found in typos.toml"
 
 
+def test_typos_config_has_creative_commons_license_exception() -> None:
+    """typos.toml should preserve Creative Commons NoDerivatives identifiers."""
+    content = (PROJECT_ROOT / "typos.toml").read_text(encoding="utf-8")
+    assert 'nd = "nd"' in content
+
+
 def test_vale_config_has_nz_exceptions() -> None:
     """.vale.ini should have NZ term exceptions in prose.Spelling.Extend."""
     path = PROJECT_ROOT / ".vale.ini"

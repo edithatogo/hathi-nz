@@ -60,3 +60,5 @@ zenodo = "zenodo"
 hansard = "hansard"
 htid = "htid"
 enumcron = "enumcron"
+# Creative Commons license identifiers use "nd" for NoDerivatives.
+nd = "nd"
