@@ -65,8 +65,8 @@ jobs:
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
               gitlab_token="${GITLAB_MIRROR_TOKEN//$'\r'/}"
               gitlab_token="${gitlab_token//$'\n'/}"
-              gitlab_basic_auth="$(printf 'oauth2:%s' "$gitlab_token" | base64 -w0)"
-              git -c "http.extraheader=Authorization: Basic $gitlab_basic_auth" push --force "$name" \
+              git remote set-url "$name" "https://oauth2:${gitlab_token}@gitlab.com/${url#git@gitlab.com:}"
+              git push --force "$name" \
                 'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             else
               git push --force "$name" \
