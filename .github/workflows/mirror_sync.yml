@@ -65,7 +65,8 @@ jobs:
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
               gitlab_token="${GITLAB_MIRROR_TOKEN//$'\r'/}"
               gitlab_token="${gitlab_token//$'\n'/}"
-              git -c "http.extraheader=PRIVATE-TOKEN: $gitlab_token" \
+              gitlab_basic_auth="$(printf 'oauth2:%s' "$gitlab_token" | base64 -w0)"
+              git -c "http.https://gitlab.com/.extraheader=Authorization: Basic $gitlab_basic_auth" \
                 -c credential.helper= \
                 push --force "$name" \
                 'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
