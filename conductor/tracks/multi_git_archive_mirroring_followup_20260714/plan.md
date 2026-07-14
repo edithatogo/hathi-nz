@@ -7,7 +7,7 @@
 - [x] Add regression tests for target configuration and safety gates.
 
 ## Phase 2: External verification
-- [x] Verify Codeberg matches the canonical default branch.
+- [~] Verify Codeberg matches the canonical default branch.
 - [ ] Create/configure the GitLab repository and GitHub secrets.
 - [ ] Run the workflow with both targets and record successful ref checks.
 

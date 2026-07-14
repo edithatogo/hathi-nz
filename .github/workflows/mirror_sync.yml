@@ -58,8 +58,8 @@ jobs:
             fi
             name="mirror-${pushed}"
             git remote add "$name" "$url"
-            git push --force --prune "$name" \
-              'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            git push --force "$name" \
+              'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             echo "Mirrored branches and tags to $host"
             pushed=$((pushed + 1))
           done

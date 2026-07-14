@@ -31,7 +31,7 @@ def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None
     assert "GITLAB_MIRROR_URL" in content
     assert "CODEBERG_MIRROR_URL" in content
     assert "GIT_MIRROR_KNOWN_HOSTS" in content
-    assert "refs/heads/*:refs/heads/*" in content
+    assert "refs/remotes/origin/*:refs/heads/*" in content
     assert "refs/tags/*:refs/tags/*" in content
     assert "mirror_targets_pushed" in content
 
