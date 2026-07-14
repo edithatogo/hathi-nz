@@ -63,9 +63,11 @@ jobs:
             fi
             git remote add "$name" "$push_url"
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
+              gitlab_token="${GITLAB_MIRROR_TOKEN//$'\r'/}"
+              gitlab_token="${gitlab_token//$'\n'/}"
               GIT_CONFIG_COUNT=1 \
                 GIT_CONFIG_KEY_0=credential.helper \
-                GIT_CONFIG_VALUE_0='!f() { echo username=oauth2; echo "password=$GITLAB_MIRROR_TOKEN"; }; f' \
+                GIT_CONFIG_VALUE_0="!f() { echo username=oauth2; echo password=\"$gitlab_token\"; }; f" \
                 git push --force "$name" \
                 'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             else
