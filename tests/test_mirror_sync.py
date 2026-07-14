@@ -36,7 +36,9 @@ def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None
     assert "refs/tags/*:refs/tags/*" in content
     assert "mirror_targets_pushed" in content
     assert 'gitlab_token="${GITLAB_MIRROR_TOKEN//' in content
-    assert 'git remote set-url "$name" "https://oauth2:${gitlab_token}@gitlab.com/' in content
+    assert 'gitlab-askpass.sh' in content
+    assert 'GIT_ASKPASS="$RUNNER_TEMP/gitlab-askpass.sh"' in content
+    assert 'GIT_TERMINAL_PROMPT=0' in content
 
 
 def test_mirror_workflow_fails_closed_for_configured_target_without_key_pinning() -> None:
