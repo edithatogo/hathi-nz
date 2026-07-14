@@ -65,17 +65,9 @@ jobs:
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
               gitlab_token="${GITLAB_MIRROR_TOKEN//$'\r'/}"
               gitlab_token="${gitlab_token//$'\n'/}"
-              printf '%s\n' \
-                '#!/usr/bin/env sh' \
-                'case "$1" in' \
-                '  *Username*) printf "%s\\n" oauth2 ;;' \
-                '  *Password*) printf "%s" "$GITLAB_MIRROR_TOKEN" ;;' \
-                'esac' > "$RUNNER_TEMP/gitlab-askpass.sh"
-              chmod 700 "$RUNNER_TEMP/gitlab-askpass.sh"
-              GITLAB_MIRROR_TOKEN="$gitlab_token" \
-                GIT_ASKPASS="$RUNNER_TEMP/gitlab-askpass.sh" \
-                GIT_TERMINAL_PROMPT=0 \
-                git push --force "$name" \
+              git -c "http.extraheader=PRIVATE-TOKEN: $gitlab_token" \
+                -c credential.helper= \
+                push --force "$name" \
                 'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             else
               git push --force "$name" \
