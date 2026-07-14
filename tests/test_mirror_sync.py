@@ -35,7 +35,8 @@ def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None
     assert "refs/remotes/origin/*:refs/heads/*" in content
     assert "refs/tags/*:refs/tags/*" in content
     assert "mirror_targets_pushed" in content
-    assert 'gitlab_http_header="PRIVATE-TOKEN: $GITLAB_MIRROR_TOKEN"' in content
+    assert "basic_auth=$(printf 'oauth2:%s' \"$GITLAB_MIRROR_TOKEN\" | base64 -w0)" in content
+    assert 'gitlab_http_header="Authorization: Basic $basic_auth"' in content
     assert 'git -c http.extraheader="$gitlab_http_header" push' in content
 
 

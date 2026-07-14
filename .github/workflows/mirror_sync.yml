@@ -61,7 +61,8 @@ jobs:
             gitlab_http_header=""
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
               push_url="https://gitlab.com/${url#git@gitlab.com:}"
-              gitlab_http_header="PRIVATE-TOKEN: $GITLAB_MIRROR_TOKEN"
+              basic_auth=$(printf 'oauth2:%s' "$GITLAB_MIRROR_TOKEN" | base64 -w0)
+              gitlab_http_header="Authorization: Basic $basic_auth"
             fi
             git remote add "$name" "$push_url"
             if [ -n "$gitlab_http_header" ]; then
