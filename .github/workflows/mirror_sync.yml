@@ -44,8 +44,6 @@ jobs:
           if [ -n "$GIT_MIRROR_KNOWN_HOSTS" ]; then
             printf '%s\n' "$GIT_MIRROR_KNOWN_HOSTS" > ~/.ssh/known_hosts
           fi
-          trap 'rm -f ~/.git-credentials' EXIT
-
           pushed=0
           for url in "${urls[@]}"; do
             if [[ ! "$url" =~ ^git@[^:]+:.+\.git$ ]]; then
@@ -60,15 +58,19 @@ jobs:
             fi
             name="mirror-${pushed}"
             push_url="$url"
+            gitlab_http_header=""
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
-              encoded_token=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["GITLAB_MIRROR_TOKEN"], safe=""))')
-              printf 'https://oauth2:%s@gitlab.com\n' "$encoded_token" > ~/.git-credentials
-              git config --global credential.helper store
               push_url="https://gitlab.com/${url#git@gitlab.com:}"
+              gitlab_http_header="Authorization: Bearer $GITLAB_MIRROR_TOKEN"
             fi
             git remote add "$name" "$push_url"
-            git push --force "$name" \
-              'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            if [ -n "$gitlab_http_header" ]; then
+              git -c http.extraheader="$gitlab_http_header" push --force "$name" \
+                'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            else
+              git push --force "$name" \
+                'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            fi
             echo "Mirrored branches and tags to $host"
             pushed=$((pushed + 1))
           done
