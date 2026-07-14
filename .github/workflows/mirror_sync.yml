@@ -45,7 +45,6 @@ jobs:
             printf '%s\n' "$GIT_MIRROR_KNOWN_HOSTS" > ~/.ssh/known_hosts
           fi
           pushed=0
-          trap 'rm -f ~/.netrc' EXIT
           for url in "${urls[@]}"; do
             if [[ ! "$url" =~ ^git@[^:]+:.+\.git$ ]]; then
               echo "Mirror URL must use the SSH form git@host:owner/repository.git: $url" >&2
@@ -59,13 +58,13 @@ jobs:
             fi
             name="mirror-${pushed}"
             push_url="$url"
+            push_command=(git push --force "$name")
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
               push_url="https://gitlab.com/${url#git@gitlab.com:}"
-              printf 'machine gitlab.com\nlogin oauth2\npassword %s\n' "$GITLAB_MIRROR_TOKEN" > ~/.netrc
-              chmod 600 ~/.netrc
+              push_command=(git -c 'credential.helper=!f() { echo username=oauth2; echo "password='$GITLAB_MIRROR_TOKEN'"; }; f' push --force "$name")
             fi
             git remote add "$name" "$push_url"
-            git push --force "$name" \
+            "${push_command[@]}" \
               'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             echo "Mirrored branches and tags to $host"
             pushed=$((pushed + 1))
