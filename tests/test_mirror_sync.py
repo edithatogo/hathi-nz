@@ -36,9 +36,9 @@ def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None
     assert "refs/tags/*:refs/tags/*" in content
     assert "mirror_targets_pushed" in content
     assert "GIT_CONFIG_KEY_0=credential.helper" in content
-    assert "gitlab_token=\"${GITLAB_MIRROR_TOKEN//" in content
-    assert "GIT_CONFIG_VALUE_0=\"!f()" in content
-    assert 'password=\"$gitlab_token\"' in content
+    assert 'gitlab_token="${GITLAB_MIRROR_TOKEN//' in content
+    assert 'GIT_CONFIG_VALUE_0="!f()' in content
+    assert 'password=\\"$gitlab_token\\"' in content
 
 
 def test_mirror_workflow_fails_closed_for_configured_target_without_key_pinning() -> None:
