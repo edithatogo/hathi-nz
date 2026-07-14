@@ -494,6 +494,56 @@ def test_blocker_report_summary_counts_grouped_blockers() -> None:
 
 
 @pytest.mark.unit
+def test_blocker_report_presence_is_distinct_from_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_text",
+        lambda path: {
+            check_publication_status_module.TRACKS_PATH: "## [x] Track: One",
+            check_publication_status_module.MANIFEST_PATH: '{"meta": {"record_count": 1}}',
+            check_publication_status_module.DATASET_CARD_PATH: (
+                "Expected volumes: 1\nhttps://doi.org/10.5281/zenodo.123456"
+            ),
+            check_publication_status_module.STATUS_REPORT_PATH: "",
+            check_publication_status_module.PUBLICATION_EVIDENCE_PATH: (
+                '{"child_datasets": [{"dataset_id": "one"}]}'
+            ),
+            check_publication_status_module.BLOCKER_REPORT_PATH: (
+                '{"meta": {"blocker_count": 1}, "blockers": [{"blocker": "Hathi"}]}'
+            ),
+        }[path],
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_hugging_face",
+        lambda repo_id: {"repo_id": repo_id, "exists": True, "data_file_count": 1},
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_zenodo",
+        lambda: {"match_count": 0, "matches": []},
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_doi_resolves",
+        lambda doi_url: {"resolves": True, "status_code": 200, "final_url": doi_url},
+    )
+    monkeypatch.setattr(
+        check_publication_status_module,
+        "_check_child_zenodo_records",
+        lambda: {"complete": True, "published_count": 4, "records": []},
+    )
+
+    report = check_publication_status()
+
+    assert report["publication_checks"]["blocker_report_complete"] is True
+    assert report["publication_checks"]["blockers_resolved"] is False
+    assert report["publication_ready"] is False
+
+
+@pytest.mark.unit
 def test_strict_mode_allows_publication_ready_even_when_roadmap_is_incomplete(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
