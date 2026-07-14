@@ -65,13 +65,12 @@ jobs:
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
               gitlab_token="${GITLAB_MIRROR_TOKEN//$'\r'/}"
               gitlab_token="${gitlab_token//$'\n'/}"
-              cat > "$RUNNER_TEMP/gitlab-askpass.sh" <<'EOF'
-              #!/usr/bin/env sh
-              case "$1" in
-                *Username*) printf '%s\n' oauth2 ;;
-                *Password*) printf '%s' "$GITLAB_MIRROR_TOKEN" ;;
-              esac
-              EOF
+              printf '%s\n' \
+                '#!/usr/bin/env sh' \
+                'case "$1" in' \
+                '  *Username*) printf "%s\\n" oauth2 ;;' \
+                '  *Password*) printf "%s" "$GITLAB_MIRROR_TOKEN" ;;' \
+                'esac' > "$RUNNER_TEMP/gitlab-askpass.sh"
               chmod 700 "$RUNNER_TEMP/gitlab-askpass.sh"
               GITLAB_MIRROR_TOKEN="$gitlab_token" \
                 GIT_ASKPASS="$RUNNER_TEMP/gitlab-askpass.sh" \

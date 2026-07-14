@@ -36,6 +36,8 @@ def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None
     assert "refs/tags/*:refs/tags/*" in content
     assert "mirror_targets_pushed" in content
     assert 'gitlab_token="${GITLAB_MIRROR_TOKEN//' in content
+    assert "printf '%s\\n'" in content
+    assert "'#!/usr/bin/env sh'" in content
     assert 'gitlab-askpass.sh' in content
     assert 'GIT_ASKPASS="$RUNNER_TEMP/gitlab-askpass.sh"' in content
     assert 'GIT_TERMINAL_PROMPT=0' in content
