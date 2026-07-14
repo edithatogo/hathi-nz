@@ -58,14 +58,20 @@ jobs:
             fi
             name="mirror-${pushed}"
             push_url="$url"
-            push_command=(git push --force "$name")
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
               push_url="https://gitlab.com/${url#git@gitlab.com:}"
-              push_command=(git -c 'credential.helper=!f() { echo username=oauth2; echo "password='$GITLAB_MIRROR_TOKEN'"; }; f' push --force "$name")
             fi
             git remote add "$name" "$push_url"
-            "${push_command[@]}" \
-              'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
+              GIT_CONFIG_COUNT=1 \
+                GIT_CONFIG_KEY_0=credential.helper \
+                GIT_CONFIG_VALUE_0='!f() { echo username=oauth2; echo "password=$GITLAB_MIRROR_TOKEN"; }; f' \
+                git push --force "$name" \
+                'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            else
+              git push --force "$name" \
+                'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            fi
             echo "Mirrored branches and tags to $host"
             pushed=$((pushed + 1))
           done
