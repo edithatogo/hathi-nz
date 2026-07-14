@@ -1,0 +1,11 @@
+{
+  "track_id": "multi_git_archive_mirroring_followup_20260714",
+  "type": "follow_up",
+  "status": "in_progress",
+  "created_at": "2026-07-14T00:00:00+10:00",
+  "updated_at": "2026-07-14T00:00:00+10:00",
+  "description": "Harden Track 5 multi-git mirroring and close the GitLab configuration gap.",
+  "dependencies": ["multi_git_archive_mirroring_20260614"],
+  "github_issue": 5,
+  "github_issue_url": "https://github.com/edithatogo/hathi-nz/issues/5"
+}

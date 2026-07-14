@@ -15,20 +15,52 @@ jobs:
       - name: Mirror to Secondary Git Remote
         env:
           GIT_MIRROR_URL: ${{ secrets.GIT_MIRROR_URL }}
+          GITLAB_MIRROR_URL: ${{ secrets.GITLAB_MIRROR_URL }}
+          CODEBERG_MIRROR_URL: ${{ secrets.CODEBERG_MIRROR_URL }}
           GIT_MIRROR_SSH_PRIVATE_KEY: ${{ secrets.GIT_MIRROR_SSH_PRIVATE_KEY }}
+          GIT_MIRROR_KNOWN_HOSTS: ${{ secrets.GIT_MIRROR_KNOWN_HOSTS }}
         run: |
-          if [ -z "$GIT_MIRROR_URL" ] || [ -z "$GIT_MIRROR_SSH_PRIVATE_KEY" ]; then
-            echo "Mirror credentials are not fully set, skipping mirror."
+          set -euo pipefail
+          urls=()
+          [ -n "$GITLAB_MIRROR_URL" ] && urls+=("$GITLAB_MIRROR_URL")
+          [ -n "$CODEBERG_MIRROR_URL" ] && urls+=("$CODEBERG_MIRROR_URL")
+          # GIT_MIRROR_URL is retained for the existing Codeberg configuration.
+          if [ -n "$GIT_MIRROR_URL" ] && [[ ! " ${urls[*]} " == *" $GIT_MIRROR_URL "* ]]; then
+            urls+=("$GIT_MIRROR_URL")
+          fi
+          if [ "${#urls[@]}" -eq 0 ]; then
+            echo "No mirror URLs configured; skipping mirror."
             exit 0
+          fi
+          if [ -z "$GIT_MIRROR_SSH_PRIVATE_KEY" ]; then
+            echo "Mirror URLs are configured but GIT_MIRROR_SSH_PRIVATE_KEY is missing." >&2
+            exit 1
           fi
 
           mkdir -p ~/.ssh
           echo "$GIT_MIRROR_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          if [ -n "$GIT_MIRROR_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$GIT_MIRROR_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          fi
 
-          # Extract host from git@host:user/repo.git
-          HOST=$(echo $GIT_MIRROR_URL | cut -d'@' -f2 | cut -d':' -f1)
-          ssh-keyscan -t ed25519 $HOST >> ~/.ssh/known_hosts
-
-          git remote add mirror "$GIT_MIRROR_URL"
-          git push --force --prune mirror HEAD:${{ github.ref }}
+          pushed=0
+          for url in "${urls[@]}"; do
+            if [[ ! "$url" =~ ^git@[^:]+:.+\.git$ ]]; then
+              echo "Mirror URL must use the SSH form git@host:owner/repository.git: $url" >&2
+              exit 1
+            fi
+            host="${url#git@}"
+            host="${host%%:*}"
+            if ! grep -q "^$host " ~/.ssh/known_hosts 2>/dev/null; then
+              echo "No pinned SSH host key for $host; set GIT_MIRROR_KNOWN_HOSTS." >&2
+              exit 1
+            fi
+            name="mirror-${pushed}"
+            git remote add "$name" "$url"
+            git push --force --prune "$name" \
+              'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+            echo "Mirrored branches and tags to $host"
+            pushed=$((pushed + 1))
+          done
+          echo "mirror_targets_pushed=$pushed"
