@@ -29,16 +29,14 @@ def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None
     content = WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "GITLAB_MIRROR_URL" in content
-    assert "GITLAB_MIRROR_TOKEN" in content
+    assert "GITLAB_MIRROR_SSH_PRIVATE_KEY" in content
     assert "CODEBERG_MIRROR_URL" in content
     assert "GIT_MIRROR_KNOWN_HOSTS" in content
     assert "refs/remotes/origin/*:refs/heads/*" in content
     assert "refs/tags/*:refs/tags/*" in content
     assert "mirror_targets_pushed" in content
-    assert 'gitlab_token="${GITLAB_MIRROR_TOKEN//' in content
-    assert "gitlab_basic_auth=\"$(printf 'oauth2:%s'" in content
-    assert 'http.https://gitlab.com/.extraheader=Authorization: Basic $gitlab_basic_auth' in content
-    assert '-c credential.helper=' in content
+    assert 'mirror_key="$GIT_MIRROR_SSH_PRIVATE_KEY"' in content
+    assert 'mirror_key="$GITLAB_MIRROR_SSH_PRIVATE_KEY"' in content
 
 
 def test_mirror_workflow_fails_closed_for_configured_target_without_key_pinning() -> None:

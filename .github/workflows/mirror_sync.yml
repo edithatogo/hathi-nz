@@ -16,7 +16,7 @@ jobs:
         env:
           GIT_MIRROR_URL: ${{ secrets.GIT_MIRROR_URL }}
           GITLAB_MIRROR_URL: ${{ secrets.GITLAB_MIRROR_URL }}
-          GITLAB_MIRROR_TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}
+          GITLAB_MIRROR_SSH_PRIVATE_KEY: ${{ secrets.GITLAB_MIRROR_SSH_PRIVATE_KEY }}
           CODEBERG_MIRROR_URL: ${{ secrets.CODEBERG_MIRROR_URL }}
           GIT_MIRROR_SSH_PRIVATE_KEY: ${{ secrets.GIT_MIRROR_SSH_PRIVATE_KEY }}
           GIT_MIRROR_KNOWN_HOSTS: ${{ secrets.GIT_MIRROR_KNOWN_HOSTS }}
@@ -39,8 +39,6 @@ jobs:
           fi
 
           mkdir -p ~/.ssh
-          echo "$GIT_MIRROR_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
           if [ -n "$GIT_MIRROR_KNOWN_HOSTS" ]; then
             printf '%s\n' "$GIT_MIRROR_KNOWN_HOSTS" > ~/.ssh/known_hosts
           fi
@@ -56,24 +54,20 @@ jobs:
               echo "No pinned SSH host key for $host; set GIT_MIRROR_KNOWN_HOSTS." >&2
               exit 1
             fi
+            mirror_key="$GIT_MIRROR_SSH_PRIVATE_KEY"
+            if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_SSH_PRIVATE_KEY" ]; then
+              mirror_key="$GITLAB_MIRROR_SSH_PRIVATE_KEY"
+            fi
+            if [ -z "$mirror_key" ]; then
+              echo "No SSH mirror key configured for $host." >&2
+              exit 1
+            fi
+            printf '%s\n' "$mirror_key" > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
             name="mirror-${pushed}"
-            push_url="$url"
-            if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
-              push_url="https://gitlab.com/${url#git@gitlab.com:}"
-            fi
-            git remote add "$name" "$push_url"
-            if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
-              gitlab_token="${GITLAB_MIRROR_TOKEN//$'\r'/}"
-              gitlab_token="${gitlab_token//$'\n'/}"
-              gitlab_basic_auth="$(printf 'oauth2:%s' "$gitlab_token" | base64 -w0)"
-              git -c "http.https://gitlab.com/.extraheader=Authorization: Basic $gitlab_basic_auth" \
-                -c credential.helper= \
-                push --force "$name" \
-                'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
-            else
-              git push --force "$name" \
-                'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
-            fi
+            git remote add "$name" "$url"
+            git push --force "$name" \
+              'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             echo "Mirrored branches and tags to $host"
             pushed=$((pushed + 1))
           done
