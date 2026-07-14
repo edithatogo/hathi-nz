@@ -16,6 +16,7 @@ jobs:
         env:
           GIT_MIRROR_URL: ${{ secrets.GIT_MIRROR_URL }}
           GITLAB_MIRROR_URL: ${{ secrets.GITLAB_MIRROR_URL }}
+          GITLAB_MIRROR_TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}
           CODEBERG_MIRROR_URL: ${{ secrets.CODEBERG_MIRROR_URL }}
           GIT_MIRROR_SSH_PRIVATE_KEY: ${{ secrets.GIT_MIRROR_SSH_PRIVATE_KEY }}
           GIT_MIRROR_KNOWN_HOSTS: ${{ secrets.GIT_MIRROR_KNOWN_HOSTS }}
@@ -57,7 +58,11 @@ jobs:
               exit 1
             fi
             name="mirror-${pushed}"
-            git remote add "$name" "$url"
+            push_url="$url"
+            if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
+              push_url="https://oauth2:${GITLAB_MIRROR_TOKEN}@gitlab.com/${url#git@gitlab.com:}"
+            fi
+            git remote add "$name" "$push_url"
             git push --force "$name" \
               'refs/remotes/origin/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
             echo "Mirrored branches and tags to $host"
