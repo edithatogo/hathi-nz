@@ -87,14 +87,14 @@
 
 ## Acceptance Gates
 
-- [ ] No restricted full text is committed or uploaded to public publication targets.
-- [ ] IA full text is published only after strict source-policy, rights, and provenance gates pass.
-- [ ] Weak matches are visible in a manual review queue and excluded from publication bundles.
+- [x] No restricted full text is committed or uploaded to public publication targets.
+- [x] IA full text is published only after strict source-policy, rights, and provenance gates pass.
+- [x] Weak matches are visible in a manual review queue and excluded from publication bundles.
 - [ ] Official HathiTrust full text supersedes IA interim text once rsync/static-host access is available.
-- [ ] HTRC Analytics outputs remain non-consumptive unless rights allow broader publication.
-- [ ] GitHub Actions dry-runs pass without secrets.
-- [ ] Publication workflows fail clearly when required HF, Zenodo, or static-host credentials are absent.
-- [ ] Completeness reports expose what remains unarchived and why.
+- [x] HTRC Analytics outputs remain non-consumptive unless rights allow broader publication.
+- [x] GitHub Actions dry-runs pass without secrets.
+- [x] Publication workflows fail clearly when required HF, Zenodo, or static-host credentials are absent.
+- [x] Completeness reports expose what remains unarchived and why.
 
 ## Validation Plan
 
@@ -114,3 +114,7 @@
   materialized under `reports/`; no new source credentials were used.
 - No-secret smoke workflows passed on 2026-07-15 for inventory, IA fallback,
   HTRC EF planning, and Internet Archive matching.
+- Full quality validation passed on 2026-07-15: 446 tests, 90.10% coverage,
+  Ruff, strict Pyright, typos, Taplo, Actionlint, CodeQL, and the security gate.
+- Current hosted validation passed on 2026-07-15 at commit `32461e8`: CI,
+  Docs, Containerization Smoke Test, CodeQL, Security Gate, and Mirror Sync.
