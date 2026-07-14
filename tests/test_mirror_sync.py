@@ -35,7 +35,8 @@ def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None
     assert "refs/remotes/origin/*:refs/heads/*" in content
     assert "refs/tags/*:refs/tags/*" in content
     assert "mirror_targets_pushed" in content
-    assert 'push_url="https://oauth2:${GITLAB_MIRROR_TOKEN}@gitlab.com/' in content
+    assert 'urllib.parse.quote(os.environ["GITLAB_MIRROR_TOKEN"]' in content
+    assert "git config --global credential.helper store" in content
 
 
 def test_mirror_workflow_fails_closed_for_configured_target_without_key_pinning() -> None:

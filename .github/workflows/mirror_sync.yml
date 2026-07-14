@@ -44,6 +44,7 @@ jobs:
           if [ -n "$GIT_MIRROR_KNOWN_HOSTS" ]; then
             printf '%s\n' "$GIT_MIRROR_KNOWN_HOSTS" > ~/.ssh/known_hosts
           fi
+          trap 'rm -f ~/.git-credentials' EXIT
 
           pushed=0
           for url in "${urls[@]}"; do
@@ -60,7 +61,10 @@ jobs:
             name="mirror-${pushed}"
             push_url="$url"
             if [ "$host" = "gitlab.com" ] && [ -n "$GITLAB_MIRROR_TOKEN" ]; then
-              push_url="https://oauth2:${GITLAB_MIRROR_TOKEN}@gitlab.com/${url#git@gitlab.com:}"
+              encoded_token=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["GITLAB_MIRROR_TOKEN"], safe=""))')
+              printf 'https://oauth2:%s@gitlab.com\n' "$encoded_token" > ~/.git-credentials
+              git config --global credential.helper store
+              push_url="https://gitlab.com/${url#git@gitlab.com:}"
             fi
             git remote add "$name" "$push_url"
             git push --force "$name" \
