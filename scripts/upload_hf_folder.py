@@ -24,6 +24,7 @@ def upload_folder_to_hf(
     repo_id: str,
     path_in_repo: str = ".",
     commit_message: str = "Update HathiTrust-NZ archive artifacts",
+    create_pr: bool = False,
     dry_run: bool = False,
 ) -> dict[str, Any]:
     """Upload ``source_dir`` to a Hugging Face dataset repository."""
@@ -38,6 +39,7 @@ def upload_folder_to_hf(
         "repo_type": "dataset",
         "path_in_repo": path_in_repo,
         "commit_message": commit_message,
+        "create_pr": create_pr,
         "file_count": len(files),
         "files": [path.relative_to(source_dir).as_posix() for path in files],
         "dry_run": dry_run,
@@ -54,6 +56,7 @@ def upload_folder_to_hf(
         folder_path=str(source_dir),
         path_in_repo=path_in_repo,
         commit_message=commit_message,
+        create_pr=create_pr,
     )
     payload["commit_url"] = str(result)
     return payload
@@ -66,6 +69,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--repo-id", required=True)
     parser.add_argument("--path-in-repo", default=".")
     parser.add_argument("--commit-message", default="Update HathiTrust-NZ archive artifacts")
+    parser.add_argument("--create-pr", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args(args)
 
@@ -79,6 +83,7 @@ def main() -> int:
         repo_id=args.repo_id,
         path_in_repo=args.path_in_repo,
         commit_message=args.commit_message,
+        create_pr=args.create_pr,
         dry_run=args.dry_run,
     )
     logger.info("HF folder upload result: {}", result)

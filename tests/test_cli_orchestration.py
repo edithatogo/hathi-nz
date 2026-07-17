@@ -255,6 +255,7 @@ def test_operational_parsers_and_cli_wrappers(
             repo_id="owner/data",
             path_in_repo=".",
             commit_message="test",
+            create_pr=False,
             dry_run=True,
         ),
     )
