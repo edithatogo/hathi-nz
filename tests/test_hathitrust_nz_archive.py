@@ -366,6 +366,28 @@ def test_write_blocker_report_records_external_access_blockers(tmp_path: Path) -
     assert report["meta"]["track_count"] >= 1
 
 
+def test_write_blocker_report_deduplicates_blocked_access_entries(tmp_path: Path) -> None:
+    track = tmp_path / "track.json"
+    track.write_text(
+        json.dumps(
+            {
+                "track_id": "track",
+                "status": "in_progress",
+                "blocked_until_external_access": ["HathiTrust rsync key"] * 2,
+                "external_blockers": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = write_blocker_report(
+        tmp_path / "reports" / "blockers",
+        track_metadata_paths=[track],
+    )
+
+    assert report["meta"]["blocker_count"] == 1
+
+
 def test_write_htrc_ef_plan_routes_large_subsets_to_static_host_staging(tmp_path: Path) -> None:
     inventory = build_inventory(
         [

@@ -1,0 +1,134 @@
+{
+  "meta": {
+    "generated_at": "2026-07-14T15:13:02.138258+00:00",
+    "track_count": 2,
+    "blocker_count": 2,
+    "group_count": 1
+  },
+  "tracks": [
+    {
+      "track_id": "hathitrust_nz_multi_source_archive_20260702",
+      "status": "in_progress",
+      "description": "Turn HathiTrust-NZ into a collection-level archive with child datasets for inventory, Hathi Research Dataset full text, HTRC Extracted Features, and HTRC Analytics outputs.",
+      "github_issues": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "blocked_until_external_access": [],
+      "external_blockers": [
+        "Hathi Research Dataset static-host variables and SSH key are not configured in GitHub."
+      ],
+      "recommended_improvements": [],
+      "source_families": []
+    },
+    {
+      "track_id": "hathitrust_nz_interim_acquisition_hardening_20260703",
+      "status": "in_progress",
+      "description": "Implement interim HathiTrust-NZ acquisition routes and provenance hardening while official HathiTrust rsync access is pending.",
+      "github_issues": {
+        "parent": 21,
+        "source_policy": 22,
+        "metadata_refresh": 23,
+        "ia_acquisition": 24,
+        "htrc_outputs": 25,
+        "routing_gates": 26,
+        "actions_orchestration": 29,
+        "completeness_evidence": 30
+      },
+      "blocked_until_external_access": [
+        "official HathiTrust rsync keys and static host approval"
+      ],
+      "external_blockers": [],
+      "recommended_improvements": [
+        "source policy registry",
+        "manual review queue",
+        "provenance ledger",
+        "checksum and file manifest",
+        "source-priority routing",
+        "scheduled IA smoke workflow",
+        "metadata refresh jobs",
+        "completeness dashboard",
+        "dataset-card route evidence",
+        "issue, project, and redundancy-label synchronization"
+      ],
+      "source_families": [
+        "hathitrust_research_dataset",
+        "hathifiles",
+        "hathitrust_oai_pmh",
+        "hathitrust_bibliographic_api",
+        "htrc_solr_ef20",
+        "htrc_extracted_features",
+        "htrc_analytics",
+        "internet_archive",
+        "open_library",
+        "digitalnz",
+        "national_library_nz",
+        "papers_past",
+        "official_parliamentary_sources",
+        "manual_evidence"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "track_id": "hathitrust_nz_multi_source_archive_20260702",
+      "status": "in_progress",
+      "blocker": "Hathi Research Dataset static-host variables and SSH key are not configured in GitHub.",
+      "category": "hathi_static_host"
+    },
+    {
+      "track_id": "hathitrust_nz_interim_acquisition_hardening_20260703",
+      "status": "in_progress",
+      "blocker": "official HathiTrust rsync keys and static host approval",
+      "category": "hathi_static_host"
+    }
+  ],
+  "blocker_groups": {
+    "hathi_static_host": {
+      "title": "HathiTrust static-host rsync",
+      "summary": "Official HathiTrust Research Dataset acquisition still needs the approved static-host path and credentials.",
+      "required_access": [
+        "HATHI_RSYNC_HOST",
+        "HATHI_RSYNC_MODULE",
+        "HATHI_RSYNC_USER",
+        "HATHI_STATIC_HOST_STAGING_DIR",
+        "HATHI_STATIC_HOST_SSH_KEY",
+        "HathiTrust static-host approval for rsync acquisition"
+      ],
+      "items": [
+        {
+          "track_id": "hathitrust_nz_multi_source_archive_20260702",
+          "status": "in_progress",
+          "blocker": "Hathi Research Dataset static-host variables and SSH key are not configured in GitHub.",
+          "category": "hathi_static_host"
+        },
+        {
+          "track_id": "hathitrust_nz_interim_acquisition_hardening_20260703",
+          "status": "in_progress",
+          "blocker": "official HathiTrust rsync keys and static host approval",
+          "category": "hathi_static_host"
+        }
+      ]
+    }
+  },
+  "required_access": [
+    {
+      "category": "hathi_static_host",
+      "title": "HathiTrust static-host rsync",
+      "required_access": [
+        "HATHI_RSYNC_HOST",
+        "HATHI_RSYNC_MODULE",
+        "HATHI_RSYNC_USER",
+        "HATHI_STATIC_HOST_STAGING_DIR",
+        "HATHI_STATIC_HOST_SSH_KEY",
+        "HathiTrust static-host approval for rsync acquisition"
+      ]
+    }
+  ]
+}

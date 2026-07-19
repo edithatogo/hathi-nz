@@ -1,0 +1,266 @@
+{
+  "meta": {
+    "generated_at": "2026-07-14T15:12:54.960188+00:00",
+    "hf_collection": "edithatogo/hathitrust-nz",
+    "source_collection_id": "hathitrust-nz",
+    "record_count": 510
+  },
+  "inventory": {
+    "record_count": 510,
+    "rights_counts": {
+      "cc-zero": 510
+    },
+    "access_class_counts": {
+      "public_full_text": 510
+    },
+    "label_parse": {
+      "parsed": 510,
+      "needs_enrichment": 0
+    },
+    "volume_number_parse": {
+      "parsed": 369,
+      "needs_enrichment": 141,
+      "min": 1,
+      "max": 507
+    },
+    "enumeration_parse": {
+      "parsed": 510,
+      "needs_enrichment": 0
+    }
+  },
+  "source_policy_registry_count": 14,
+  "redundancy": {
+    "metadata": [
+      {
+        "source_id": "hathifiles",
+        "display_name": "Hathifiles",
+        "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/hathifiles/",
+        "permitted_artifacts": [
+          "metadata",
+          "manifests"
+        ],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_metadata",
+          "zenodo": "public_metadata"
+        },
+        "source_priority": 90
+      },
+      {
+        "source_id": "hathitrust_oai_pmh",
+        "display_name": "HathiTrust OAI-PMH",
+        "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/oai-feed/",
+        "permitted_artifacts": [
+          "metadata",
+          "manifests"
+        ],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_metadata",
+          "zenodo": "public_metadata"
+        },
+        "source_priority": 80
+      },
+      {
+        "source_id": "hathitrust_bibliographic_api",
+        "display_name": "HathiTrust Bibliographic API",
+        "source_url": "https://www.hathitrust.org/member-libraries/resources-for-librarians/data-resources/bibliographic-api/",
+        "permitted_artifacts": [
+          "metadata",
+          "manifests"
+        ],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_metadata",
+          "zenodo": "public_metadata"
+        },
+        "source_priority": 85
+      }
+    ],
+    "derived_features": [
+      {
+        "source_id": "htrc_solr_ef20",
+        "display_name": "HTRC Solr EF20",
+        "source_url": "https://solr2.htrc.illinois.edu/solr-ef20/",
+        "permitted_artifacts": [
+          "metadata",
+          "manifests",
+          "derived_features"
+        ],
+        "access_class": "public_with_rate_limits",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_derived_features",
+          "zenodo": "public_derived_features"
+        },
+        "source_priority": 70
+      },
+      {
+        "source_id": "htrc_extracted_features",
+        "display_name": "HTRC Extracted Features",
+        "source_url": "https://htrc.atlassian.net/wiki/spaces/COM/pages/43295914/Extracted+Features+v.2.0",
+        "permitted_artifacts": [
+          "metadata",
+          "manifests",
+          "derived_features"
+        ],
+        "access_class": "public_derived_features",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_derived_features",
+          "zenodo": "public_derived_features"
+        },
+        "source_priority": 60
+      },
+      {
+        "source_id": "htrc_analytics",
+        "display_name": "HTRC Analytics",
+        "source_url": "https://analytics.hathitrust.org/",
+        "permitted_artifacts": [
+          "scripts",
+          "aggregates",
+          "reproducibility_metadata"
+        ],
+        "access_class": "public_analytics_only",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_scripts_aggregates_and_reproducibility_metadata",
+          "zenodo": "public_scripts_aggregates_and_reproducibility_metadata"
+        },
+        "source_priority": 55
+      }
+    ],
+    "overlap": [
+      {
+        "source_id": "internet_archive",
+        "display_name": "Internet Archive",
+        "source_url": "https://archive.org/",
+        "permitted_artifacts": [
+          "metadata",
+          "manifests",
+          "full_text",
+          "ocr_text"
+        ],
+        "access_class": "public_domain_overlap_only",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_domain_overlap_only",
+          "zenodo": "public_domain_overlap_only"
+        },
+        "source_priority": 65
+      },
+      {
+        "source_id": "open_library",
+        "display_name": "Open Library",
+        "source_url": "https://openlibrary.org/",
+        "permitted_artifacts": [
+          "metadata",
+          "manifests"
+        ],
+        "access_class": "public_metadata",
+        "default_acquisition_mode": "github_actions",
+        "publication_eligibility": {
+          "hugging_face": "public_metadata",
+          "zenodo": "public_metadata"
+        },
+        "source_priority": 64
+      }
+    ]
+  },
+  "metadata_refresh": {
+    "present": true,
+    "lanes": {}
+  },
+  "internet_archive": {
+    "present": true,
+    "record_count": 0,
+    "matched_count": 0,
+    "review_queue_count": 0,
+    "checksum_count": 0
+  },
+  "htrc": {
+    "ef": {
+      "present": true,
+      "record_count": 3,
+      "route": ""
+    },
+    "analytics": {
+      "present": true,
+      "record_count": 510,
+      "route": ""
+    }
+  },
+  "tracks": [
+    {
+      "track_id": "hathitrust_nz_multi_source_archive_20260702",
+      "status": "in_progress",
+      "description": "Turn HathiTrust-NZ into a collection-level archive with child datasets for inventory, Hathi Research Dataset full text, HTRC Extracted Features, and HTRC Analytics outputs.",
+      "github_issues": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "blocked_until_external_access": [],
+      "external_blockers": [
+        "Hathi Research Dataset static-host variables and SSH key are not configured in GitHub."
+      ],
+      "recommended_improvements": [],
+      "source_families": []
+    },
+    {
+      "track_id": "hathitrust_nz_interim_acquisition_hardening_20260703",
+      "status": "in_progress",
+      "description": "Implement interim HathiTrust-NZ acquisition routes and provenance hardening while official HathiTrust rsync access is pending.",
+      "github_issues": {
+        "parent": 21,
+        "source_policy": 22,
+        "metadata_refresh": 23,
+        "ia_acquisition": 24,
+        "htrc_outputs": 25,
+        "routing_gates": 26,
+        "actions_orchestration": 29,
+        "completeness_evidence": 30
+      },
+      "blocked_until_external_access": [
+        "official HathiTrust rsync keys and static host approval"
+      ],
+      "external_blockers": [],
+      "recommended_improvements": [
+        "source policy registry",
+        "manual review queue",
+        "provenance ledger",
+        "checksum and file manifest",
+        "source-priority routing",
+        "scheduled IA smoke workflow",
+        "metadata refresh jobs",
+        "completeness dashboard",
+        "dataset-card route evidence",
+        "issue, project, and redundancy-label synchronization"
+      ],
+      "source_families": [
+        "hathitrust_research_dataset",
+        "hathifiles",
+        "hathitrust_oai_pmh",
+        "hathitrust_bibliographic_api",
+        "htrc_solr_ef20",
+        "htrc_extracted_features",
+        "htrc_analytics",
+        "internet_archive",
+        "open_library",
+        "digitalnz",
+        "national_library_nz",
+        "papers_past",
+        "official_parliamentary_sources",
+        "manual_evidence"
+      ]
+    }
+  ]
+}

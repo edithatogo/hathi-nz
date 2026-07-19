@@ -318,6 +318,25 @@ def test_status_publication_and_blocker_reports(tmp_path: Path) -> None:
     assert blockers["meta"]["blocker_count"] == 1
 
 
+def test_blocker_report_deduplicates_track_blockers(tmp_path: Path) -> None:
+    track = tmp_path / "track.json"
+    track.write_text(
+        json.dumps(
+            {
+                "track_id": "track",
+                "status": "in_progress",
+                "blocked_until_external_access": ["HathiTrust rsync key"],
+                "external_blockers": ["HathiTrust rsync key"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    blockers = archive.write_blocker_report(tmp_path / "blockers", track_metadata_paths=[track])
+
+    assert blockers["meta"]["blocker_count"] == 1
+
+
 def test_internet_archive_plan_records_error_review_and_match(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

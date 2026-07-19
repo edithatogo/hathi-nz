@@ -16,9 +16,31 @@ ROOT = _repo_root(Path(__file__).resolve())
 WORKFLOW_PATH = ROOT / ".github/workflows/mirror_sync.yml"
 
 
-def test_mirror_workflow_skips_when_either_secret_is_missing() -> None:
+def test_mirror_workflow_skips_when_no_target_is_configured() -> None:
     content = WORKFLOW_PATH.read_text(encoding="utf-8")
 
     assert "GIT_MIRROR_URL" in content
     assert "GIT_MIRROR_SSH_PRIVATE_KEY" in content
-    assert 'if [ -z "$GIT_MIRROR_URL" ] || [ -z "$GIT_MIRROR_SSH_PRIVATE_KEY" ]; then' in content
+    assert 'if [ "${#urls[@]}" -eq 0 ]; then' in content
+    assert "No mirror URLs configured; skipping mirror." in content
+
+
+def test_mirror_workflow_supports_both_named_targets_and_legacy_secret() -> None:
+    content = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "GITLAB_MIRROR_URL" in content
+    assert "GITLAB_MIRROR_SSH_PRIVATE_KEY" in content
+    assert "CODEBERG_MIRROR_URL" in content
+    assert "GIT_MIRROR_KNOWN_HOSTS" in content
+    assert "refs/remotes/origin/*:refs/heads/*" in content
+    assert "refs/tags/*:refs/tags/*" in content
+    assert "mirror_targets_pushed" in content
+    assert 'mirror_key="$GIT_MIRROR_SSH_PRIVATE_KEY"' in content
+    assert 'mirror_key="$GITLAB_MIRROR_SSH_PRIVATE_KEY"' in content
+
+
+def test_mirror_workflow_fails_closed_for_configured_target_without_key_pinning() -> None:
+    content = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "No pinned SSH host key" in content
+    assert "exit 1" in content

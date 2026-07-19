@@ -395,9 +395,8 @@ def check_publication_status(
     if publication_evidence.get("exists"):
         child_dataset_count = publication_evidence.get("child_dataset_count", 0)
         evidence_complete = isinstance(child_dataset_count, int) and child_dataset_count >= 5
-    blockers_complete = (
-        bool(blocker_report.get("exists")) and blocker_report.get("blocker_count", 0) == 0
-    )
+    blocker_report_complete = bool(blocker_report.get("exists"))
+    blockers_resolved = blocker_report_complete and blocker_report.get("blocker_count", 0) == 0
     publication_checks = {
         "hugging_face_exists": bool(hugging_face.get("exists")),
         "hugging_face_has_files": hf_has_files,
@@ -405,7 +404,8 @@ def check_publication_status(
         "dataset_card_doi_resolves": bool(doi_status and doi_status.get("resolves")),
         "manifest_complete": manifest_complete,
         "publication_evidence_complete": evidence_complete,
-        "blocker_report_complete": blockers_complete,
+        "blocker_report_complete": blocker_report_complete,
+        "blockers_resolved": blockers_resolved,
         "child_zenodo_complete": bool(child_zenodo.get("complete")),
     }
     publication_ready = all(publication_checks.values())
