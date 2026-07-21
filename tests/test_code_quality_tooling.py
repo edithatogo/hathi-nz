@@ -66,13 +66,15 @@ def test_security_gate_fails_on_high_or_critical_alerts() -> None:
     assert 'test "${count}" -eq 0' in content
 
 
-def test_hf_sync_uploads_coverage_and_has_no_dead_python_env() -> None:
-    content = HF_SYNC_PATH.read_text(encoding="utf-8")
+def test_hf_sync_is_not_blocked_by_auxiliary_coverage_upload() -> None:
+    hf_content = HF_SYNC_PATH.read_text(encoding="utf-8")
+    ci_content = CI_PATH.read_text(encoding="utf-8")
 
-    assert "codecov/codecov-action@v5" in content
-    assert "use_oidc: true" in content
-    assert "--cov-report=xml" in content
-    assert "PYTHON_VERSION" not in content
+    assert "codecov/codecov-action@v5" not in hf_content
+    assert "HATHI_API_CONSUMER_KEY" not in hf_content
+    assert "PYTHON_VERSION" not in hf_content
+    assert "codecov/codecov-action@v5" in ci_content
+    assert "--cov-report=xml" in ci_content
 
 
 def test_codecov_configuration_sets_project_target() -> None:
