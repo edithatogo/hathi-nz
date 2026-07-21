@@ -44,6 +44,13 @@ class _OSFBytesIO(io.BytesIO):
 
     mode = "rb"
 
+    def peek(self, size: int = -1) -> bytes:
+        """Provide the peek API used by newer osfclient releases."""
+        position = self.tell()
+        data = self.read(size)
+        self.seek(position)
+        return data
+
 
 def load_osf_metadata(metadata_path: Path) -> dict[str, Any]:
     """Load and validate the local OSF metadata file."""
