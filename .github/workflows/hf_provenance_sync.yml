@@ -1,6 +1,9 @@
 name: Hugging Face Provenance Sync
 
 on:
+  push:
+    branches:
+      - codex/hathi-structured-extraction-plan
   workflow_dispatch:
 
 permissions:
