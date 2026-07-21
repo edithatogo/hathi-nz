@@ -59,7 +59,7 @@ jobs:
       - name: Package release archive
         if: ${{ steps.credentials.outputs.available == 'true' }}
         run: |
-          pixi run python scripts/package_release.py \
+          pixi run -e dev python scripts/package_release.py \
             --version "${{ steps.version.outputs.version }}"
 
       - name: Publish to OSF
@@ -68,7 +68,7 @@ jobs:
           OSF_TOKEN: ${{ secrets.OSF_TOKEN }}
           OSF_PROJECT_ID: ${{ vars.OSF_PROJECT_ID || secrets.OSF_PROJECT_ID }}
         run: |
-          pixi run python scripts/publish_osf.py \
+          pixi run -e dev python scripts/publish_osf.py \
             --source-dir dist \
             --metadata .osf.json \
             --dataset-card DATASET_CARD.md \
