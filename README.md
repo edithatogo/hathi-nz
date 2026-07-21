@@ -181,6 +181,9 @@ the [archive registry](manifests/hathitrust-nz/archive_registry.json).
   Zenodo DOI, and current content status. Its publication-health score is
   separate from content completeness so metadata-only releases cannot be
   mistaken for full-text acquisition.
+- **Provenance contract**: [provenance-and-reproducibility.md](docs/provenance-and-reproducibility.md)
+  defines the transformation ledger, fail-closed exclusions, checksums,
+  workflow evidence, and cross-platform publication relationships.
 - **Publication-status reruns**: If a `collection_publish.yml` run has already produced a `hathitrust-nz-collection-publication` artifact, rerun `.github/workflows/publication_status.yml` with `workflow_run_id` set to that run ID to reuse the generated `reports/status/status_report.json` snapshot instead of recomputing from scratch.
 - **Redundancy sources**: Treat HathiFiles, OAI-PMH, and the Bibliographic API as metadata redundancy; HTRC EF/Analytics as derived-feature redundancy; and Internet Archive/Open Library as interim overlap sources only.
 

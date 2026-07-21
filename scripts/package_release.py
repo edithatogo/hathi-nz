@@ -18,6 +18,9 @@ from typing import Any
 DEFAULT_REQUIRED_FILES = (
     Path("manifests/schema.json"),
     Path("manifests/latest_manifest.json"),
+    Path("manifests/hathitrust-nz/archive_registry.json"),
+    Path("manifests/hathitrust-nz/collection_manifest.json"),
+    Path("docs/provenance-and-reproducibility.md"),
     Path(".zenodo.json"),
     Path("DATASET_CARD.md"),
 )
