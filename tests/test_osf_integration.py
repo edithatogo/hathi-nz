@@ -28,6 +28,12 @@ PYPROJECT_PATH = ROOT / "pyproject.toml"
 PIXI_PATH = ROOT / "pixi.toml"
 
 
+def test_osf_metadata_buffer_exposes_binary_mode() -> None:
+    buffer = publish_osf._OSFBytesIO(b"metadata")
+
+    assert buffer.mode == "rb"
+
+
 class _FakeStorage:
     def __init__(self) -> None:
         self.uploads: list[tuple[str, bytes, bool, bool]] = []

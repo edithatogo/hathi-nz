@@ -39,6 +39,12 @@ ZENODO_DOI_LINE = re.compile(
 )
 
 
+class _OSFBytesIO(io.BytesIO):
+    """Bytes buffer compatible with osfclient versions that inspect ``mode``."""
+
+    mode = "rb"
+
+
 def load_osf_metadata(metadata_path: Path) -> dict[str, Any]:
     """Load and validate the local OSF metadata file."""
     if not metadata_path.exists():
@@ -193,7 +199,7 @@ def publish_release(
         remote_path = Path(remote_dir) / relative if remote_dir else relative
         logger.info("Uploading {} to OSF at {}", file_path, remote_path)
         if file_path.resolve() == metadata_path.resolve():
-            payload = io.BytesIO(json.dumps(metadata, indent=2).encode("utf-8"))
+            payload = _OSFBytesIO(json.dumps(metadata, indent=2).encode("utf-8"))
             storage.create_file(remote_path.as_posix(), payload, force=True, update=False)
         else:
             with file_path.open("rb") as fp:
