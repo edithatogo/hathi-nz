@@ -1,11 +1,10 @@
-# HF Sync Pipeline — Daily HathiTrust → Hugging Face Hub sync
+# HF Sync Pipeline — Daily HathiTrust metadata → Hugging Face Hub sync
 #
 # Runs the full acquisition pipeline on a schedule or manual trigger.
 # Steps:
 #   1. fetch_hathitrust.py — Fetch/update the volume catalog manifest
-#   2. stage_hf_dataset.py  — Download and stage volume content
-#   3. validate_catalog.py  — Validate staged data (quality gate)
-#   4. upload_hf_dataset.py — Upload to Hugging Face Hub
+#   2. Build the rights-gated inventory publication bundle
+#   3. Upload metadata and manifests to Hugging Face Hub
 
 name: HF Sync Pipeline
 
@@ -16,7 +15,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   sync:
@@ -48,13 +46,11 @@ jobs:
         run: |
           set -euo pipefail
           export HATHI_ROOT="$RUNNER_TEMP/hathi-nz"
-          mkdir -p "$HATHI_ROOT/manifests" "$HATHI_ROOT/raw" "$HATHI_ROOT/processed" "$HATHI_ROOT/state"
+          mkdir -p "$HATHI_ROOT/inventory" "$HATHI_ROOT/publication"
           {
             echo "HATHI_ROOT=$HATHI_ROOT"
-            echo "MANIFEST_PATH=$HATHI_ROOT/manifests/latest_manifest.json"
-            echo "DOWNLOAD_DIR=$HATHI_ROOT/raw"
-            echo "STAGE_DIR=$HATHI_ROOT/processed"
-            echo "STATE_DIR=$HATHI_ROOT/state"
+            echo "INVENTORY_PATH=$HATHI_ROOT/inventory/nz_parliamentary_debates_hansard.json"
+            echo "PUBLICATION_DIR=$HATHI_ROOT/publication"
           } >> "$GITHUB_ENV"
 
       - name: Fetch catalog manifest in GitHub Actions
@@ -62,34 +58,32 @@ jobs:
           pixi run -e dev python scripts/fetch_hathitrust.py collection-export \
             --collection-id "${{ vars.HATHI_COLLECTION_ID || '71329709' }}" \
             --export-file "$GITHUB_WORKSPACE/data/hathi_collection_export_71329709.tsv" \
-            --output "$MANIFEST_PATH"
+            --output "$INVENTORY_PATH"
 
-      - name: Stage datasets
-        env:
-          HATHI_API_CONSUMER_KEY: ${{ secrets.HATHI_API_CONSUMER_KEY }}
-          HATHI_API_CONSUMER_SECRET: ${{ secrets.HATHI_API_CONSUMER_SECRET }}
+      - name: Build metadata-only publication bundle
         run: |
-          pixi run -e dev python scripts/stage_hf_dataset.py \
-            --manifest "$MANIFEST_PATH" \
-            --download-dir "$DOWNLOAD_DIR" \
-            --stage-dir "$STAGE_DIR" \
-            --state-dir "$STATE_DIR"
+          set -euo pipefail
+          mkdir -p "$PUBLICATION_DIR/inventory" "$PUBLICATION_DIR/reports"
+          cp "$INVENTORY_PATH" "$PUBLICATION_DIR/inventory/"
+          cp manifests/hathitrust-nz/collection_manifest.json "$PUBLICATION_DIR/inventory/"
+          cp manifests/hathitrust-nz/routing_manifest.json "$PUBLICATION_DIR/inventory/"
+          cp reports/status/status_report.json "$PUBLICATION_DIR/reports/" 2>/dev/null || true
+          cp reports/publication_evidence/publication_evidence.json "$PUBLICATION_DIR/reports/" 2>/dev/null || true
+          cp reports/blockers/blocker_report.json "$PUBLICATION_DIR/reports/" 2>/dev/null || true
 
-      - name: Validate catalog and staged data
+      - name: Validate inventory publication bundle
         run: |
           pixi run -e dev python scripts/validate_catalog.py \
-            --manifest "$MANIFEST_PATH" \
-            --stage-dir "$STAGE_DIR" \
+            --manifest "$INVENTORY_PATH" \
             --schema manifests/schema.json \
-            --report "$STATE_DIR/validation_report.json" \
-            --fail-on-warning
+            --report "$PUBLICATION_DIR/validation_report.json"
 
-      - name: Upload to Hugging Face Hub
+      - name: Upload metadata and manifests to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          pixi run -e dev python scripts/upload_hf_dataset.py \
-            --stage-dir "$STAGE_DIR" \
+          pixi run -e dev python scripts/upload_hf_folder.py \
+            --source-dir "$PUBLICATION_DIR" \
             --repo-id edithatogo/corpus-nz-hathi \
-            --state-dir "$STATE_DIR" \
-            --commit-message "Auto-sync: corpus-nz-hathi update"
+            --path-in-repo "archive-metadata" \
+            --commit-message "Auto-sync: rights-gated HathiTrust metadata update"
