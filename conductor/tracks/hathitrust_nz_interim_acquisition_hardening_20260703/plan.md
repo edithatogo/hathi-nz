@@ -118,3 +118,7 @@
   Ruff, strict Pyright, typos, Taplo, Actionlint, CodeQL, and the security gate.
 - Current hosted validation passed on 2026-07-15 at commit `32461e8`: CI,
   Docs, Containerization Smoke Test, CodeQL, Security Gate, and Mirror Sync.
+- [2026-07-21] GitHub Actions Internet Archive full-seed smoke run succeeded:
+  run `29825993206` matched 405 of 510 records, routed 105 to manual review,
+  and downloaded no full text (`dry_run=true`). The durable overlap evidence
+  is preserved under `reports/internet_archive/`.

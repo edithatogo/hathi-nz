@@ -28,6 +28,10 @@ def test_publication_status_workflow_reports_non_blocking_status() -> None:
     assert "schedule:" in workflow
     assert "workflow_dispatch" in workflow
     assert "workflow_run_id" in workflow
+    assert "strict:" in workflow
+    assert "Fail when publication or roadmap readiness is not complete." in workflow
+    assert 'if [ "${{ inputs.strict }}" = "true" ]' in workflow
+    assert "ARGS=()" in workflow
     assert "actions/download-artifact@v5" in workflow
     assert "Summarize blockers" in workflow
     assert "Publication blockers" in workflow

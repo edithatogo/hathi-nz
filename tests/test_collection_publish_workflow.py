@@ -30,6 +30,12 @@ def test_collection_publish_workflow_runs_strict_publication_status_gate() -> No
     assert "source-policy" in workflow
     assert "internet-archive" in workflow
     assert "metadata-refresh" in workflow
+    assert "metadata_refresh_limit:" in workflow
+    assert 'default: "25"' in workflow
+    assert "source_plan_limit:" in workflow
+    assert '--limit "${{ inputs.source_plan_limit }}"' in workflow
+    assert "timeout-minutes: 30" in workflow
+    assert '--limit "${{ inputs.metadata_refresh_limit }}"' in workflow
     assert "status-report" in workflow
     assert "htrc-analytics-plan" in workflow
     assert 'cp "$BUILD_DIR/research_datasets/internet_archive"' in workflow

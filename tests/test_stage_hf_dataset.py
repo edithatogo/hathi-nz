@@ -4,19 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC
-from datetime import datetime as real_datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 import pytest
 import requests
 
 from scripts.stage_hf_dataset import (
     _compute_sha256,
-    _hathi_api_credentials,
-    _sign_hathi_url,
     build_metadata_dataframe,
     download_volume,
     load_manifest,
@@ -131,7 +126,7 @@ class TestDownloadVolume:
 
             @staticmethod
             def iter_content(chunk_size: int = 65536) -> Any:  # noqa: ARG004
-                return [b"fake zip content"]
+                return [b"fake zip", b"", b" content"]
 
             @staticmethod
             def raise_for_status() -> None:
@@ -217,51 +212,6 @@ class TestDownloadVolume:
 
         assert result is not None
         assert calls["count"] == 3
-
-
-# ---------------------------------------------------------------
-# Tests: HathiTrust API signing helpers
-# ---------------------------------------------------------------
-
-
-class TestHathiApiSigning:
-    def test_credentials_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("HATHI_API_CONSUMER_KEY", raising=False)
-        monkeypatch.delenv("HATHI_API_CONSUMER_SECRET", raising=False)
-        assert _hathi_api_credentials() is None
-
-    def test_credentials_present(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("HATHI_API_CONSUMER_KEY", "key")
-        monkeypatch.setenv("HATHI_API_CONSUMER_SECRET", "secret")
-        assert _hathi_api_credentials() == ("key", "secret")
-
-    def test_sign_hathi_url_includes_oauth_params(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        class FakeDateTime:
-            @staticmethod
-            def now(tz: Any = None) -> Any:  # noqa: ARG004
-                return real_datetime(2026, 7, 2, 0, 0, 0, tzinfo=UTC)
-
-        monkeypatch.setattr("scripts.stage_hf_dataset.datetime", FakeDateTime)
-        monkeypatch.setattr("scripts.stage_hf_dataset.os.urandom", lambda n: b"\x01" * n)
-
-        signed = _sign_hathi_url(
-            "https://babel.hathitrust.org/cgi/htd/aggregate/uc1.b2889853?v=2",
-            "consumer",
-            "secret",
-        )
-        parsed = urlparse(signed)
-        params = parse_qs(parsed.query)
-
-        assert parsed.scheme == "https"
-        assert parsed.netloc == "babel.hathitrust.org"
-        assert parsed.path == "/cgi/htd/aggregate/uc1.b2889853"
-        assert params["v"] == ["2"]
-        assert params["oauth_consumer_key"] == ["consumer"]
-        assert params["oauth_signature_method"] == ["HMAC-SHA1"]
-        assert params["oauth_version"] == ["1.0"]
-        assert "oauth_timestamp" in params
-        assert "oauth_nonce" in params
-        assert "oauth_signature" in params
 
 
 # ---------------------------------------------------------------

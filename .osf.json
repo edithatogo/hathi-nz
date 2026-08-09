@@ -1,6 +1,6 @@
 {
   "title": "corpus-nz-hathi: NZ Parliamentary Debates (1854-1990) from HathiTrust",
-  "description": "OSF mirror metadata for prepared corpus-nz-hathi release archives generated from the Hathi NZ pipeline. The mirror reuses the same packaged release bundles and provenance metadata published for Zenodo snapshots.",
+  "description": "OSF mirror metadata for the HathiTrust-NZ collection and its reproducible child-dataset release bundles. The mirror reuses the same manifests, checksums, provenance contract, and publication metadata published for Hugging Face and Zenodo snapshots.",
   "category": "data",
   "tags": [
     "new-zealand",
@@ -13,6 +13,15 @@
     "osf"
   ],
   "source_metadata": ".zenodo.json",
+  "provenance_contract": "docs/provenance-and-reproducibility.md",
+  "collection_registry": "manifests/hathitrust-nz/archive_registry.json",
+  "child_datasets": [
+    "edithatogo/corpus-nz-hathi",
+    "edithatogo/hathitrust-nz-inventory",
+    "edithatogo/hathitrust-nz-research-fulltext",
+    "edithatogo/hathitrust-nz-htrc-extracted-features",
+    "edithatogo/hathitrust-nz-htrc-analytics"
+  ],
   "release_archive": "dist/corpus-nz-hathi-<version>.zip",
   "release_manifest": "dist/corpus-nz-hathi-<version>-manifest.json",
   "project_notes": [

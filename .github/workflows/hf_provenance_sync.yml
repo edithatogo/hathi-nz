@@ -1,0 +1,104 @@
+name: Hugging Face Provenance Sync
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      HF_COLLECTION_SLUG: ${{ vars.HF_COLLECTION_SLUG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0
+        with:
+          pixi-version: latest
+          cache: true
+          environments: dev
+
+      - name: Build provenance bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/hathi-nz-hf-provenance"
+          mkdir -p "$bundle"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path.cwd()
+          registry = json.loads(
+              (root / "manifests/hathitrust-nz/archive_registry.json").read_text()
+          )
+          cards = {
+              "corpus-nz-hathi": root / "DATASET_CARD.md",
+              "hathitrust-nz-inventory": root / "dataset_cards/hathitrust-nz-inventory.md",
+              "hathitrust-nz-research-fulltext": root / "dataset_cards/hathitrust-nz-research-fulltext.md",
+              "hathitrust-nz-htrc-extracted-features": root / "dataset_cards/hathitrust-nz-htrc-extracted-features.md",
+              "hathitrust-nz-htrc-analytics": root / "dataset_cards/hathitrust-nz-htrc-analytics.md",
+          }
+          out = Path(os.environ["RUNNER_TEMP"]) / "hathi-nz-hf-provenance"
+          for dataset in registry["datasets"]:
+              dataset_id = dataset["dataset_id"]
+              target = out / dataset_id
+              target.mkdir(parents=True, exist_ok=True)
+              (target / "README.md").write_text(cards[dataset_id].read_text(), encoding="utf-8")
+              (target / "PROVENANCE.md").write_text(
+                  (root / "docs/provenance-and-reproducibility.md").read_text(), encoding="utf-8"
+              )
+              (target / "archive_registry.json").write_text(
+                  json.dumps(registry, indent=2) + "\n", encoding="utf-8"
+              )
+              (target / "collection_manifest.json").write_text(
+                  (root / "manifests/hathitrust-nz/collection_manifest.json").read_text(),
+                  encoding="utf-8",
+              )
+              publication = {
+                  "dataset_id": dataset_id,
+                  "hf_repo": dataset["hf_repo"],
+                  "zenodo_doi": dataset.get("zenodo_doi"),
+                  "source_commit": os.environ["GITHUB_SHA"],
+                  "workflow_run": os.environ["GITHUB_RUN_ID"],
+                  "provenance_contract": "PROVENANCE.md",
+                  "publication_policy": dataset["access_class"],
+              }
+              (target / "PUBLICATION_METADATA.json").write_text(
+                  json.dumps(publication, indent=2) + "\n", encoding="utf-8"
+              )
+          PY
+
+      - name: Upload provenance to every dataset repository
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Missing HF_TOKEN secret." >&2
+            exit 1
+          fi
+          for dataset in corpus-nz-hathi hathitrust-nz-inventory hathitrust-nz-research-fulltext hathitrust-nz-htrc-extracted-features hathitrust-nz-htrc-analytics; do
+            pixi run -e dev python scripts/upload_hf_folder.py \
+              --source-dir "$RUNNER_TEMP/hathi-nz-hf-provenance/$dataset" \
+              --repo-id "edithatogo/$dataset" \
+              --commit-message "Add provenance and reproducibility metadata"
+          done
+
+      - name: Refresh Hugging Face collection links
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -euo pipefail
+          args=(--manifest manifests/hathitrust-nz/collection_manifest.json)
+          if [ -n "$HF_COLLECTION_SLUG" ]; then
+            args+=(--collection-slug "$HF_COLLECTION_SLUG")
+          fi
+          pixi run -e dev python scripts/sync_hf_collection.py "${args[@]}"

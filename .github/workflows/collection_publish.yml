@@ -30,6 +30,16 @@ on:
         options:
           - internet_archive_fallback
           - hathi_static_host
+      metadata_refresh_limit:
+        description: Maximum records to refresh during publication. Use 0 for all records.
+        required: false
+        default: "25"
+        type: string
+      source_plan_limit:
+        description: Maximum records per external source plan. Use 0 for all records.
+        required: false
+        default: "25"
+        type: string
       interim_source_limit:
         description: Maximum fallback source volumes to plan and fetch for this run.
         required: false
@@ -47,6 +57,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       INVENTORY_REPO_ID: ${{ vars.HF_INVENTORY_REPO_ID || 'edithatogo/hathitrust-nz-inventory' }}
       RESEARCH_REPO_ID: ${{ vars.HF_RESEARCH_FULLTEXT_REPO_ID || 'edithatogo/hathitrust-nz-research-fulltext' }}
@@ -123,13 +134,13 @@ jobs:
           pixi run -e dev python scripts/hathitrust_nz_archive.py metadata-refresh \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/metadata" \
-            --limit 0
+            --limit "${{ inputs.metadata_refresh_limit }}"
           if [ "${{ inputs.source_mode }}" = "hathi_static_host" ]; then
             pixi run -e dev python scripts/hathitrust_nz_archive.py research-rsync-plan \
               --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
               --output-dir "$BUILD_DIR/research_datasets" \
               --source-dataset-name ht_text_pd_world_open_access \
-              --limit 0
+              --limit "${{ inputs.source_plan_limit }}"
           else
             pixi run -e dev python scripts/hathitrust_nz_archive.py internet-archive-plan \
               --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
@@ -139,11 +150,11 @@ jobs:
           pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/htrc_ef" \
-            --limit 0
+            --limit "${{ inputs.source_plan_limit }}"
           pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-analytics-plan \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/htrc_analytics" \
-            --limit 0
+            --limit "${{ inputs.source_plan_limit }}"
           pixi run -e dev python scripts/hathitrust_nz_archive.py publication-evidence \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
             --output-dir "$BUILD_DIR/publication_evidence"

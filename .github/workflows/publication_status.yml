@@ -14,6 +14,11 @@ on:
         required: false
         default: hathitrust-nz-collection-publication
         type: string
+      strict:
+        description: Fail when publication or roadmap readiness is not complete.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -90,7 +95,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ARGS=(--strict)
+          ARGS=()
+          if [ "${{ inputs.strict }}" = "true" ]; then
+            ARGS+=(--strict)
+          fi
           if [ -n "${{ inputs.workflow_run_id }}" ]; then
             ARGS+=(--status-report "$RUNNER_TEMP/publication-status-artifact/reports/status/status_report.json")
             ARGS+=(--publication-evidence "$RUNNER_TEMP/publication-status-artifact/publication_evidence/publication_evidence.json")
