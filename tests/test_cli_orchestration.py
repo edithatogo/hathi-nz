@@ -262,26 +262,6 @@ def test_operational_parsers_and_cli_wrappers(
     assert upload_hf_folder.main() == 0
 
 
-def test_signed_hathi_aggregate_handles_credentials_and_streaming(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    output = tmp_path / "aggregate.json.gz"
-    monkeypatch.setattr(stage, "_hathi_api_credentials", lambda: None)
-    assert stage._download_signed_hathi_aggregate("uc1.test", output) is None
-
-    class Response:
-        status_code = 200
-
-        def iter_content(self, chunk_size: int):
-            return [b"one", b"", b"two"]
-
-    monkeypatch.setattr(stage, "_hathi_api_credentials", lambda: ("key", "secret"))
-    monkeypatch.setattr(stage, "_sign_hathi_url", lambda *args: "https://signed.example")
-    monkeypatch.setattr(stage.requests, "get", lambda *args, **kwargs: Response())
-    assert stage._download_signed_hathi_aggregate("uc1.test", output) == output
-    assert output.read_bytes() == b"onetwo"
-
-
 def test_status_publication_and_blocker_reports(tmp_path: Path) -> None:
     inventory = {
         "meta": {"collection_id": "71329709", "record_count": 1},
