@@ -64,6 +64,8 @@ def test_security_gate_fails_on_high_or_critical_alerts() -> None:
     assert "security-events: read" in content
     assert 'security_severity_level == "high"' in content
     assert 'security_severity_level == "critical"' in content
+    assert 'ALERT_REF: ${{ github.ref }}' in content
+    assert '-f ref="${ALERT_REF}"' in content
     assert 'test "${count}" -eq 0' in content
 
 

@@ -19,12 +19,16 @@ jobs:
       - name: Query open code-scanning alerts
         env:
           GH_TOKEN: ${{ github.token }}
+          ALERT_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
-          count="$(gh api --paginate \
+          count="$(gh api --method GET --paginate \
             -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/code-scanning/alerts?state=open&per_page=100" \
+            "/repos/${GITHUB_REPOSITORY}/code-scanning/alerts" \
+            -f state=open \
+            -f per_page=100 \
+            -f ref="${ALERT_REF}" \
             --jq '[.[] | select(.rule.security_severity_level == "high" or .rule.security_severity_level == "critical")] | length' \
             | awk '{ total += $1 } END { print total + 0 }')"
-          echo "Open high/critical code-scanning alerts: ${count}"
+          echo "Open high/critical code-scanning alerts for ${ALERT_REF}: ${count}"
           test "${count}" -eq 0
