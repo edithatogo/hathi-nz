@@ -34,6 +34,14 @@ def test_osf_metadata_buffer_exposes_binary_mode() -> None:
     assert buffer.mode == "rb"
 
 
+def test_osf_metadata_buffer_peek_does_not_advance_position() -> None:
+    buffer = publish_osf._OSFBytesIO(b"metadata")
+    buffer.seek(2)
+
+    assert buffer.peek(3) == b"tad"
+    assert buffer.tell() == 2
+
+
 class _FakeStorage:
     def __init__(self) -> None:
         self.uploads: list[tuple[str, bytes, bool, bool]] = []

@@ -126,7 +126,7 @@ class TestDownloadVolume:
 
             @staticmethod
             def iter_content(chunk_size: int = 65536) -> Any:  # noqa: ARG004
-                return [b"fake zip content"]
+                return [b"fake zip", b"", b" content"]
 
             @staticmethod
             def raise_for_status() -> None:
