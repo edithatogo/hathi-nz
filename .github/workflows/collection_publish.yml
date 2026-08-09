@@ -40,6 +40,11 @@ on:
         required: false
         default: "25"
         type: string
+      interim_source_limit:
+        description: Maximum fallback source volumes to plan and fetch for this run.
+        required: false
+        default: "3"
+        type: number
       production:
         description: Publish Zenodo releases to production instead of sandbox.
         required: false
@@ -140,7 +145,7 @@ jobs:
             pixi run -e dev python scripts/hathitrust_nz_archive.py internet-archive-plan \
               --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
               --output-dir "$BUILD_DIR/research_datasets/internet_archive" \
-              --limit "${{ inputs.source_plan_limit }}"
+              --limit "${{ inputs.interim_source_limit }}"
           fi
           pixi run -e dev python scripts/hathitrust_nz_archive.py htrc-ef-plan \
             --inventory "$BUILD_DIR/inventory/nz_parliamentary_debates_hansard.json" \
@@ -190,22 +195,26 @@ jobs:
             --source-dir "$BUILD_DIR" \
             --repo-id "$INVENTORY_REPO_ID" \
             --path-in-repo "collection" \
-            --commit-message "Update HathiTrust-NZ collection manifests"
+            --commit-message "Update HathiTrust-NZ collection manifests" \
+            --create-pr
           pixi run -e dev python scripts/upload_hf_folder.py \
             --source-dir "$BUILD_DIR/research_datasets" \
             --repo-id "$RESEARCH_REPO_ID" \
             --path-in-repo "research-datasets" \
-            --commit-message "Update HathiTrust-NZ Research Dataset plan"
+            --commit-message "Update HathiTrust-NZ Research Dataset plan" \
+            --create-pr
           pixi run -e dev python scripts/upload_hf_folder.py \
             --source-dir "$BUILD_DIR/htrc_ef" \
             --repo-id "$HTRC_EF_REPO_ID" \
             --path-in-repo "htrc-ef-2.5" \
-            --commit-message "Update HathiTrust-NZ HTRC EF subset"
+            --commit-message "Update HathiTrust-NZ HTRC EF subset" \
+            --create-pr
           pixi run -e dev python scripts/upload_hf_folder.py \
             --source-dir "$BUILD_DIR/htrc_analytics" \
             --repo-id "$HTRC_ANALYTICS_REPO_ID" \
             --path-in-repo "analytics" \
-            --commit-message "Update HathiTrust-NZ HTRC Analytics outputs"
+            --commit-message "Update HathiTrust-NZ HTRC Analytics outputs" \
+            --create-pr
 
       - name: Create/update Hugging Face collection
         if: ${{ inputs.publish_hf_collection }}

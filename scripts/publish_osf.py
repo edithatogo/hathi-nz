@@ -42,7 +42,10 @@ ZENODO_DOI_LINE = re.compile(
 class _OSFBytesIO(io.BytesIO):
     """Bytes buffer compatible with osfclient versions that inspect ``mode``."""
 
-    mode = "rb"
+    @property
+    def mode(self) -> str:
+        """Report the binary mode expected by osfclient."""
+        return "rb"
 
     def peek(self, size: int = -1) -> bytes:
         """Provide the peek API used by newer osfclient releases."""

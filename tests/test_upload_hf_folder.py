@@ -59,6 +59,7 @@ def test_upload_folder_execute_uses_hf_api(
             folder_path: str,
             path_in_repo: str,
             commit_message: str,
+            create_pr: bool,
         ) -> str:
             self.uploaded = {
                 "repo_id": repo_id,
@@ -66,6 +67,7 @@ def test_upload_folder_execute_uses_hf_api(
                 "folder_path": folder_path,
                 "path_in_repo": path_in_repo,
                 "commit_message": commit_message,
+                "create_pr": create_pr,
             }
             return "https://huggingface.co/datasets/test/repo/commit/abc"
 
@@ -78,11 +80,13 @@ def test_upload_folder_execute_uses_hf_api(
         repo_id="test/repo",
         path_in_repo="manifests",
         commit_message="test upload",
+        create_pr=True,
     )
 
     assert result["commit_url"] == "https://huggingface.co/datasets/test/repo/commit/abc"
     assert api.uploaded["repo_id"] == "test/repo"
     assert api.uploaded["path_in_repo"] == "manifests"
+    assert api.uploaded["create_pr"] is True
 
 
 def test_parse_args() -> None:
@@ -94,10 +98,12 @@ def test_parse_args() -> None:
             "test/repo",
             "--path-in-repo",
             "archive",
+            "--create-pr",
             "--dry-run",
         ]
     )
     assert args.source_dir == Path("generated")
     assert args.repo_id == "test/repo"
     assert args.path_in_repo == "archive"
+    assert args.create_pr is True
     assert args.dry_run is True

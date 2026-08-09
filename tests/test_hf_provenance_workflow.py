@@ -5,9 +5,7 @@ from pathlib import Path
 
 def test_hf_provenance_workflow_publishes_all_child_cards() -> None:
     root = Path(__file__).resolve().parents[1]
-    workflow = (root / ".github/workflows/hf_provenance_sync.yml").read_text(
-        encoding="utf-8"
-    )
+    workflow = (root / ".github/workflows/hf_provenance_sync.yml").read_text(encoding="utf-8")
 
     for dataset_id in (
         "corpus-nz-hathi",
